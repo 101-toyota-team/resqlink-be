@@ -6,14 +6,12 @@
 - [Tech Stack](#tech-stack)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
-- [Environment Variables](#environment-variables)
 - [Running the Project](#running-the-project)
 - [Project Structure](#project-structure)
 - [API Endpoints](#api-endpoints)
 - [Authentication](#authentication)
 - [Database](#database)
 - [Development Guidelines](#development-guidelines)
-- [Deployment](#deployment)
 
 ## Features
 
@@ -118,25 +116,7 @@ python manage.py runserver
 # Server runs at http://localhost:8000
 ```
 
-### Production Server (with Gunicorn)
-
-```bash
-# Activate virtual environment
-source env/bin/activate
-
-# Run with Gunicorn
-gunicorn resqlink.wsgi:application --bind 0.0.0.0:8000 --workers 4
-
-# Or with better configuration
-gunicorn resqlink.wsgi:application \
-  --bind 0.0.0.0:8000 \
-  --workers 4 \
-  --worker-class sync \
-  --access-logfile - \
-  --error-logfile -
-```
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 resqlink-be/
