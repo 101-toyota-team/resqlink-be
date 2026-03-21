@@ -7,3 +7,4 @@ urllib3
 djangorestframework
 djangorestframework-simplejwt
 dotenv
+django-cors-headers
