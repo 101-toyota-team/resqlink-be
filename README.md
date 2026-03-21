@@ -97,10 +97,9 @@ python manage.py collectstatic --noinput
 ```
 
 ### Important Notes:
-- **DEBUG**: Always set to `False` in production
-- **SECRET_KEY**: Use a strong, random string in production
-- **Database**: Use PostgreSQL in production, SQLite/PostgreSQL in development
-- **ALLOWED_HOSTS**: Configure based on your domain
+- **DEBUG**: Always set to `False` in production  
+- **Database**: Production database (PostgreSQL) will be managed and configured via Railway  
+- **ALLOWED_HOSTS**: Will be set according to the Railway deployment domain  
 
 ## Running the Project
 
