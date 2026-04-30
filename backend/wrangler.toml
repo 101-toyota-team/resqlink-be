@@ -1,0 +1,7 @@
+name = "resqlink-backend"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+SUPABASE_URL = "https://your-project.supabase.co"
+# DO NOT put secrets here. Use .dev.vars for local and 'wrangler secret put' for prod.

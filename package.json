@@ -1,0 +1,10 @@
+{
+  "name": "ambulance-routing-app",
+  "private": true,
+  "scripts": {
+    "setup": "cd backend && npm install",
+    "dev:backend": "cd backend && npm run dev",
+    "lint": "cd backend && npm run lint",
+    "format": "cd backend && npm run format"
+  }
+}
