@@ -1,0 +1,24 @@
+{
+  "name": "resqlink-backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "format": "prettier --write '**/*.{ts,js}'",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "hono": "^4.0.0",
+    "@upstash/redis": "^1.28.0",
+    "h3-js": "^4.1.0",
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0",
+    "typescript": "^5.0.0",
+    "@cloudflare/workers-types": "^4.0.0",
+    "prettier": "^3.0.0",
+    "eslint": "^8.0.0"
+  }
+}
