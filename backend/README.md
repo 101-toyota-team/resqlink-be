@@ -27,3 +27,4 @@ This is the Cloudflare Workers backend for the vehicle routing app.
 *   **H3 Neighbor Expansion**: The backend is responsible for expanding the search radius using `h3.gridDisk(h3Index, 1)`. 
 *   **Matchmaking**: Discovery queries Upstash Redis sets (`h3_zone:{index}`) in parallel to find available drivers.
 *   **Presence**: Driver location keys in Redis have a 15-second TTL. The backend considers a driver "Phantom/Offline" if no ping is received for 60 seconds (monitored via Supabase status).
+
