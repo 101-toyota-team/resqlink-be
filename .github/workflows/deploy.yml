@@ -3,11 +3,12 @@ name: Deploy Backend
 on:
   push:
     branches:
-      - main
+      - staging
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: DEVELOPMENT
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -26,6 +27,12 @@ jobs:
         with:
           version: latest
 
+      - name: Verify Secrets
+        run: |
+          if [ -z "${{ secrets.SUPABASE_PROJECT_ID }}" ]; then echo "❌ SUPABASE_PROJECT_ID is missing"; exit 1; fi
+          if [ -z "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ]; then echo "❌ SUPABASE_ACCESS_TOKEN is missing"; exit 1; fi
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then echo "❌ CLOUDFLARE_API_TOKEN is missing"; exit 1; fi
+
       - name: Deploy Supabase Migrations
         run: |
           supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
@@ -34,9 +41,16 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
-      - name: Deploy Cloudflare Worker
-        working-directory: ./backend
-        run: npx wrangler deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+       - name: Deploy Cloudflare Worker
+         working-directory: ./backend
+         run: npx wrangler deploy
+         env:
+           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+# TODO: Add PRODUCTION environment deployment
+# When ready to deploy main branch to production:
+# 1. Create a "PRODUCTION" environment in GitHub settings
+# 2. Configure it to deploy on 'main' branch
+# 3. Add PRODUCTION secrets (same variables as DEVELOPMENT)
+# 4. Add a second deploy job that targets the 'main' branch and PRODUCTION environment
