@@ -1,18 +1,48 @@
-import { IPersistenceRepository } from '../repositories/db';
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { IPersistenceRepository } from "../repositories/db";
+import { Booking, BookingData } from "../types";
+import { fetchWithTimeout } from "./util";
 
 export class SupabaseRepository implements IPersistenceRepository {
-  constructor(private url: string, private key: string) {}
+  private client: SupabaseClient;
 
-  async createBooking(data: any): Promise<any> {
-    // Stub: Logic to call Supabase REST API or use supabase-js
-    return { id: 'BKG-STUB-' + Math.random().toString(36).substr(2, 9), ...data };
+  constructor(url: string, key: string) {
+    this.client = createClient(url, key, {
+      global: {
+        fetch: (url, options) => fetchWithTimeout(url as string, options),
+      },
+    });
   }
 
-  async getBooking(id: string): Promise<any | null> {
-    return null;
+
+  async createBooking(data: BookingData): Promise<Booking> {
+    const { data: booking, error } = await this.client
+      .from("bookings")
+      .insert(data)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return booking as Booking;
+  }
+
+  async getBooking(id: string): Promise<Booking | null> {
+    const { data: booking, error } = await this.client
+      .from("bookings")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) return null;
+    return booking as Booking;
   }
 
   async updateBookingStatus(id: string, status: string): Promise<void> {
-    // Logic to update booking status
+    const { error } = await this.client
+      .from("bookings")
+      .update({ status })
+      .eq("id", id);
+
+    if (error) throw new Error(error.message);
   }
 }

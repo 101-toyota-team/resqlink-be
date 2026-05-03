@@ -1,78 +1,25 @@
-import { IDispatchService } from "./services/dispatch";
-import { IProviderService } from "./services/providers";
-import { IHospitalService } from "./services/hospitals";
-import { IPersistenceRepository } from "./repositories/db";
-import { IMapsRepository } from "./repositories/maps";
-import { ICacheRepository } from "./repositories/cache";
-
-export const PROVIDER_TYPES = [
-  "rumah_sakit",
-  "klinik",
-  "komunitas",
-  "rt_rw",
-  "yayasan",
-  "masjid",
-  "lainnya",
-] as const;
-
-export type ProviderType = (typeof PROVIDER_TYPES)[number];
-
-export interface Provider {
-  id: string;
-  name: string;
-  h3_index: string;
-  latitude: number;
-  longitude: number;
-  provider_type: ProviderType;
-  address: string;
-  phone: string;
-  created_at: string;
-}
-
-export interface ProviderDetails extends Provider {
-  distance: string;
-}
-
-export interface Hospital extends Provider {
-  igd_phone: string;
-  igd_email: string;
-  bed_capacity: number;
-  specializations: string[];
-  accreditation: string;
-  rating: number;
-  rating_count: number;
-  website_url: string;
-}
-
-export interface HospitalDetails extends Hospital {
-  distance: string;
-}
-
 export interface DriverLocation {
   lat: number;
   lng: number;
-  heading: number;
-  speed: number;
+  heading?: number;
+  speed?: number;
 }
 
 export interface DriverDetails extends DriverLocation {
   id: string;
-  eta: string;
-  distance: string;
+  eta?: string;
+  distance?: string;
 }
 
 export interface BookingData {
   ambulance_id: string;
-  booking_type: "medis" | "sosial" | "jenazah" | "darurat";
-  patient_condition: string;
-  pickup_address: string;
+  booking_type: "medical" | "social";
   pickup_lat: number;
   pickup_lng: number;
   pickup_h3: string;
-  destination_address: string;
-  destination_lat: number;
-  destination_lng: number;
-  user_id: string;
+  destination_lat?: number;
+  destination_lng?: number;
+  user_id?: string;
 }
 
 export interface Booking extends BookingData {
@@ -83,8 +30,8 @@ export interface Booking extends BookingData {
 
 export interface JwtPayload {
   sub: string;
-  role: string;
-  [key: string]: string | number | boolean | undefined;
+  role?: string;
+  [key: string]: any;
 }
 
 export interface GoogleDistanceMatrixResponse {
@@ -99,35 +46,11 @@ export interface GoogleDistanceMatrixResponse {
 }
 
 export interface GoogleDirectionsResponse {
-  routes: Array<{
-    bounds: Record<string, unknown>;
-    copyrights: string;
-    legs: unknown[];
-    overview_polyline: Record<string, unknown>;
-    summary: string;
-    warnings: string[];
-    waypoint_order: number[];
-  }>;
+  routes: any[];
   status: string;
 }
 
 export interface GooglePlacesResponse {
-  results: Array<{
-    formatted_address: string;
-    geometry: Record<string, unknown>;
-    name: string;
-    place_id: string;
-    types: string[];
-  }>;
+  results: any[];
   status: string;
-}
-
-export interface AppVariables {
-  getDispatchService: () => IDispatchService;
-  getProviderService: () => IProviderService;
-  getHospitalService: () => IHospitalService;
-  getDb: () => IPersistenceRepository;
-  getMaps: () => IMapsRepository;
-  getCache: () => ICacheRepository;
-  jwtPayload: JwtPayload;
 }

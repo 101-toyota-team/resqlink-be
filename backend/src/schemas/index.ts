@@ -1,19 +1,4 @@
 import { z } from "zod";
-import * as h3 from "h3-js";
-
-const h3IndexSchema = z.string().refine(
-  (val) => {
-    if (val.length !== 15) return false;
-    try {
-      const latLng = h3.cellToLatLng(val);
-      const res7 = h3.latLngToCell(latLng[0], latLng[1], 7);
-      return res7 === val;
-    } catch {
-      return false;
-    }
-  },
-  { message: "Invalid H3 index" },
-);
 
 export const nearbyAmbulancesSchema = z.object({
   h3_index: z.string().min(1, "h3_index is required"),
@@ -22,15 +7,12 @@ export const nearbyAmbulancesSchema = z.object({
 
 export const bookingSchema = z.object({
   ambulance_id: z.string().uuid(),
-  booking_type: z.enum(["medis", "sosial", "jenazah", "darurat"]),
-  patient_condition: z.string(),
-  pickup_address: z.string(),
-  pickup_lat: z.number().min(-90).max(90),
-  pickup_lng: z.number().min(-180).max(180),
+  booking_type: z.enum(["medical", "social"]),
+  pickup_lat: z.number(),
+  pickup_lng: z.number(),
   pickup_h3: z.string(),
-  destination_address: z.string(),
-  destination_lat: z.number().min(-90).max(90),
-  destination_lng: z.number().min(-180).max(180),
+  destination_lat: z.number().optional(),
+  destination_lng: z.number().optional(),
 });
 
 export const driverPingSchema = z.object({
@@ -41,39 +23,4 @@ export const driverPingSchema = z.object({
   lng: z.number(),
   heading: z.number().optional(),
   speed: z.number().optional(),
-});
-
-// Hospital search endpoint validation - standardized to use 'q' like providers
-export const hospitalSearchSchema = z.object({
-  q: z.string().min(2, "Search query must be at least 2 characters").max(256),
-});
-
-export const hospitalNearbySchema = z.object({
-  h3_index: h3IndexSchema,
-});
-
-export const providerSearchSchema = z.object({
-  q: z.string().min(2, "Search query must be at least 2 characters").max(256),
-});
-
-export const providerNearbySchema = z.object({
-  h3_index: h3IndexSchema,
-});
-
-export const bookingIdParamSchema = z.object({
-  id: z.string().uuid("Invalid booking ID format"),
-});
-
-export const bookingStatusUpdateSchema = z.object({
-  status: z.enum(
-    [
-      "confirmed",
-      "en_route",
-      "arrived",
-      "to_hospital",
-      "completed",
-      "cancelled",
-    ],
-    { errorMap: () => ({ message: "Invalid status value" }) },
-  ),
 });
