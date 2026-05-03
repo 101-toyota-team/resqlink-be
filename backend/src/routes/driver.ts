@@ -1,62 +1,41 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { driverPingSchema } from "../schemas";
-import { AppVariables } from "../types";
+import { DispatchService } from "../services/dispatch";
+import { SupabaseRepository } from "../infrastructure/supabase";
+
+import { JwtPayload } from "../types";
 import { Bindings } from "../schemas/env";
-import logger from "../utils/logger";
-import { ERROR_MESSAGES, validatorHook } from "../utils/constants";
-import { isDriverRole } from "../utils/auth";
 
-const driverApp = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
+type Variables = {
+  getDispatchService: () => DispatchService;
+  getDb: () => SupabaseRepository;
+  jwtPayload: JwtPayload;
+};
 
-driverApp.get("/bookings", async (c) => {
-  try {
-    const payload = c.get("jwtPayload");
-    const isDriver = isDriverRole(payload);
+const driverApp = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-    if (!isDriver) {
-      return c.json({ error: ERROR_MESSAGES.FORBIDDEN_ACCESS }, 403);
-    }
+driverApp.post("/ping", zValidator("json", driverPingSchema), async (c) => {
+  const body = c.req.valid("json");
+  const { driver_id, h3_index, previous_h3_index } = body;
 
-    const db = c.get("getDb")();
-    const bookings = await db.getConfirmedBookings();
+  const payload = c.get("jwtPayload");
+  const isDriver =
+    payload.role === "driver" || payload.app_metadata?.role === "driver";
 
-    return c.json(bookings);
-  } catch (error) {
-    logger.error(error, "Driver /bookings error");
-    return c.json({ error: ERROR_MESSAGES.INTERNAL_ERROR }, 500);
+  if (payload.sub !== driver_id || !isDriver) {
+    return c.json({ error: "Unauthorized driver" }, 403);
   }
+
+  const dispatchService = c.get("getDispatchService")();
+  await dispatchService.updateDriverStatus(
+    driver_id,
+    body,
+    h3_index,
+    previous_h3_index,
+  );
+
+  return c.json({ status: "ok" });
 });
-
-driverApp.post(
-  "/ping",
-  zValidator("json", driverPingSchema, validatorHook),
-  async (c) => {
-    try {
-      const body = c.req.valid("json");
-      const { driver_id } = body;
-
-      const payload = c.get("jwtPayload");
-      const isDriver = isDriverRole(payload);
-
-      if (payload.sub !== driver_id || !isDriver) {
-        return c.json({ error: ERROR_MESSAGES.FORBIDDEN_ACCESS }, 403);
-      }
-
-      const dispatchService = c.get("getDispatchService")();
-      // Simulate with empty data since the path is pre-calculated
-      await dispatchService.updateDriverStatus(
-        driver_id,
-        { lat: 0, lng: 0 },
-        "",
-      );
-
-      return c.json({ status: "ok" });
-    } catch (error) {
-      logger.error(error, "Driver /ping error");
-      return c.json({ error: ERROR_MESSAGES.INTERNAL_ERROR }, 500);
-    }
-  },
-);
 
 export default driverApp;
