@@ -17,6 +17,7 @@ export const diMiddleware: MiddlewareHandler<{
 }> = async (c, next) => {
   let dispatchService: IDispatchService | undefined;
   let dbRepo: SupabaseRepository | undefined;
+  let mapsRepo: GoogleMapsRepository | undefined;
 
   c.set("getDispatchService", () => {
     if (!dispatchService) {
@@ -24,9 +25,9 @@ export const diMiddleware: MiddlewareHandler<{
         c.env.UPSTASH_REDIS_REST_URL,
         c.env.UPSTASH_REDIS_REST_TOKEN
       );
-      const mapsRepo = new GoogleMapsRepository(c.env.GOOGLE_MAPS_API_KEY);
+      const maps = new GoogleMapsRepository(c.env.GOOGLE_MAPS_API_KEY);
       const geoService = new GeoService();
-      const distanceService = new DistanceService(mapsRepo, cacheRepo, geoService);
+      const distanceService = new DistanceService(maps, cacheRepo, geoService);
       
       dispatchService = new DispatchService(cacheRepo, geoService, distanceService);
     }
@@ -41,6 +42,13 @@ export const diMiddleware: MiddlewareHandler<{
       );
     }
     return dbRepo;
+  });
+
+  c.set("getMaps", () => {
+    if (!mapsRepo) {
+      mapsRepo = new GoogleMapsRepository(c.env.GOOGLE_MAPS_API_KEY);
+    }
+    return mapsRepo;
   });
 
   await next();
