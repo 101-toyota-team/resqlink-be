@@ -40,4 +40,15 @@ app.route("/bookings", bookingsApp);
 app.route("/driver", driverApp);
 app.route("/hospitals", hospitalsApp);
 
+app.onError((err, c) => {
+  console.error(`🔥 Unhandled Exception: ${err.message}`, err.stack);
+  return c.json(
+    {
+      error: "Internal Server Error",
+      message: err.message,
+    },
+    500
+  );
+});
+
 export default app;

@@ -22,7 +22,10 @@ export class SupabaseRepository implements IPersistenceRepository {
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error("Supabase createBooking error:", error);
+      throw new Error(`Supabase error: ${error.message}`, { cause: error });
+    }
     return booking as Booking;
   }
 
@@ -33,7 +36,11 @@ export class SupabaseRepository implements IPersistenceRepository {
       .eq("id", id)
       .single();
 
-    if (error) return null;
+    if (error) {
+      if (error.code === "PGRST116") return null; // Not found
+      console.error("Supabase getBooking error:", error);
+      return null;
+    }
     return booking as Booking;
   }
 
@@ -43,6 +50,9 @@ export class SupabaseRepository implements IPersistenceRepository {
       .update({ status })
       .eq("id", id);
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error("Supabase updateBookingStatus error:", error);
+      throw new Error(`Supabase error: ${error.message}`, { cause: error });
+    }
   }
 }
