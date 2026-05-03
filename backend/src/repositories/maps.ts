@@ -1,4 +1,8 @@
-import { GoogleDirectionsResponse, GoogleDistanceMatrixResponse, GooglePlacesResponse } from "../types";
+import {
+  GoogleDirectionsResponse,
+  GoogleDistanceMatrixResponse,
+  GooglePlacesResponse,
+} from "../types";
 
 export interface IMapsRepository {
   getDistanceMatrix(

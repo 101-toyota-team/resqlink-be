@@ -1,8 +1,5 @@
 import { MiddlewareHandler } from "hono";
-import {
-  DispatchService,
-  IDispatchService,
-} from "../services/dispatch";
+import { DispatchService, IDispatchService } from "../services/dispatch";
 import { SupabaseRepository } from "../infrastructure/supabase";
 import { UpstashRedisRepository } from "../infrastructure/upstash";
 import { GoogleMapsRepository } from "../infrastructure/google-maps";
@@ -23,13 +20,17 @@ export const diMiddleware: MiddlewareHandler<{
     if (!dispatchService) {
       const cacheRepo = new UpstashRedisRepository(
         c.env.UPSTASH_REDIS_REST_URL,
-        c.env.UPSTASH_REDIS_REST_TOKEN
+        c.env.UPSTASH_REDIS_REST_TOKEN,
       );
       const maps = new GoogleMapsRepository(c.env.GOOGLE_MAPS_API_KEY);
       const geoService = new GeoService();
       const distanceService = new DistanceService(maps, cacheRepo, geoService);
-      
-      dispatchService = new DispatchService(cacheRepo, geoService, distanceService);
+
+      dispatchService = new DispatchService(
+        cacheRepo,
+        geoService,
+        distanceService,
+      );
     }
     return dispatchService;
   });
@@ -38,7 +39,7 @@ export const diMiddleware: MiddlewareHandler<{
     if (!dbRepo) {
       dbRepo = new SupabaseRepository(
         c.env.SUPABASE_URL,
-        c.env.SUPABASE_SECRET_KEY
+        c.env.SUPABASE_SECRET_KEY,
       );
     }
     return dbRepo;

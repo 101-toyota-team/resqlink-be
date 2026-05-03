@@ -6,7 +6,7 @@ import { IGeoService } from "./geo";
 export interface IDistanceService {
   getEnrichedDrivers<T extends DriverLocation>(
     drivers: T[],
-    pickupLocation: string
+    pickupLocation: string,
   ): Promise<(T & { eta: string; distance: string })[]>;
 }
 
@@ -14,12 +14,12 @@ export class DistanceService implements IDistanceService {
   constructor(
     private maps: IMapsRepository,
     private cache: ICacheRepository,
-    private geo: IGeoService
+    private geo: IGeoService,
   ) {}
 
   async getEnrichedDrivers<T extends DriverLocation>(
     drivers: T[],
-    pickupLocation: string
+    pickupLocation: string,
   ): Promise<(T & { eta: string; distance: string })[]> {
     if (drivers.length === 0) return [];
 
@@ -31,10 +31,10 @@ export class DistanceService implements IDistanceService {
         const dIdx = this.geo.latLngToCell(d.lat, d.lng, 10);
         const cacheKey = `dist_cache:${dIdx}:${pIdx}`;
         const cached = await this.cache.get<{ eta: string; distance: string }>(
-          cacheKey
+          cacheKey,
         );
         return { driver: d, cached };
-      })
+      }),
     );
 
     const uncached = resultsWithCache.filter((r) => !r.cached);
@@ -48,7 +48,7 @@ export class DistanceService implements IDistanceService {
       if (matrix.status !== "OK") {
         console.warn(
           "Google Maps Distance API returned non-OK status:",
-          matrix.status
+          matrix.status,
         );
         return resultsWithCache.map((r) => ({
           ...r.driver,
@@ -71,7 +71,7 @@ export class DistanceService implements IDistanceService {
             await this.cache.set(cacheKey, cacheData, 300);
             r.cached = cacheData;
           }
-        })
+        }),
       );
     }
 

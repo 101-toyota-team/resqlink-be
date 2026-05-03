@@ -11,12 +11,12 @@ export class GoogleMapsRepository implements IMapsRepository {
 
   async getDistanceMatrix(
     origins: string[],
-    destinations: string[]
+    destinations: string[],
   ): Promise<GoogleDistanceMatrixResponse> {
     const originsQuery = origins.join("|");
     const destinationsQuery = destinations.join("|");
     const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(
-      originsQuery
+      originsQuery,
     )}&destinations=${encodeURIComponent(destinationsQuery)}&key=${this.apiKey}`;
 
     const response = await fetchWithTimeout(url);
@@ -29,10 +29,10 @@ export class GoogleMapsRepository implements IMapsRepository {
 
   async getDirections(
     origin: string,
-    destination: string
+    destination: string,
   ): Promise<GoogleDirectionsResponse> {
     const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(
-      origin
+      origin,
     )}&destination=${encodeURIComponent(destination)}&key=${this.apiKey}`;
 
     const response = await fetchWithTimeout(url);
@@ -45,7 +45,7 @@ export class GoogleMapsRepository implements IMapsRepository {
 
   async searchPlaces(query: string): Promise<GooglePlacesResponse> {
     const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(
-      query
+      query,
     )}&key=${this.apiKey}`;
 
     const response = await fetchWithTimeout(url);

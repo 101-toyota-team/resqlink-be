@@ -2,7 +2,10 @@ import { Hono } from "hono";
 import { AppVariables } from "../types";
 import { Bindings } from "../schemas/env";
 
-const hospitalsApp = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
+const hospitalsApp = new Hono<{
+  Bindings: Bindings;
+  Variables: AppVariables;
+}>();
 
 hospitalsApp.get("/search", async (c) => {
   const query = c.req.query("query");

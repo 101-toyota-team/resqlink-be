@@ -8,9 +8,9 @@ vi.mock("../src/infrastructure/upstash", () => {
     UpstashRedisRepository: vi.fn().mockImplementation(function () {
       return {
         getDriversInBucket: vi.fn().mockResolvedValue(["driver_mock_1"]),
-        getDriverLocations: vi.fn().mockResolvedValue([
-          { lat: -6.2, lng: 106.81 },
-        ]),
+        getDriverLocations: vi
+          .fn()
+          .mockResolvedValue([{ lat: -6.2, lng: 106.81 }]),
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
       };

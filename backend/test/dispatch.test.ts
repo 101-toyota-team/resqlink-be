@@ -45,7 +45,7 @@ describe("DispatchService", () => {
     const results = await service.findNearbyDrivers(
       "8828308281fffff",
       1,
-      "-6.12,106.85"
+      "-6.12,106.85",
     );
 
     // 3. Assert
@@ -54,7 +54,7 @@ describe("DispatchService", () => {
       id: "driver_1",
       eta: "5 mins",
     });
-    
+
     expect(mockGeo.getNeighbors).toHaveBeenCalledWith("8828308281fffff", 1);
     expect(mockDistance.getEnrichedDrivers).toHaveBeenCalled();
   });
