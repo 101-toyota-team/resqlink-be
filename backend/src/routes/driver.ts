@@ -1,19 +1,10 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { driverPingSchema } from "../schemas";
-import { DispatchService } from "../services/dispatch";
-import { SupabaseRepository } from "../infrastructure/supabase";
-
-import { JwtPayload } from "../types";
+import { AppVariables } from "../types";
 import { Bindings } from "../schemas/env";
 
-type Variables = {
-  getDispatchService: () => DispatchService;
-  getDb: () => SupabaseRepository;
-  jwtPayload: JwtPayload;
-};
-
-const driverApp = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+const driverApp = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
 
 driverApp.post("/ping", zValidator("json", driverPingSchema), async (c) => {
   const body = c.req.valid("json");
