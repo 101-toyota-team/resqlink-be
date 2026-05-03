@@ -4,8 +4,9 @@ import {
   GooglePlacesResponse,
 } from "../types";
 import { fetchWithTimeout } from "./util";
+import { IMapsRepository } from "../repositories/maps";
 
-export class GoogleMapsRepository {
+export class GoogleMapsRepository implements IMapsRepository {
   constructor(private apiKey: string) {}
 
   async getDistanceMatrix(

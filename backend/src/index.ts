@@ -1,7 +1,5 @@
 import { Hono } from "hono";
-import { SupabaseRepository } from "./infrastructure/supabase";
-import { DispatchService } from "./services/dispatch";
-import { JwtPayload } from "./types";
+import { AppVariables } from "./types";
 import { envSchema, Bindings } from "./schemas/env";
 
 import { diMiddleware } from "./middleware/di";
@@ -12,13 +10,7 @@ import bookingsApp from "./routes/bookings";
 import driverApp from "./routes/driver";
 import hospitalsApp from "./routes/hospitals";
 
-type Variables = {
-  getDispatchService: () => DispatchService;
-  getDb: () => SupabaseRepository;
-  jwtPayload: JwtPayload;
-};
-
-const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
 
 // 0. Environment Validation Middleware
 app.use("*", async (c, next) => {
@@ -36,6 +28,7 @@ app.use("*", async (c, next) => {
 // 1. Dependency Injection Middleware
 app.use("*", diMiddleware);
 
+// 2. Auth Middleware
 app.use("/bookings", supabaseAuth);
 app.use("/bookings/*", supabaseAuth);
 app.use("/driver/*", supabaseAuth);
