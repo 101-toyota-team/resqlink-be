@@ -16,7 +16,7 @@ export class UpstashRedisRepository implements ICacheRepository {
       `h3_zone:${h3Index}`,
       thirtySecondsAgo,
       "+inf",
-      { byScore: true }
+      { byScore: true },
     );
   }
 
@@ -25,7 +25,7 @@ export class UpstashRedisRepository implements ICacheRepository {
     locationData: DriverLocation,
     h3Index: string,
     ttl: number,
-    previousH3Index: string
+    previousH3Index: string,
   ): Promise<void> {
     const pipeline = this.client.pipeline();
     const now = Date.now();
@@ -55,7 +55,7 @@ export class UpstashRedisRepository implements ICacheRepository {
 
   async removeDriverFromBucket(
     h3Index: string,
-    driverId: string
+    driverId: string,
   ): Promise<void> {
     await this.client.zrem(`h3_zone:${h3Index}`, driverId);
   }
@@ -64,13 +64,15 @@ export class UpstashRedisRepository implements ICacheRepository {
     return await this.client.get(`driver:loc:${driverId}`);
   }
 
-  async getDriverLocations(driverIds: string[]): Promise<(DriverLocation | null)[]> {
+  async getDriverLocations(
+    driverIds: string[],
+  ): Promise<(DriverLocation | null)[]> {
     if (driverIds.length === 0) return [];
     const keys = driverIds.map((id) => `driver:loc:${id}`);
     return await this.client.mget<(DriverLocation | null)[]>(...keys);
   }
 
-  async set(key: string, value: any, ttl: number): Promise<void> {
+  async set(key: string, value: unknown, ttl: number): Promise<void> {
     if (ttl) {
       await this.client.set(key, JSON.stringify(value), { ex: ttl });
     } else {

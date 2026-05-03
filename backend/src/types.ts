@@ -54,13 +54,13 @@ export interface GoogleDistanceMatrixResponse {
 
 export interface GoogleDirectionsResponse {
   routes: Array<{
-    bounds: any;
+    bounds: Record<string, unknown>;
     copyrights: string;
-    legs: any[];
-    overview_polyline: any;
+    legs: unknown[];
+    overview_polyline: Record<string, unknown>;
     summary: string;
-    warnings: any[];
-    waypoint_order: any[];
+    warnings: string[];
+    waypoint_order: number[];
   }>;
   status: string;
 }
@@ -68,7 +68,7 @@ export interface GoogleDirectionsResponse {
 export interface GooglePlacesResponse {
   results: Array<{
     formatted_address: string;
-    geometry: any;
+    geometry: Record<string, unknown>;
     name: string;
     place_id: string;
     types: string[];

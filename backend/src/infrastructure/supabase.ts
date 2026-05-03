@@ -14,7 +14,6 @@ export class SupabaseRepository implements IPersistenceRepository {
     });
   }
 
-
   async createBooking(data: BookingData): Promise<Booking> {
     const { data: booking, error } = await this.client
       .from("bookings")
