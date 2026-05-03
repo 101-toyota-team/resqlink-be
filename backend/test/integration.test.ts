@@ -34,6 +34,7 @@ vi.mock("../src/infrastructure/google-maps", () => {
               ],
             },
           ],
+          status: "OK",
         }),
       };
     }),

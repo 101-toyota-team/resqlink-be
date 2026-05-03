@@ -60,46 +60,14 @@ export class UpstashRedisRepository implements ICacheRepository {
     await this.client.zrem(`h3_zone:${h3Index}`, driverId);
   }
 
-  async updateDriverLocation(
-    driverId: string,
-    locationData: DriverLocation,
-    h3Index: string,
-    ttl: number,
-    previousH3Index?: string,
-  ): Promise<void> {
-    const pipeline = this.client.pipeline();
-    pipeline.set(`driver:loc:${driverId}`, JSON.stringify(locationData), {
-      ex: ttl,
-    });
-    pipeline.sadd(`h3_zone:${h3Index}`, driverId);
-
-    if (previousH3Index && previousH3Index !== h3Index) {
-      pipeline.srem(`h3_zone:${previousH3Index}`, driverId);
-    }
-
-    await pipeline.exec();
-  }
-
   async getDriverLocation(driverId: string): Promise<DriverLocation | null> {
     return await this.client.get(`driver:loc:${driverId}`);
   }
 
-  async getDriverLocations(driverIds: string[]): Promise<DriverLocation[]> {
+  async getDriverLocations(driverIds: string[]): Promise<(DriverLocation | null)[]> {
     if (driverIds.length === 0) return [];
     const keys = driverIds.map((id) => `driver:loc:${id}`);
-    const results = await this.client.mget<DriverLocation[]>(...keys);
-    return results.filter((d): d is DriverLocation => d !== null);
-  }
-
-  async addDriverToBucket(h3Index: string, driverId: string): Promise<void> {
-    await this.client.sadd(`h3_zone:${h3Index}`, driverId);
-  }
-
-  async removeDriverFromBucket(
-    h3Index: string,
-    driverId: string,
-  ): Promise<void> {
-    await this.client.srem(`h3_zone:${h3Index}`, driverId);
+    return await this.client.mget<(DriverLocation | null)[]>(...keys);
   }
 
   async set(key: string, value: any, ttl?: number): Promise<void> {
