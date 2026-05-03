@@ -19,5 +19,7 @@ jobs:
         run: cd backend && npm install
       - name: Lint
         run: cd backend && npm run lint
+      - name: Test
+        run: cd backend && npm test
       - name: Format Check
         run: cd backend && npx prettier --check "**/*.{ts,js}"
