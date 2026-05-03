@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import app from "../src/index";
 
 // Mock the repositories
