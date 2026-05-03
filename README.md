@@ -97,3 +97,4 @@ Wrangler handles authentication via the CLI, but you need the deployed URL for a
 2. Once you deploy your backend using `npx wrangler deploy` inside the `backend/` directory, Cloudflare will output the live URL of your worker (e.g., `https://backend.your-subdomain.workers.dev`).
 3. **Gather your credential:**
    *   *Used in:* Frontend repo (`WORKER_API_URL`)
+## Deployment Test
