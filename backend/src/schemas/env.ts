@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const envSchema = z.object({
   UPSTASH_REDIS_REST_URL: z.string().url(),
