@@ -16,13 +16,20 @@ describe("DispatchService", () => {
       getDriversInBucket: vi.fn(),
       getDriverLocations: vi.fn(),
       updateDriverLocation: vi.fn(),
-    } as any;
+      addDriverToBucket: vi.fn(),
+      removeDriverFromBucket: vi.fn(),
+      getDriverLocation: vi.fn(),
+      set: vi.fn(),
+      get: vi.fn(),
+    } as Mocked<ICacheRepository>;
     mockGeo = {
+      parseLatLng: vi.fn(),
+      latLngToCell: vi.fn(),
       getNeighbors: vi.fn(),
-    } as any;
+    } as Mocked<IGeoService>;
     mockDistance = {
       getEnrichedDrivers: vi.fn(),
-    } as any;
+    } as Mocked<IDistanceService>;
     service = new DispatchService(mockCache, mockGeo, mockDistance);
   });
 

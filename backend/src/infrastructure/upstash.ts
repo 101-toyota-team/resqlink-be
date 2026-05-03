@@ -83,6 +83,18 @@ export class UpstashRedisRepository implements ICacheRepository {
   async get<T>(key: string): Promise<T | null> {
     const data = await this.client.get(key);
     if (!data) return null;
-    return typeof data === "string"  JSON.parse(data) : (data as T);
+    
+    if (typeof data === "string") {
+      try {
+        return JSON.parse(data) as T;
+      } catch {
+        // If parsing fails, return null
+        return null;
+      }
+    }
+    
+    // For non-string data, we assume it's already the correct type
+    // This is a safe assumption when using our own serialization
+    return data as unknown as T;
   }
 }
