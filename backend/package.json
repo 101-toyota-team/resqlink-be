@@ -7,7 +7,7 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "format": "prettier --write '**/*.{ts,js}'",
-    "lint": "eslint .",
+    "lint": "eslint src test",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -22,6 +22,8 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.15.1",
     "@cloudflare/workers-types": "^4.20260503.1",
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/parser": "^8.59.1",
     "eslint": "^8.57.1",
     "msw": "^2.14.2",
     "prettier": "^3.0.0",
