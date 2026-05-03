@@ -7,12 +7,15 @@ export const nearbyAmbulancesSchema = z.object({
 
 export const bookingSchema = z.object({
   ambulance_id: z.string().uuid(),
-  booking_type: z.enum(["medical", "social"]),
+  booking_type: z.enum(["medis", "sosial", "jenazah", "darurat"]),
+  patient_condition: z.string(),
+  pickup_address: z.string(),
   pickup_lat: z.number(),
   pickup_lng: z.number(),
   pickup_h3: z.string(),
-  destination_lat: z.number().optional(),
-  destination_lng: z.number().optional(),
+  destination_address: z.string(),
+  destination_lat: z.number(),
+  destination_lng: z.number(),
 });
 
 export const driverPingSchema = z.object({
