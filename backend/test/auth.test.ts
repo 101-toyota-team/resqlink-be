@@ -1,10 +1,9 @@
 import { env } from "cloudflare:test";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { JwtPayload } from "../src/types";
 
 // ALL MOCKS AT THE TOP
 vi.mock("hono/jwt", async (importOriginal) => {
-  const mod = await importOriginal<typeof import("hono/jwt")>();
+  const mod = await importOriginal<any>();
   return {
     ...mod,
     verifyWithJwks: vi.fn(),
@@ -79,8 +78,7 @@ describe("Authentication & Authorization", () => {
   });
 
   it("should allow access to bookings if token is valid", async () => {
-    const payload: JwtPayload = { sub: riderId };
-    vi.mocked(verifyWithJwks).mockResolvedValue(payload);
+    vi.mocked(verifyWithJwks).mockResolvedValue({ sub: riderId } as any);
 
     const res = await app.request(
       "/bookings",
@@ -92,15 +90,10 @@ describe("Authentication & Authorization", () => {
         },
         body: JSON.stringify({
           ambulance_id: "00000000-0000-0000-0000-000000000003",
-          booking_type: "medis",
-          patient_condition: "Stable",
-          pickup_address: "Sudirman Street",
+          booking_type: "medical",
           pickup_lat: -6.2,
           pickup_lng: 106.8,
-          pickup_h3: "878c106a4ffffff",
-          destination_address: "General Hospital",
-          destination_lat: -6.21,
-          destination_lng: 106.81,
+          pickup_h3: "8828308281fffff",
         }),
       },
       env,
@@ -114,11 +107,10 @@ describe("Authentication & Authorization", () => {
   });
 
   it("should return 403 if user is not a driver on driver endpoints", async () => {
-    const payload: JwtPayload = {
+    vi.mocked(verifyWithJwks).mockResolvedValue({
       sub: riderId,
       role: "authenticated",
-    };
-    vi.mocked(verifyWithJwks).mockResolvedValue(payload);
+    } as any);
 
     const res = await app.request(
       "/driver/ping",
@@ -130,7 +122,7 @@ describe("Authentication & Authorization", () => {
         },
         body: JSON.stringify({
           driver_id: riderId,
-          h3_index: "878c106a4ffffff",
+          h3_index: "8828308281fffff",
           lat: -6.2,
           lng: 106.8,
         }),
@@ -139,17 +131,14 @@ describe("Authentication & Authorization", () => {
     );
 
     expect(res.status).toBe(403);
-    expect(await res.json()).toEqual({
-      error: "You do not have permission to access this resource",
-    });
+    expect(await res.json()).toEqual({ error: "Unauthorized driver" });
   });
 
-  it("should return 403 if driver_id in body does not match sub in JWT", async function test() {
-    const payload: JwtPayload = {
+  it("should return 403 if driver_id in body does not match sub in JWT", async () => {
+    vi.mocked(verifyWithJwks).mockResolvedValue({
       sub: driverId,
       role: "driver",
-    };
-    vi.mocked(verifyWithJwks).mockResolvedValue(payload);
+    } as any);
 
     const res = await app.request(
       "/driver/ping",
@@ -161,7 +150,7 @@ describe("Authentication & Authorization", () => {
         },
         body: JSON.stringify({
           driver_id: "00000000-0000-0000-0000-000000000004",
-          h3_index: "878c106a4ffffff",
+          h3_index: "8828308281fffff",
           lat: -6.2,
           lng: 106.8,
         }),
@@ -170,17 +159,14 @@ describe("Authentication & Authorization", () => {
     );
 
     expect(res.status).toBe(403);
-    expect(await res.json()).toEqual({
-      error: "You do not have permission to access this resource",
-    });
+    expect(await res.json()).toEqual({ error: "Unauthorized driver" });
   });
 
   it("should allow driver ping if authenticated as driver with matching ID", async () => {
-    const payload: JwtPayload = {
+    vi.mocked(verifyWithJwks).mockResolvedValue({
       sub: driverId,
       role: "driver",
-    };
-    vi.mocked(verifyWithJwks).mockResolvedValue(payload);
+    } as any);
 
     const res = await app.request(
       "/driver/ping",
@@ -192,7 +178,7 @@ describe("Authentication & Authorization", () => {
         },
         body: JSON.stringify({
           driver_id: driverId,
-          h3_index: "878c106a4ffffff",
+          h3_index: "8828308281fffff",
           lat: -6.2,
           lng: 106.8,
         }),
