@@ -11,8 +11,9 @@ driverApp.post("/ping", zValidator("json", driverPingSchema), async (c) => {
   const { driver_id, h3_index, previous_h3_index } = body;
 
   const payload = c.get("jwtPayload");
+  const appMetadata = payload.app_metadata as Record<string, any> | undefined;
   const isDriver =
-    payload.role === "driver" || payload.app_metadata.role === "driver";
+    payload.role === "driver" || appMetadata.role === "driver";
 
   if (payload.sub !== driver_id || !isDriver) {
     return c.json({ error: "Unauthorized driver" }, 403);

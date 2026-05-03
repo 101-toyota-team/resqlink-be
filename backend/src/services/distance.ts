@@ -45,6 +45,18 @@ export class DistanceService implements IDistanceService {
         pickupLocation,
       ]);
 
+      if (matrix.status !== "OK") {
+        console.warn(
+          "Google Maps Distance API returned non-OK status:",
+          matrix.status
+        );
+        return resultsWithCache.map((r) => ({
+          ...r.driver,
+          eta: r.cached.eta || "Unknown",
+          distance: r.cached.distance || "Unknown",
+        }));
+      }
+
       await Promise.all(
         uncached.map(async (r, i) => {
           const element = matrix.rows[i].elements[0];

@@ -16,6 +16,11 @@ export const supabaseAuth = async (c: Context<{ Bindings: Bindings; Variables: {
     c.set('jwtPayload', payload as JwtPayload);
     await next();
   } catch (e: unknown) {
-    return c.json({ error: 'Invalid token' }, 401);
+    const error = e as Error;
+    if (error.message.includes("fetch") || error.message.includes("JWKS") || error.message.includes("network")) {
+      console.error("Auth infrastructure error:", error);
+      return c.json({ error: "Authentication service unavailable" }, 500);
+    }
+    return c.json({ error: "Invalid token" }, 401);
   }
 };
