@@ -1,9 +1,10 @@
 import { env } from "cloudflare:test";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { JwtPayload } from "../src/types";
 
 // ALL MOCKS AT THE TOP
 vi.mock("hono/jwt", async (importOriginal) => {
-  const mod = await importOriginal<any>();
+  const mod = await importOriginal<typeof import("hono/jwt")>();
   return {
     ...mod,
     verifyWithJwks: vi.fn(),
@@ -78,7 +79,8 @@ describe("Authentication & Authorization", () => {
   });
 
   it("should allow access to bookings if token is valid", async () => {
-    vi.mocked(verifyWithJwks).mockResolvedValue({ sub: riderId } as any);
+    const payload: JwtPayload = { sub: riderId };
+    vi.mocked(verifyWithJwks).mockResolvedValue(payload);
 
     const res = await app.request(
       "/bookings",
@@ -112,10 +114,11 @@ describe("Authentication & Authorization", () => {
   });
 
   it("should return 403 if user is not a driver on driver endpoints", async () => {
-    vi.mocked(verifyWithJwks).mockResolvedValue({
+    const payload: JwtPayload = {
       sub: riderId,
       role: "authenticated",
-    } as any);
+    };
+    vi.mocked(verifyWithJwks).mockResolvedValue(payload);
 
     const res = await app.request(
       "/driver/ping",
@@ -136,14 +139,15 @@ describe("Authentication & Authorization", () => {
     );
 
     expect(res.status).toBe(403);
-    expect(await res.json()).toEqual({ error: "Unauthorized driver" });
+    expect(await res.json()).toEqual({ error: "Unauthorized access" });
   });
 
-  it("should return 403 if driver_id in body does not match sub in JWT", async () => {
-    vi.mocked(verifyWithJwks).mockResolvedValue({
+  it("should return 403 if driver_id in body does not match sub in JWT", async function test() {
+    const payload: JwtPayload = {
       sub: driverId,
       role: "driver",
-    } as any);
+    };
+    vi.mocked(verifyWithJwks).mockResolvedValue(payload);
 
     const res = await app.request(
       "/driver/ping",
@@ -164,14 +168,15 @@ describe("Authentication & Authorization", () => {
     );
 
     expect(res.status).toBe(403);
-    expect(await res.json()).toEqual({ error: "Unauthorized driver" });
+    expect(await res.json()).toEqual({ error: "Unauthorized access" });
   });
 
   it("should allow driver ping if authenticated as driver with matching ID", async () => {
-    vi.mocked(verifyWithJwks).mockResolvedValue({
+    const payload: JwtPayload = {
       sub: driverId,
       role: "driver",
-    } as any);
+    };
+    vi.mocked(verifyWithJwks).mockResolvedValue(payload);
 
     const res = await app.request(
       "/driver/ping",

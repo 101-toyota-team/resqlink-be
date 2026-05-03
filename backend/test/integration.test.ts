@@ -50,7 +50,16 @@ describe("Integration Tests", () => {
     );
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { found_drivers: any[] };
+    const body = (await res.json()) as {
+      center: string;
+      found_drivers: Array<{
+        id: string;
+        lat: number;
+        lng: number;
+        eta: string;
+        distance: string;
+      }>;
+    };
 
     expect(body.found_drivers).toHaveLength(1);
     expect(body.found_drivers[0]).toMatchObject({

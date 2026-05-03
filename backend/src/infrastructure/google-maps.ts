@@ -5,6 +5,35 @@ import {
 } from "../types";
 import { fetchWithTimeout } from "./util";
 import { IMapsRepository } from "../repositories/maps";
+import logger from "../utils/logger";
+
+// Type guards for Google Maps API responses
+function isValidDistanceMatrix(data: unknown): data is GoogleDistanceMatrixResponse {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    typeof (data as Record<string, unknown>).status === "string" &&
+    Array.isArray((data as Record<string, unknown>).rows)
+  );
+}
+
+function isValidDirections(data: unknown): data is GoogleDirectionsResponse {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    typeof (data as Record<string, unknown>).status === "string" &&
+    Array.isArray((data as Record<string, unknown>).routes)
+  );
+}
+
+function isValidPlaces(data: unknown): data is GooglePlacesResponse {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    typeof (data as Record<string, unknown>).status === "string" &&
+    Array.isArray((data as Record<string, unknown>).results)
+  );
+}
 
 export class GoogleMapsRepository implements IMapsRepository {
   constructor(private apiKey: string) {}
@@ -24,7 +53,13 @@ export class GoogleMapsRepository implements IMapsRepository {
       const errorText = await response.text();
       throw new Error(`Google Maps API error: ${response.status} ${errorText}`);
     }
-    return response.json() as Promise<GoogleDistanceMatrixResponse>;
+    
+    const data = await response.json();
+    if (!isValidDistanceMatrix(data)) {
+      logger.error("Invalid distance matrix response: %O", data);
+      throw new Error("Invalid response from Google Distance Matrix API");
+    }
+    return data;
   }
 
   async getDirections(
@@ -40,7 +75,13 @@ export class GoogleMapsRepository implements IMapsRepository {
       const errorText = await response.text();
       throw new Error(`Google Maps API error: ${response.status} ${errorText}`);
     }
-    return response.json() as Promise<GoogleDirectionsResponse>;
+    
+    const data = await response.json();
+    if (!isValidDirections(data)) {
+      logger.error("Invalid directions response: %O", data);
+      throw new Error("Invalid response from Google Directions API");
+    }
+    return data;
   }
 
   async searchPlaces(query: string): Promise<GooglePlacesResponse> {
@@ -53,6 +94,12 @@ export class GoogleMapsRepository implements IMapsRepository {
       const errorText = await response.text();
       throw new Error(`Google Maps API error: ${response.status} ${errorText}`);
     }
-    return response.json() as Promise<GooglePlacesResponse>;
+    
+    const data = await response.json();
+    if (!isValidPlaces(data)) {
+      logger.error("Invalid places response: %O", data);
+      throw new Error("Invalid response from Google Places API");
+    }
+    return data;
   }
 }

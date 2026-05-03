@@ -2,6 +2,22 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { IPersistenceRepository } from "../repositories/db";
 import { Booking, BookingData } from "../types";
 import { fetchWithTimeout } from "./util";
+import logger from "../utils/logger";
+
+// Type guard to validate Booking object structure
+function isValidBooking(data: unknown): data is Booking {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    typeof (data as Record<string, unknown>).id === "string" &&
+    typeof (data as Record<string, unknown>).user_id === "string"
+  );
+}
+
+// Type guard to check if URL is a string or Request
+function isStringUrl(url: unknown): url is string {
+  return typeof url === "string";
+}
 
 export class SupabaseRepository implements IPersistenceRepository {
   private client: SupabaseClient;
@@ -9,7 +25,12 @@ export class SupabaseRepository implements IPersistenceRepository {
   constructor(url: string, key: string) {
     this.client = createClient(url, key, {
       global: {
-        fetch: (url, options) => fetchWithTimeout(url as string, options),
+        fetch: (url, options) => {
+          if (!isStringUrl(url)) {
+            throw new Error("Fetch URL must be a string");
+          }
+          return fetchWithTimeout(url, options);
+        },
       },
     });
   }
@@ -22,10 +43,16 @@ export class SupabaseRepository implements IPersistenceRepository {
       .single();
 
     if (error) {
-      console.error("Supabase createBooking error:", error);
+      logger.error("Supabase createBooking error: %O", error);
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
-    return booking as Booking;
+    
+    if (!isValidBooking(booking)) {
+      logger.error("Invalid booking response from Supabase: %O", booking);
+      throw new Error("Invalid booking data received from database");
+    }
+    
+    return booking;
   }
 
   async getBooking(id: string): Promise<Booking | null> {
@@ -37,10 +64,16 @@ export class SupabaseRepository implements IPersistenceRepository {
 
     if (error) {
       if (error.code === "PGRST116") return null; // Not found
-      console.error("Supabase getBooking error:", error);
+      logger.error("Supabase getBooking error: %O", error);
       return null;
     }
-    return booking as Booking;
+    
+    if (!isValidBooking(booking)) {
+      logger.error("Invalid booking response from Supabase: %O", booking);
+      return null;
+    }
+    
+    return booking;
   }
 
   async updateBookingStatus(id: string, status: string): Promise<void> {
@@ -50,7 +83,7 @@ export class SupabaseRepository implements IPersistenceRepository {
       .eq("id", id);
 
     if (error) {
-      console.error("Supabase updateBookingStatus error:", error);
+      logger.error("Supabase updateBookingStatus error: %O", error);
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
   }
