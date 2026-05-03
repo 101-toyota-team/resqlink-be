@@ -1,3 +1,6 @@
+import { IDispatchService } from "./services/dispatch";
+import { IPersistenceRepository } from "./repositories/db";
+
 export interface DriverLocation {
   lat: number;
   lng: number;
@@ -53,4 +56,10 @@ export interface GoogleDirectionsResponse {
 export interface GooglePlacesResponse {
   results: any[];
   status: string;
+}
+
+export interface AppVariables {
+  getDispatchService: () => IDispatchService;
+  getDb: () => IPersistenceRepository;
+  jwtPayload: JwtPayload;
 }
