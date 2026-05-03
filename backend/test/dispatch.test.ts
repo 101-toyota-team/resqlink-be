@@ -3,6 +3,7 @@ import { DispatchService } from "../src/services/dispatch";
 import { ICacheRepository } from "../src/repositories/cache";
 import { IGeoService } from "../src/services/geo";
 import { IDistanceService } from "../src/services/distance";
+import { DriverDetails } from "../src/types";
 
 describe("DispatchService", () => {
   let mockCache: Mocked<ICacheRepository>;
@@ -31,7 +32,13 @@ describe("DispatchService", () => {
     mockCache.getDriversInBucket.mockResolvedValue(["driver_1"]);
     mockCache.getDriverLocations.mockResolvedValue([{ lat: -6.1, lng: 106.8 }]);
     mockDistance.getEnrichedDrivers.mockResolvedValue([
-      { id: "driver_1", lat: -6.1, lng: 106.8, eta: "5 mins", distance: "1.2 km" }
+      {
+        id: "driver_1",
+        lat: -6.1,
+        lng: 106.8,
+        eta: "5 mins",
+        distance: "1.2 km",
+      } as DriverDetails & { eta: string; distance: string },
     ]);
 
     // 2. Execute
