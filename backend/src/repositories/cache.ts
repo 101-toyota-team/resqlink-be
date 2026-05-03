@@ -10,7 +10,7 @@ export interface ICacheRepository {
     previousH3Index: string,
   ): Promise<void>;
   getDriverLocation(driverId: string): Promise<DriverLocation | null>;
-  getDriverLocations(driverIds: string[]): Promise<DriverLocation[]>;
+  getDriverLocations(driverIds: string[]): Promise<(DriverLocation | null)[]>;
   addDriverToBucket(h3Index: string, driverId: string): Promise<void>;
   removeDriverFromBucket(h3Index: string, driverId: string): Promise<void>;
   set(key: string, value: any, ttl: number): Promise<void>;

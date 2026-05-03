@@ -24,5 +24,3 @@ CREATE POLICY "Allow public read access on drivers" ON drivers FOR SELECT USING 
 CREATE POLICY "Users can view their own bookings" ON bookings FOR SELECT USING (auth.uid() = user_id);
 -- 2. Users can create their own bookings
 CREATE POLICY "Users can create their own bookings" ON bookings FOR INSERT WITH CHECK (auth.uid() = user_id);
--- 3. Service role can do anything (default Supabase behavior, but explicit for clarity)
-CREATE POLICY "Service role has full access" ON bookings FOR ALL USING (true) WITH CHECK (true);
