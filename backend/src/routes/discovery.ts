@@ -4,7 +4,10 @@ import { nearbyAmbulancesSchema } from "../schemas";
 import { AppVariables } from "../types";
 import { Bindings } from "../schemas/env";
 
-const discoveryApp = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
+const discoveryApp = new Hono<{
+  Bindings: Bindings;
+  Variables: AppVariables;
+}>();
 
 discoveryApp.get(
   "/nearby",
