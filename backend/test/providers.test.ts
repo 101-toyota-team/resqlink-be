@@ -72,17 +72,17 @@ describe("Providers API", () => {
         {
           id: "1",
           name: "Provider A",
-          h3_index: "878c106a4ffffff",
+          h3_index: "8828308281fffff",
           latitude: -6.2,
           longitude: 106.8,
-          provider_type: "rumah_sakit",
+          provider_type: "hospital",
           created_at: new Date().toISOString(),
         },
       ];
       serviceMock.searchProviders.mockResolvedValue(mockResults);
 
       const app = createApp(serviceMock as unknown as IProviderService);
-      const res = await app.request("/providers/searchq=Provider");
+      const res = await app.request("/providers/search?q=Provider");
 
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual(mockResults);
@@ -91,7 +91,7 @@ describe("Providers API", () => {
 
     it("should return 400 for validation errors (e.g. query too short)", async () => {
       const app = createApp(serviceMock as unknown as IProviderService);
-      const res = await app.request("/providers/searchq=P"); // 1 char, min is 2
+      const res = await app.request("/providers/search?q=P"); // 1 char, min is 2
 
       expect(res.status).toBe(400);
       expect(serviceMock.searchProviders).not.toHaveBeenCalled();
@@ -103,7 +103,7 @@ describe("Providers API", () => {
       );
 
       const app = createApp(serviceMock as unknown as IProviderService);
-      const res = await app.request("/providers/searchq=Provider");
+      const res = await app.request("/providers/search?q=Provider");
 
       expect(res.status).toBe(500);
       const json = (await res.json()) as { error: string };
@@ -113,7 +113,7 @@ describe("Providers API", () => {
 
   describe("GET /providers/nearby", () => {
     it("should return 200 and nearby providers", async () => {
-      const h3Index = "878c106a4ffffff";
+      const h3Index = "8828308281fffff";
       const mockResults: Provider[] = [
         {
           id: "1",
@@ -121,14 +121,14 @@ describe("Providers API", () => {
           h3_index: h3Index,
           latitude: -6.2,
           longitude: 106.8,
-          provider_type: "rumah_sakit",
+          provider_type: "hospital",
           created_at: new Date().toISOString(),
         },
       ];
       serviceMock.findNearbyProviders.mockResolvedValue(mockResults);
 
       const app = createApp(serviceMock as unknown as IProviderService);
-      const res = await app.request(`/providers/nearbyh3_index=${h3Index}`);
+      const res = await app.request(`/providers/nearby?h3_index=${h3Index}`);
 
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual(mockResults);
@@ -137,7 +137,7 @@ describe("Providers API", () => {
 
     it("should return 400 for invalid H3 index", async () => {
       const app = createApp(serviceMock as unknown as IProviderService);
-      const res = await app.request("/providers/nearbyh3_index=invalid");
+      const res = await app.request("/providers/nearby?h3_index=invalid");
 
       expect(res.status).toBe(400);
       expect(serviceMock.findNearbyProviders).not.toHaveBeenCalled();
