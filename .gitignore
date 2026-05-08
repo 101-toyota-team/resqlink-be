@@ -25,3 +25,10 @@ node_modules/
 backend/node_modules/
 backend/.wrangler/
 backend/dist/
+
+# Test artifacts
+backend/*.log
+backend/*.txt
+backend/coverage/
+backend/.vitest-result.json
+backend/.nyc_output/
