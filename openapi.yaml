@@ -1,0 +1,201 @@
+openapi: 3.0.3
+info:
+  title: ResQLink API
+  description: >
+    Backend API for the ResQLink ambulance booking and dispatch platform.
+    Features static discovery via H3 spatial indexing and a simulated movement flow.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8787
+    description: Local Cloudflare Worker environment
+  - url: https://resqlink-backend.your-subdomain.workers.dev
+    description: Production environment
+
+security:
+  - BearerAuth: []
+
+paths:
+  /auth/ping:
+    get:
+      summary: Verify Authentication
+      description: Validates the Supabase JWT and returns user identity/role.
+      tags:
+        - Auth
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              example:
+                message: "Auth works!"
+                user:
+                  sub: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                  role: "authenticated"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /providers/search:
+    get:
+      summary: Search Providers
+      description: Search for providers by name (case-insensitive).
+      tags:
+        - Providers
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 256
+          example: "RSUD Duren Sawit"
+      responses:
+        '200':
+          description: A list of providers matching the query
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Provider'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /providers/nearby:
+    get:
+      summary: Find Nearby Providers
+      description: Find providers within the same and neighboring H3 cells (radius 1).
+      tags:
+        - Providers
+      parameters:
+        - name: h3_index
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-f]+$'
+          example: "8828308281fffff"
+      responses:
+        '200':
+          description: A list of nearby providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProviderDetails'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: object
+          description: Optional Zod formatting details for validation errors
+      required:
+        - error
+
+    Provider:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        h3_index:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        provider_type:
+          type: string
+        address:
+          type: string
+        phone:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - h3_index
+        - latitude
+        - longitude
+        - provider_type
+        - created_at
+
+    ProviderDetails:
+      allOf:
+        - $ref: '#/components/schemas/Provider'
+        - type: object
+          properties:
+            distance:
+              type: string
+              example: "1.2 km"
+
+  responses:
+    ValidationError:
+      description: Invalid payload or parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Validation failed"
+            details: {}
+    UnauthorizedError:
+      description: Missing or invalid JWT
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Unauthorized access"
+    ForbiddenError:
+      description: Valid JWT but inadequate permissions/roles
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "You do not have permission to access this resource"
+    NotFoundError:
+      description: Resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Booking not found"
+    InternalError:
+      description: Unexpected backend failure
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Internal server error"
