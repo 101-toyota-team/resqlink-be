@@ -21,11 +21,7 @@ hospitalsApp.get(
 
       return c.json(results);
     } catch (error) {
-      if (error instanceof Error) {
-        logger.error("Hospitals search error: %s", error.message);
-      } else {
-        logger.error("Hospitals search error: %O", error as object);
-      }
+      logger.error(error, "Hospitals search error");
       return c.json({ error: ERROR_MESSAGES.HOSPITALS_FAILED }, 500);
     }
   },
@@ -45,11 +41,7 @@ hospitalsApp.get(
 
       return c.json(results);
     } catch (error) {
-      if (error instanceof Error) {
-        logger.error("Hospitals nearby error: %s", error.message);
-      } else {
-        logger.error("Hospitals nearby error: %O", error as object);
-      }
+      logger.error(error, "Hospitals nearby error");
       return c.json({ error: ERROR_MESSAGES.HOSPITALS_FAILED }, 500);
     }
   },

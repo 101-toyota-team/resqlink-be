@@ -17,29 +17,16 @@ export const UPSTASH = {
   MAX_LOCATION_CACHE_SIZE: 1000,
 };
 
-// Google Maps API
-export const GOOGLE_MAPS = {
-  MAX_ROUTE_POINTS: 25,
-  MAX_WAYPOINTS: 23,
-};
-
 // Dispatch Service
 export const DISPATCH = {
   MATCH_RADIUS_KM: 50,
   MAX_CONCURRENT_DISPATCHES: 5,
-  DISPATCH_TIMEOUT_MS: 30000,
 };
 
 // Discovery Routes
 export const DISCOVERY = {
   DEFAULT_PAGE_SIZE: 20,
   MAX_PAGE_SIZE: 100,
-};
-
-// HTTP
-export const HTTP = {
-  REQUEST_TIMEOUT_MS: 30000,
-  MAX_RETRIES: 3,
 };
 
 // Error messages

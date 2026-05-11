@@ -99,15 +99,13 @@ describe("DispatchService", () => {
     ]);
 
     // 2. Call service
-    await service.findNearbyDrivers("878c84c525fff", 1);
+    const results = await service.findNearbyDrivers("878c84c525fff", 1);
 
     // 3. Verify results
     expect(mockGeo.getNeighbors).toHaveBeenCalledWith("878c84c525fff", 1);
     expect(mockDb.findAvailableAmbulances).toHaveBeenCalledWith([
       "878c84c525fff",
     ]);
-
-    const results = await service.findNearbyDrivers("878c84c525fff", 1);
 
     expect(results).toHaveLength(1);
     expect(results[0]).toEqual({ id: "driver_1", lat: -6.1, lng: 106.8 });

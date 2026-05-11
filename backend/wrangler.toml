@@ -1,6 +1,6 @@
 name = "resqlink-backend"
 main = "src/index.ts"
-compatibility_date = "2024-01-01"
+compatibility_date = "2026-01-01"
 
 [vars]
 SUPABASE_URL = "https://oddfremdisrivnepklga.supabase.co"

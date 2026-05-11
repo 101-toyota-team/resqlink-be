@@ -175,12 +175,24 @@ export class SupabaseRepository implements IPersistenceRepository {
     };
   }
 
-  async getConfirmedBookings(): Promise<Booking[]> {
-    const { data, error } = await this.client
+  async getConfirmedBookings(
+    limit?: number,
+    offset?: number,
+  ): Promise<Booking[]> {
+    let query = this.client
       .from("bookings")
       .select("*")
       .eq("status", "confirmed")
       .order("created_at", { ascending: false });
+
+    if (limit !== undefined) {
+      query = query.limit(limit);
+      if (offset !== undefined) {
+        query = query.range(offset, offset + limit - 1);
+      }
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       logger.error(error, "Supabase getConfirmedBookings error");
