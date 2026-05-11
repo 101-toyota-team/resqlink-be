@@ -110,8 +110,8 @@ export class SupabaseRepository implements IPersistenceRepository {
       .in("providers.h3_index", h3Indexes);
 
     if (error) {
-      logger.error("Supabase findAvailableAmbulances error: %O", error);
-      return [];
+      logger.error(error, "Supabase findAvailableAmbulances error");
+      throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
     return (data as unknown as AmbulanceDiscoveryResult[]).map((item) => ({
@@ -151,8 +151,8 @@ export class SupabaseRepository implements IPersistenceRepository {
       .single();
 
     if (error || !data) {
-      logger.error("Supabase getAmbulanceProviderLocation error: %O", error);
-      return null;
+      logger.error(error, "Supabase getAmbulanceProviderLocation error");
+      throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
     type AmbulanceData = {
@@ -183,8 +183,8 @@ export class SupabaseRepository implements IPersistenceRepository {
       .order("created_at", { ascending: false });
 
     if (error) {
-      logger.error("Supabase getConfirmedBookings error: %O", error);
-      return [];
+      logger.error(error, "Supabase getConfirmedBookings error");
+      throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
     return (data || []) as Booking[];
@@ -199,8 +199,8 @@ export class SupabaseRepository implements IPersistenceRepository {
     );
 
     if (error) {
-      logger.error("Supabase searchProviders error: %O", error);
-      return [];
+      logger.error(error, "Supabase searchProviders error");
+      throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
     return (data || []) as Provider[];
@@ -214,8 +214,8 @@ export class SupabaseRepository implements IPersistenceRepository {
       .order("name", { ascending: true });
 
     if (error) {
-      logger.error("Supabase findProvidersByH3Indexes error: %O", error);
-      return [];
+      logger.error(error, "Supabase findProvidersByH3Indexes error");
+      throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
     return (data || []) as Provider[];
@@ -251,11 +251,14 @@ export class SupabaseRepository implements IPersistenceRepository {
       `,
       )
       .eq("providers.provider_type", "rumah_sakit")
-      .or(`name.ilike.%${query}%,igd_email.ilike.%${query}%`);
+      .or(
+        `name.ilike.%${query.replace(/%/g, "\\%").replace(/_/g, "\\_")}%,` +
+          `igd_email.ilike.%${query.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`,
+      );
 
     if (error) {
-      logger.error("Supabase searchHospitals error: %O", error);
-      return [];
+      logger.error(error, "Supabase searchHospitals error");
+      throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
     const results: Hospital[] = (data || [])
@@ -324,8 +327,8 @@ export class SupabaseRepository implements IPersistenceRepository {
       .order("providers.name", { ascending: true });
 
     if (error) {
-      logger.error("Supabase findHospitalsByH3Indexes error: %O", error);
-      return [];
+      logger.error(error, "Supabase findHospitalsByH3Indexes error");
+      throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
     const results: HospitalDetails[] = (data || [])
