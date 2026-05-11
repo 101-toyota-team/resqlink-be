@@ -97,9 +97,6 @@ describe("DispatchService", () => {
     mockDb.findAvailableAmbulances.mockResolvedValue([
       { id: "driver_1", lat: -6.1, lng: 106.8 } as DriverDetails,
     ]);
-    mockDistance.getEnrichedDrivers.mockResolvedValue([
-      { id: "driver_1", eta: "10 mins" } as DriverDetails,
-    ]);
 
     // 2. Call service
     await service.findNearbyDrivers("878c84c525fff", 1);
