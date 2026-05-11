@@ -43,11 +43,35 @@ export const HTTP = {
 
 // Error messages
 export const ERROR_MESSAGES = {
-  INVALID_COORDINATES: 'Invalid coordinates provided',
-  DISPATCH_TIMEOUT: 'Dispatch request timed out',
-  BOOKING_FAILED: 'Failed to create booking',
-  DISCOVERY_FAILED: 'Failed to retrieve drivers',
-  HOSPITALS_FAILED: 'Failed to retrieve hospitals',
-  UNAUTHORIZED: 'Unauthorized access',
-  INTERNAL_ERROR: 'Internal server error',
+  INVALID_COORDINATES: "Invalid coordinates provided",
+  DISPATCH_TIMEOUT: "Dispatch request timed out",
+  BOOKING_FAILED: "Failed to create booking",
+  DISCOVERY_FAILED: "Failed to retrieve drivers",
+  HOSPITALS_FAILED: "Failed to retrieve hospitals",
+  UNAUTHORIZED: "Unauthorized access",
+  INTERNAL_ERROR: "Internal server error",
+  BOOKING_NOT_FOUND: "Booking not found",
+  FORBIDDEN_ACCESS: "You do not have permission to access this resource",
+  INVALID_STATUS: "Invalid booking status provided",
+  INVALID_TOKEN: "Invalid token",
+  INVALID_H3_RESOLUTION:
+    "H3 index must be at resolution 7 (13 hex characters). Use latLngToCell(lat, lng, 7) to generate.",
+  AUTH_SERVICE_UNAVAILABLE: "Authentication service unavailable",
+  CONFIGURATION_ERROR: "Configuration error",
+  VALIDATION_FAILED: "Validation failed",
+};
+
+/**
+ * Shared validator hook for zValidator to ensure consistent error responses.
+ */
+export const validatorHook = (result: any, c: any) => {
+  if (!result.success) {
+    return c.json(
+      {
+        error: ERROR_MESSAGES.VALIDATION_FAILED,
+        details: result.error.format(),
+      },
+      400,
+    );
+  }
 };
