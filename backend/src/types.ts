@@ -1,6 +1,52 @@
 import { IDispatchService } from "./services/dispatch";
+import { IProviderService } from "./services/providers";
+import { IHospitalService } from "./services/hospitals";
 import { IPersistenceRepository } from "./repositories/db";
 import { IMapsRepository } from "./repositories/maps";
+import { ICacheRepository } from "./repositories/cache";
+
+export const PROVIDER_TYPES = [
+  "rumah_sakit",
+  "klinik",
+  "komunitas",
+  "rt_rw",
+  "yayasan",
+  "masjid",
+  "lainnya",
+] as const;
+
+export type ProviderType = (typeof PROVIDER_TYPES)[number];
+
+export interface Provider {
+  id: string;
+  name: string;
+  h3_index: string;
+  latitude: number;
+  longitude: number;
+  provider_type: ProviderType;
+  address: string;
+  phone: string;
+  created_at: string;
+}
+
+export interface ProviderDetails extends Provider {
+  distance: string;
+}
+
+export interface Hospital extends Provider {
+  igd_phone: string;
+  igd_email: string;
+  bed_capacity: number;
+  specializations: string[];
+  accreditation: string;
+  rating: number;
+  rating_count: number;
+  website_url: string;
+}
+
+export interface HospitalDetails extends Hospital {
+  distance: string;
+}
 
 export interface DriverLocation {
   lat: number;
@@ -78,7 +124,10 @@ export interface GooglePlacesResponse {
 
 export interface AppVariables {
   getDispatchService: () => IDispatchService;
+  getProviderService: () => IProviderService;
+  getHospitalService: () => IHospitalService;
   getDb: () => IPersistenceRepository;
   getMaps: () => IMapsRepository;
+  getCache: () => ICacheRepository;
   jwtPayload: JwtPayload;
 }
