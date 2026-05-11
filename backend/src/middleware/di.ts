@@ -7,14 +7,36 @@ import { Bindings } from "../schemas/env";
 import { AppVariables } from "../types";
 import { GeoService } from "../services/geo";
 import { DistanceService } from "../services/distance";
+import { ProviderService, IProviderService } from "../services/providers";
+import { HospitalService, IHospitalService } from "../services/hospitals";
 
 export const diMiddleware: MiddlewareHandler<{
   Bindings: Bindings;
   Variables: AppVariables;
 }> = async (c, next) => {
   let dispatchService: IDispatchService | undefined;
+  let providerService: IProviderService | undefined;
+  let hospitalService: IHospitalService | undefined;
   let dbRepo: SupabaseRepository | undefined;
   let mapsRepo: GoogleMapsRepository | undefined;
+
+  c.set("getProviderService", () => {
+    if (!providerService) {
+      const dbRepo = c.get("getDb")();
+      const geoService = new GeoService();
+      providerService = new ProviderService(dbRepo, geoService);
+    }
+    return providerService;
+  });
+
+  c.set("getHospitalService", () => {
+    if (!hospitalService) {
+      const dbRepo = c.get("getDb")();
+      const geoService = new GeoService();
+      hospitalService = new HospitalService(dbRepo, geoService);
+    }
+    return hospitalService;
+  });
 
   c.set("getDispatchService", () => {
     if (!dispatchService) {
