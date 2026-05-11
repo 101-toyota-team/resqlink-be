@@ -19,6 +19,7 @@ export const diMiddleware: MiddlewareHandler<{
   let hospitalService: IHospitalService | undefined;
   let dbRepo: SupabaseRepository | undefined;
   let mapsRepo: GoogleMapsRepository | undefined;
+  let cacheRepo: UpstashRedisRepository | undefined;
 
   c.set("getProviderService", () => {
     if (!providerService) {
@@ -44,14 +45,17 @@ export const diMiddleware: MiddlewareHandler<{
         c.env.UPSTASH_REDIS_REST_URL,
         c.env.UPSTASH_REDIS_REST_TOKEN,
       );
+      const dbRepo = c.get("getDb")();
       const maps = new GoogleMapsRepository(c.env.GOOGLE_MAPS_API_KEY);
       const geoService = new GeoService();
       const distanceService = new DistanceService(maps, cacheRepo, geoService);
 
       dispatchService = new DispatchService(
         cacheRepo,
+        dbRepo,
         geoService,
         distanceService,
+        maps,
       );
     }
     return dispatchService;
@@ -72,6 +76,16 @@ export const diMiddleware: MiddlewareHandler<{
       mapsRepo = new GoogleMapsRepository(c.env.GOOGLE_MAPS_API_KEY);
     }
     return mapsRepo;
+  });
+
+  c.set("getCache", () => {
+    if (!cacheRepo) {
+      cacheRepo = new UpstashRedisRepository(
+        c.env.UPSTASH_REDIS_REST_URL,
+        c.env.UPSTASH_REDIS_REST_TOKEN,
+      );
+    }
+    return cacheRepo;
   });
 
   await next();
