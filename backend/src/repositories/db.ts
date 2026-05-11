@@ -20,7 +20,7 @@ export interface IPersistenceRepository {
   getAmbulanceProviderLocation(
     ambulanceId: string,
   ): Promise<{ lat: number; lng: number } | null>;
-  getConfirmedBookings(): Promise<Booking[]>;
+  getConfirmedBookings(limit?: number, offset?: number): Promise<Booking[]>;
   searchProviders(query: string): Promise<Provider[]>;
   findProvidersByH3Indexes(h3Indexes: string[]): Promise<Provider[]>;
   searchHospitals(query: string): Promise<Hospital[]>;
