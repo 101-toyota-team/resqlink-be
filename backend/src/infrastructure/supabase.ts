@@ -258,31 +258,33 @@ export class SupabaseRepository implements IPersistenceRepository {
       return [];
     }
 
-    const results: Hospital[] = (data || []).map((item) => {
-      const provider = item.providers?.[0];
-      if (!provider) {
-        return null;
-      }
-      return {
-        id: provider.id,
-        name: provider.name,
-        h3_index: provider.h3_index,
-        latitude: provider.latitude,
-        longitude: provider.longitude,
-        provider_type: provider.provider_type,
-        address: provider.address,
-        phone: provider.phone,
-        created_at: provider.created_at,
-        igd_phone: item.igd_phone,
-        igd_email: item.igd_email,
-        bed_capacity: item.bed_capacity,
-        specializations: item.specializations,
-        accreditation: item.accreditation,
-        rating: item.rating,
-        rating_count: item.rating_count,
-        website_url: item.website_url,
-      } as Hospital;
-    }).filter((h): h is Hospital => h !== null);
+    const results: Hospital[] = (data || [])
+      .map((item) => {
+        const provider = item.providers?.[0];
+        if (!provider) {
+          return null;
+        }
+        return {
+          id: provider.id,
+          name: provider.name,
+          h3_index: provider.h3_index,
+          latitude: provider.latitude,
+          longitude: provider.longitude,
+          provider_type: provider.provider_type,
+          address: provider.address,
+          phone: provider.phone,
+          created_at: provider.created_at,
+          igd_phone: item.igd_phone,
+          igd_email: item.igd_email,
+          bed_capacity: item.bed_capacity,
+          specializations: item.specializations,
+          accreditation: item.accreditation,
+          rating: item.rating,
+          rating_count: item.rating_count,
+          website_url: item.website_url,
+        } as Hospital;
+      })
+      .filter((h): h is Hospital => h !== null);
 
     return results;
   }
@@ -326,31 +328,33 @@ export class SupabaseRepository implements IPersistenceRepository {
       return [];
     }
 
-    const results: HospitalDetails[] = (data || []).map((item) => {
-      const provider = item.providers?.[0];
-      if (!provider) {
-        return null;
-      }
-      return {
-        id: provider.id,
-        name: provider.name,
-        h3_index: provider.h3_index,
-        latitude: provider.latitude,
-        longitude: provider.longitude,
-        provider_type: provider.provider_type,
-        address: provider.address,
-        phone: provider.phone,
-        created_at: provider.created_at,
-        igd_phone: item.igd_phone,
-        igd_email: item.igd_email,
-        bed_capacity: item.bed_capacity,
-        specializations: item.specializations,
-        accreditation: item.accreditation,
-        rating: item.rating,
-        rating_count: item.rating_count,
-        website_url: item.website_url,
-      } as HospitalDetails;
-    }).filter((h): h is HospitalDetails => h !== null);
+    const results: HospitalDetails[] = (data || [])
+      .map((item) => {
+        const provider = item.providers?.[0];
+        if (!provider) {
+          return null;
+        }
+        return {
+          id: provider.id,
+          name: provider.name,
+          h3_index: provider.h3_index,
+          latitude: provider.latitude,
+          longitude: provider.longitude,
+          provider_type: provider.provider_type,
+          address: provider.address,
+          phone: provider.phone,
+          created_at: provider.created_at,
+          igd_phone: item.igd_phone,
+          igd_email: item.igd_email,
+          bed_capacity: item.bed_capacity,
+          specializations: item.specializations,
+          accreditation: item.accreditation,
+          rating: item.rating,
+          rating_count: item.rating_count,
+          website_url: item.website_url,
+        } as HospitalDetails;
+      })
+      .filter((h): h is HospitalDetails => h !== null);
 
     return results;
   }

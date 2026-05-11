@@ -15,7 +15,10 @@ const createApp = (serviceMock: MockHospitalService) => {
   const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
 
   app.use("*", async (c, next) => {
-    c.set("getHospitalService", () => serviceMock as unknown as IHospitalService);
+    c.set(
+      "getHospitalService",
+      () => serviceMock as unknown as IHospitalService,
+    );
     await next();
   });
 
@@ -84,7 +87,9 @@ describe("Hospitals API", () => {
     });
 
     it("should return 500 on service error", async () => {
-      serviceMock.searchHospitals.mockRejectedValue(new Error("Database Error"));
+      serviceMock.searchHospitals.mockRejectedValue(
+        new Error("Database Error"),
+      );
 
       const app = createApp(serviceMock);
       const res = await app.request("/hospitals/search?q=Hospital");
