@@ -27,3 +27,38 @@ export const driverPingSchema = z.object({
   heading: z.number().optional(),
   speed: z.number().optional(),
 });
+
+// Hospital search endpoint validation - standardized to use 'q' like providers
+export const hospitalSearchSchema = z.object({
+  q: z.string().min(2, "Search query must be at least 2 characters").max(256),
+});
+
+export const hospitalNearbySchema = z.object({
+  h3_index: z.string().min(1, "h3_index is required"),
+});
+
+export const providerSearchSchema = z.object({
+  q: z.string().min(2, "Search query must be at least 2 characters").max(256),
+});
+
+export const providerNearbySchema = z.object({
+  h3_index: z.string().min(1, "h3_index is required"),
+});
+
+export const bookingIdParamSchema = z.object({
+  id: z.string().uuid("Invalid booking ID format"),
+});
+
+export const bookingStatusUpdateSchema = z.object({
+  status: z.enum(
+    [
+      "confirmed",
+      "en_route",
+      "arrived",
+      "to_hospital",
+      "completed",
+      "cancelled",
+    ],
+    { errorMap: () => ({ message: "Invalid status value" }) },
+  ),
+});
