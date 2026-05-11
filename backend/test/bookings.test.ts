@@ -16,7 +16,7 @@ interface MockDb {
 const createApp = (
   dbMock: MockDb,
   jwtPayloadMock: JwtPayload,
-  dispatchMock: { startSimulationForBooking: ReturnType<typeof vi.fn> },
+  dispatchMock?: { startSimulationForBooking: ReturnType<typeof vi.fn> },
 ) => {
   const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
 
@@ -26,7 +26,7 @@ const createApp = (
     c.set("jwtPayload", jwtPayloadMock);
     c.set("getDispatchService", () =>
       dispatchMock
-         (dispatchMock as unknown as {
+        ? (dispatchMock as unknown as {
             startSimulationForBooking: ReturnType<typeof vi.fn>;
           })
         : { startSimulationForBooking: vi.fn() },
