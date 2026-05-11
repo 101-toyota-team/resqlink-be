@@ -7,6 +7,7 @@ export const DISTANCE_SERVICE = {
   RADIUS_KM: 50,
   BATCH_SIZE: 25,
   DISTANCE_THRESHOLD_KM: 100,
+  H3_RESOLUTION: 10,
 };
 
 // Upstash Redis
