@@ -15,10 +15,7 @@ const createApp = (serviceMock: MockHospitalService) => {
   const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
 
   app.use("*", async (c, next) => {
-    c.set(
-      "getHospitalService",
-      () => serviceMock as unknown as IHospitalService,
-    );
+    c.set("getHospitalService", () => serviceMock as unknown as IHospitalService);
     await next();
   });
 
@@ -42,7 +39,7 @@ describe("Hospitals API", () => {
         {
           id: "1",
           name: "Hospital A",
-          h3_index: "878c106a4ffffff",
+          h3_index: "8828308281fffff",
           latitude: -6.2,
           longitude: 106.8,
           provider_type: "rumah_sakit",
@@ -71,7 +68,7 @@ describe("Hospitals API", () => {
       serviceMock.searchHospitals.mockResolvedValue(mockResults);
 
       const app = createApp(serviceMock);
-      const res = await app.request("/hospitals/searchq=Hospital");
+      const res = await app.request("/hospitals/search?q=Hospital");
 
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual(mockResults);
@@ -80,19 +77,17 @@ describe("Hospitals API", () => {
 
     it("should return 400 for validation errors (e.g. query too short)", async () => {
       const app = createApp(serviceMock);
-      const res = await app.request("/hospitals/searchq=H"); // 1 char, min is 2
+      const res = await app.request("/hospitals/search?q=H"); // 1 char, min is 2
 
       expect(res.status).toBe(400);
       expect(serviceMock.searchHospitals).not.toHaveBeenCalled();
     });
 
     it("should return 500 on service error", async () => {
-      serviceMock.searchHospitals.mockRejectedValue(
-        new Error("Database Error"),
-      );
+      serviceMock.searchHospitals.mockRejectedValue(new Error("Database Error"));
 
       const app = createApp(serviceMock);
-      const res = await app.request("/hospitals/searchq=Hospital");
+      const res = await app.request("/hospitals/search?q=Hospital");
 
       expect(res.status).toBe(500);
       const json = (await res.json()) as { error: string };
@@ -103,7 +98,7 @@ describe("Hospitals API", () => {
       serviceMock.searchHospitals.mockRejectedValue("String error");
 
       const app = createApp(serviceMock);
-      const res = await app.request("/hospitals/searchq=Hospital");
+      const res = await app.request("/hospitals/search?q=Hospital");
 
       expect(res.status).toBe(500);
       const json = (await res.json()) as { error: string };
@@ -113,7 +108,7 @@ describe("Hospitals API", () => {
 
   describe("GET /hospitals/nearby", () => {
     it("should return 200 and nearby hospitals", async () => {
-      const h3Index = "878c106a4ffffff";
+      const h3Index = "8828308281fffff";
       const mockResults: HospitalDetails[] = [
         {
           id: "1",
@@ -134,7 +129,7 @@ describe("Hospitals API", () => {
       serviceMock.findNearbyHospitals.mockResolvedValue(mockResults);
 
       const app = createApp(serviceMock);
-      const res = await app.request(`/hospitals/nearbyh3_index=${h3Index}`);
+      const res = await app.request(`/hospitals/nearby?h3_index=${h3Index}`);
 
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual(mockResults);
@@ -143,7 +138,7 @@ describe("Hospitals API", () => {
 
     it("should return 400 for invalid H3 index", async () => {
       const app = createApp(serviceMock);
-      const res = await app.request("/hospitals/nearbyh3_index=invalid");
+      const res = await app.request("/hospitals/nearby?h3_index=invalid");
 
       expect(res.status).toBe(400);
       expect(serviceMock.findNearbyHospitals).not.toHaveBeenCalled();
