@@ -75,7 +75,7 @@ describe("Providers API", () => {
           h3_index: "8828308281fffff",
           latitude: -6.2,
           longitude: 106.8,
-          provider_type: "hospital",
+          provider_type: "rumah_sakit",
           created_at: new Date().toISOString(),
         },
       ];
@@ -121,7 +121,7 @@ describe("Providers API", () => {
           h3_index: h3Index,
           latitude: -6.2,
           longitude: 106.8,
-          provider_type: "hospital",
+          provider_type: "rumah_sakit",
           created_at: new Date().toISOString(),
         },
       ];

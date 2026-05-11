@@ -34,7 +34,6 @@ describe("DispatchService", () => {
   });
 
   it("should find nearby drivers and call distance service for enrichment", async () => {
-    // 1. Setup mocks
     mockGeo.getNeighbors.mockReturnValue(["8828308281fffff"]);
     mockCache.getDriversInBucket.mockResolvedValue(["driver_1"]);
     mockCache.getDriverLocations.mockResolvedValue([{ lat: -6.1, lng: 106.8 }]);
@@ -48,14 +47,12 @@ describe("DispatchService", () => {
       } as DriverDetails & { eta: string; distance: string },
     ]);
 
-    // 2. Execute
     const results = await service.findNearbyDrivers(
       "8828308281fffff",
       1,
       "-6.12,106.85",
     );
 
-    // 3. Assert
     expect(results).toHaveLength(1);
     expect(results[0]).toMatchObject({
       id: "driver_1",
