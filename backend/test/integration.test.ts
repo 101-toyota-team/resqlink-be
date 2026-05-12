@@ -44,7 +44,7 @@ vi.mock("../src/infrastructure/google-maps", () => {
 describe("Integration Tests", () => {
   it("should find nearby drivers via API", async () => {
     const res = await app.request(
-      "/ambulances/nearbyh3_index=8828308281fffff&pickup=-6.2,106.8",
+      "/ambulances/nearbyh3_index=878c106a4ffffff&pickup=-6.2,106.8",
       {},
       env,
     );
