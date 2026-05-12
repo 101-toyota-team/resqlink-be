@@ -52,12 +52,12 @@ export class SupabaseRepository implements IPersistenceRepository {
       logger.error("Supabase createBooking error: %O", error);
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
-    
+
     if (!isValidBooking(booking)) {
       logger.error("Invalid booking response from Supabase: %O", booking);
       throw new Error("Invalid booking data received from database");
     }
-    
+
     return booking;
   }
 
@@ -73,12 +73,12 @@ export class SupabaseRepository implements IPersistenceRepository {
       logger.error("Supabase getBooking error: %O", error);
       return null;
     }
-    
+
     if (!isValidBooking(booking)) {
       logger.error("Invalid booking response from Supabase: %O", booking);
       return null;
     }
-    
+
     return booking;
   }
 

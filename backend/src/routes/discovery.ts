@@ -31,10 +31,7 @@ discoveryApp.get(
       });
     } catch (error) {
       logger.error("Discovery /nearby error: %O", error);
-      return c.json(
-        { error: ERROR_MESSAGES.DISCOVERY_FAILED },
-        500,
-      );
+      return c.json({ error: ERROR_MESSAGES.DISCOVERY_FAILED }, 500);
     }
   },
 );
