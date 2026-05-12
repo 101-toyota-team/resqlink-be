@@ -1,9 +1,10 @@
 import { Hono } from "hono";
+import { zValidator } from "@hono/zod-validator";
 import { AppVariables } from "../types";
 import { Bindings } from "../schemas/env";
 import { hospitalSearchSchema, hospitalNearbySchema } from "../schemas";
+import { ERROR_MESSAGES, validatorHook } from "../utils/constants";
 import logger from "../utils/logger";
-import { ERROR_MESSAGES } from "../utils/constants";
 
 const hospitalsApp = new Hono<{
   Bindings: Bindings;
@@ -12,9 +13,10 @@ const hospitalsApp = new Hono<{
 
 hospitalsApp.get(
   "/search",
+  zValidator("query", hospitalSearchSchema, validatorHook),
   async (c) => {
     try {
-      const { q } = c.req.query();
+      const { q } = c.req.valid("query");
 
       const hospitalService = c.get("getHospitalService")();
       const results = await hospitalService.searchHospitals(q);
@@ -29,12 +31,10 @@ hospitalsApp.get(
 
 hospitalsApp.get(
   "/nearby",
+  zValidator("query", hospitalNearbySchema, validatorHook),
   async (c) => {
     try {
-      const h3_index = c.req.query("h3_index");
-      if (!h3_index) {
-        return c.json({ error: "h3_index is required" }, 400);
-      }
+      const { h3_index } = c.req.valid("query");
 
       const hospitalService = c.get("getHospitalService")();
       const results = await hospitalService.findNearbyHospitals(h3_index);

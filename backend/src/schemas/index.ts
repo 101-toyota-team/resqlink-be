@@ -1,4 +1,19 @@
 import { z } from "zod";
+import * as h3 from "h3-js";
+
+const h3IndexSchema = z.string().refine(
+  (val) => {
+    if (val.length !== 15) return false;
+    try {
+      const latLng = h3.cellToLatLng(val);
+      const res7 = h3.latLngToCell(latLng[0], latLng[1], 7);
+      return res7 === val;
+    } catch {
+      return false;
+    }
+  },
+  { message: "Invalid H3 index" },
+);
 
 export const nearbyAmbulancesSchema = z.object({
   h3_index: z.string().min(1, "h3_index is required"),
@@ -10,12 +25,12 @@ export const bookingSchema = z.object({
   booking_type: z.enum(["medis", "sosial", "jenazah", "darurat"]),
   patient_condition: z.string(),
   pickup_address: z.string(),
-  pickup_lat: z.number(),
-  pickup_lng: z.number(),
+  pickup_lat: z.number().min(-90).max(90),
+  pickup_lng: z.number().min(-180).max(180),
   pickup_h3: z.string(),
   destination_address: z.string(),
-  destination_lat: z.number(),
-  destination_lng: z.number(),
+  destination_lat: z.number().min(-90).max(90),
+  destination_lng: z.number().min(-180).max(180),
 });
 
 export const driverPingSchema = z.object({
@@ -34,7 +49,7 @@ export const hospitalSearchSchema = z.object({
 });
 
 export const hospitalNearbySchema = z.object({
-  h3_index: z.string().min(1, "h3_index is required"),
+  h3_index: h3IndexSchema,
 });
 
 export const providerSearchSchema = z.object({
@@ -42,7 +57,7 @@ export const providerSearchSchema = z.object({
 });
 
 export const providerNearbySchema = z.object({
-  h3_index: z.string().min(1, "h3_index is required"),
+  h3_index: h3IndexSchema,
 });
 
 export const bookingIdParamSchema = z.object({
