@@ -4,4 +4,4 @@ compatibility_date = "2026-01-01"
 
 [vars]
 SUPABASE_URL = "https://oddfremdisrivnepklga.supabase.co"
-# DO NOT put secrets here. Use .dev.vars for local and 'wrangler secret put' for prod.
+# DO NOT put real secrets here. Use .dev.vars for local and 'wrangler secret put' for prod.
