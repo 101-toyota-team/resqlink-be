@@ -95,7 +95,10 @@ describe("Authentication & Authorization", () => {
           booking_type: "medical",
           pickup_lat: -6.2,
           pickup_lng: 106.8,
-          pickup_h3: "8828308281fffff",
+          pickup_h3: "878c106a4ffffff",
+          destination_address: "General Hospital",
+          destination_lat: -6.21,
+          destination_lng: 106.81,
         }),
       },
       env,
@@ -125,7 +128,7 @@ describe("Authentication & Authorization", () => {
         },
         body: JSON.stringify({
           driver_id: riderId,
-          h3_index: "8828308281fffff",
+          h3_index: "878c106a4ffffff",
           lat: -6.2,
           lng: 106.8,
         }),
@@ -154,7 +157,7 @@ describe("Authentication & Authorization", () => {
         },
         body: JSON.stringify({
           driver_id: "00000000-0000-0000-0000-000000000004",
-          h3_index: "8828308281fffff",
+          h3_index: "878c106a4ffffff",
           lat: -6.2,
           lng: 106.8,
         }),
@@ -183,7 +186,7 @@ describe("Authentication & Authorization", () => {
         },
         body: JSON.stringify({
           driver_id: driverId,
-          h3_index: "8828308281fffff",
+          h3_index: "878c106a4ffffff",
           lat: -6.2,
           lng: 106.8,
         }),
