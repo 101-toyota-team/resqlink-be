@@ -42,7 +42,7 @@ describe("Hospitals API", () => {
         {
           id: "1",
           name: "Hospital A",
-          h3_index: "8828308281fffff",
+          h3_index: "878c106a4ffffff",
           latitude: -6.2,
           longitude: 106.8,
           provider_type: "rumah_sakit",
@@ -113,7 +113,7 @@ describe("Hospitals API", () => {
 
   describe("GET /hospitals/nearby", () => {
     it("should return 200 and nearby hospitals", async () => {
-      const h3Index = "8828308281fffff";
+      const h3Index = "878c106a4ffffff";
       const mockResults: HospitalDetails[] = [
         {
           id: "1",
