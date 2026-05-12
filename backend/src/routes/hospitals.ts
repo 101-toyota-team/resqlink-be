@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { AppVariables } from "../types";
 import { Bindings } from "../schemas/env";
-import { hospitalSearchSchema, hospitalNearbySchema } from "../schemas";
 import logger from "../utils/logger";
 import { ERROR_MESSAGES } from "../utils/constants";
 
