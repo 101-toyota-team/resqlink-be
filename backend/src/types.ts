@@ -84,7 +84,7 @@ export interface Booking extends BookingData {
 export interface JwtPayload {
   sub: string;
   role?: string;
-  [key: string]: string | number | boolean | undefined;
+  [key: string]: unknown;
 }
 
 export interface GoogleDistanceMatrixResponse {

@@ -24,13 +24,18 @@ const createApp = (
   app.use("*", async (c, next) => {
     c.set("getDb", () => dbMock as unknown as IPersistenceRepository);
     c.set("jwtPayload", jwtPayloadMock);
-    c.set("getDispatchService", () =>
-      dispatchMock
-        ? (dispatchMock as unknown as {
-            startSimulationForBooking: ReturnType<typeof vi.fn>;
-          })
-        : { startSimulationForBooking: vi.fn() },
-    );
+    c.set("getDispatchService", () => {
+      const baseMock = {
+        findNearbyDrivers: vi.fn(),
+        updateDriverStatus: vi.fn(),
+        startSimulation: vi.fn(),
+        advanceSimulation: vi.fn(),
+        startSimulationForBooking: vi.fn(),
+      };
+      return dispatchMock
+        ? ({ ...baseMock, ...dispatchMock } as any)
+        : (baseMock as any);
+    });
     await next();
   });
 
