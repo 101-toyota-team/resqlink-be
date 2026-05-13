@@ -3,11 +3,8 @@ import * as h3 from "h3-js";
 
 const h3IndexSchema = z.string().refine(
   (val) => {
-    if (val.length !== 15) return false;
     try {
-      const latLng = h3.cellToLatLng(val);
-      const res7 = h3.latLngToCell(latLng[0], latLng[1], 7);
-      return res7 === val;
+      return h3.isValidCell(val) && h3.getResolution(val) === 7;
     } catch {
       return false;
     }
@@ -16,7 +13,7 @@ const h3IndexSchema = z.string().refine(
 );
 
 export const nearbyAmbulancesSchema = z.object({
-  h3_index: z.string().min(1, "h3_index is required"),
+  h3_index: h3IndexSchema,
   pickup: z.string().optional(),
 });
 

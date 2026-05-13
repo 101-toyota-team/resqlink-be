@@ -43,7 +43,7 @@ export const ERROR_MESSAGES = {
   INVALID_STATUS: "Invalid booking status provided",
   INVALID_TOKEN: "Invalid token",
   INVALID_H3_RESOLUTION:
-    "H3 index must be at resolution 7 (13 hex characters). Use latLngToCell(lat, lng, 7) to generate.",
+    "H3 index must be at resolution 7 (15 hex characters). Use latLngToCell(lat, lng, 7) to generate.",
   AUTH_SERVICE_UNAVAILABLE: "Authentication service unavailable",
   CONFIGURATION_ERROR: "Configuration error",
   VALIDATION_FAILED: "Validation failed",

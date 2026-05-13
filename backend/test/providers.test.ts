@@ -135,6 +135,29 @@ describe("Providers API", () => {
       expect(serviceMock.findNearbyProviders).toHaveBeenCalledWith(h3Index);
     });
 
+    it("should accept resolution 7 index 878c10702ffffff", async () => {
+      const h3Index = "878c10702ffffff";
+      const mockResults: Provider[] = [
+        {
+          id: "2",
+          name: "Provider B",
+          h3_index: h3Index,
+          latitude: -6.2,
+          longitude: 106.8,
+          provider_type: "rumah_sakit",
+          created_at: new Date().toISOString(),
+        },
+      ];
+      serviceMock.findNearbyProviders.mockResolvedValue(mockResults);
+
+      const app = createApp(serviceMock as unknown as IProviderService);
+      const res = await app.request(`/providers/nearby?h3_index=${h3Index}`);
+
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual(mockResults);
+      expect(serviceMock.findNearbyProviders).toHaveBeenCalledWith(h3Index);
+    });
+
     it("should return 400 for invalid H3 index", async () => {
       const app = createApp(serviceMock as unknown as IProviderService);
       const res = await app.request("/providers/nearby?h3_index=invalid");
