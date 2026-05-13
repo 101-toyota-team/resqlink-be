@@ -17,14 +17,17 @@ jobs:
           node-version: 22
       - name: Install Dependencies
         run: cd backend && npm install
+      - name: Create .dev.vars for Cloudflare Worker tests
+        run: |
+          cat > backend/.dev.vars <<EOF
+          UPSTASH_REDIS_REST_URL=${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN=${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          SUPABASE_SECRET_KEY=${{ secrets.SUPABASE_SECRET_KEY }}
+          GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}
+          EOF
       - name: Lint
         run: cd backend && npm run lint
       - name: Test
         run: cd backend && npm test
-        env:
-          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
-          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
       - name: Format Check
         run: cd backend && npx prettier --check "**/*.{ts,js}"
