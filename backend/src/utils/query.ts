@@ -1,6 +1,7 @@
-export function preprocessQuery(
-  query: string,
-): { raw: string; expanded: string } {
+export function preprocessQuery(query: string): {
+  raw: string;
+  expanded: string;
+} {
   const raw = query.trim();
 
   const abbreviations: Record<string, string> = {
