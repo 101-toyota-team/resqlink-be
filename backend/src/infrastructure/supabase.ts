@@ -14,13 +14,15 @@ import logger from "../utils/logger";
 
 interface AmbulanceDiscoveryResult {
   id: string;
-  providers: {
-    latitude: number;
-    longitude: number;
-  }[] | {
-    latitude: number;
-    longitude: number;
-  };
+  providers:
+    | {
+        latitude: number;
+        longitude: number;
+      }[]
+    | {
+        latitude: number;
+        longitude: number;
+      };
 }
 
 function isValidBooking(data: unknown): data is Booking {
