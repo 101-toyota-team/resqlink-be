@@ -29,7 +29,7 @@ export const supabaseAuth = async (
   try {
     const payload = await verifyWithJwks(token, {
       jwks_uri: `${c.env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
-      allowedAlgorithms: ["RS256"],
+      allowedAlgorithms: ["ES256"],
     });
 
     if (!isValidJwtPayload(payload)) {
