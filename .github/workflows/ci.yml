@@ -9,6 +9,7 @@ on:
 jobs:
   backend-ci:
     runs-on: ubuntu-latest
+    environment: DEVELOPMENT
     steps:
       - uses: actions/checkout@v4
       - name: Install Node.js
