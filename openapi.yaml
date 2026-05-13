@@ -1,35 +1,31 @@
-openapi: 3.0.3
+openapi: 3.0.1
 info:
   title: ResQLink API
   description: >
     Backend API for the ResQLink ambulance booking and dispatch platform.
-    Features static discovery via H3 spatial indexing and a simulated movement flow.
+    Features static discovery via H3 spatial indexing and a simulated movement
+    flow.
   version: 1.0.0
-servers:
-  - url: http://localhost:8787
-    description: Local Cloudflare Worker environment
-  - url: https://resqlink-backend.your-subdomain.workers.dev
-    description: Production environment
-
-security:
-  - BearerAuth: []
-
+tags:
+  - name: Providers
 paths:
   /providers/search:
     get:
       summary: Search Providers
+      deprecated: false
       description: Search for providers by name (case-insensitive).
       tags:
         - Providers
       parameters:
         - name: q
           in: query
+          description: ''
           required: true
+          example: RSUD Duren Sawit
           schema:
             type: string
             minLength: 2
             maxLength: 256
-          example: "RSUD Duren Sawit"
       responses:
         '200':
           description: A list of providers matching the query
@@ -39,27 +35,36 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Provider'
+          headers: {}
         '400':
           $ref: '#/components/responses/ValidationError'
+          description: Invalid payload or parameters
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+          description: Missing or invalid JWT
         '500':
           $ref: '#/components/responses/InternalError'
-
+          description: Unexpected backend failure
+      security:
+        - BearerAuth: []
   /providers/nearby:
     get:
       summary: Find Nearby Providers
+      deprecated: false
       description: Find providers within the same and neighboring H3 cells (radius 1).
       tags:
         - Providers
       parameters:
         - name: h3_index
           in: query
+          description: H3 cell index at resolution 7 (15-character hex string). Use h3.latLngToCell(lat, lng, 7) to generate.
           required: true
+          example: 878c10702ffffff
           schema:
             type: string
-            pattern: '^[0-9a-f]+$'
-          example: "8828308281fffff"
+            pattern: ^[0-9a-f]+$
+            minLength: 15
+            maxLength: 15
       responses:
         '200':
           description: A list of nearby providers
@@ -69,20 +74,19 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ProviderDetails'
+          headers: {}
         '400':
           $ref: '#/components/responses/ValidationError'
+          description: Invalid payload or parameters
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+          description: Missing or invalid JWT
         '500':
           $ref: '#/components/responses/InternalError'
-
+          description: Unexpected backend failure
+      security:
+        - BearerAuth: []
 components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-
   schemas:
     ErrorResponse:
       type: object
@@ -92,9 +96,9 @@ components:
         details:
           type: object
           description: Optional Zod formatting details for validation errors
+          properties: {}
       required:
         - error
-
     Provider:
       type: object
       properties:
@@ -126,7 +130,6 @@ components:
         - longitude
         - provider_type
         - created_at
-
     ProviderDetails:
       allOf:
         - $ref: '#/components/schemas/Provider'
@@ -134,8 +137,7 @@ components:
           properties:
             distance:
               type: string
-              example: "1.2 km"
-
+              example: 1.2 km
   responses:
     ValidationError:
       description: Invalid payload or parameters
@@ -143,38 +145,61 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
-          example:
-            error: "Validation failed"
-            details: {}
+          examples:
+            Success:
+              summary: Success
+              value:
+                error: Validation failed
+                details: {}
     UnauthorizedError:
       description: Missing or invalid JWT
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
-          example:
-            error: "Unauthorized access"
+          examples:
+            Success:
+              summary: Success
+              value:
+                error: Unauthorized access
     ForbiddenError:
       description: Valid JWT but inadequate permissions/roles
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
-          example:
-            error: "You do not have permission to access this resource"
+          examples:
+            Success:
+              summary: Success
+              value:
+                error: You do not have permission to access this resource
     NotFoundError:
       description: Resource does not exist
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
-          example:
-            error: "Booking not found"
+          examples:
+            Success:
+              summary: Success
+              value:
+                error: Booking not found
     InternalError:
       description: Unexpected backend failure
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
-          example:
-            error: "Internal server error"
+          examples:
+            Success:
+              summary: Success
+              value:
+                error: Internal server error
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+servers: []
+security:
+  - BearerAuth: []
