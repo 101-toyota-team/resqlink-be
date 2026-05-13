@@ -31,12 +31,12 @@ export const supabaseAuth = async (
       jwks_uri: `${c.env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
       allowedAlgorithms: ["RS256"],
     });
-    
+
     if (!isValidJwtPayload(payload)) {
       logger.error("Invalid JWT payload structure: %O", payload);
       return c.json({ error: "Invalid token" }, 401);
     }
-    
+
     c.set("jwtPayload", payload);
     await next();
   } catch (e: unknown) {

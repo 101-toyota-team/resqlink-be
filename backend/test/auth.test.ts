@@ -139,7 +139,9 @@ describe("Authentication & Authorization", () => {
     );
 
     expect(res.status).toBe(403);
-    expect(await res.json()).toEqual({ error: "You do not have permission to access this resource" });
+    expect(await res.json()).toEqual({
+      error: "You do not have permission to access this resource",
+    });
   });
 
   it("should return 403 if driver_id in body does not match sub in JWT", async function test() {
@@ -168,7 +170,9 @@ describe("Authentication & Authorization", () => {
     );
 
     expect(res.status).toBe(403);
-    expect(await res.json()).toEqual({ error: "You do not have permission to access this resource" });
+    expect(await res.json()).toEqual({
+      error: "You do not have permission to access this resource",
+    });
   });
 
   it("should allow driver ping if authenticated as driver with matching ID", async () => {

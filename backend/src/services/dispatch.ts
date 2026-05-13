@@ -20,10 +20,7 @@ export interface IDispatchService {
   ): Promise<void>;
   startSimulation(booking: Booking): Promise<void>;
   advanceSimulation(driverId: string): Promise<void>;
-  startSimulationForBooking(
-    booking: Booking,
-    driverId: string,
-  ): Promise<void>;
+  startSimulationForBooking(booking: Booking, driverId: string): Promise<void>;
 }
 
 export class DispatchService implements IDispatchService {
