@@ -15,8 +15,8 @@ export class ProviderService implements IProviderService {
   ) {}
 
   async searchProviders(query: string): Promise<Provider[]> {
-    const expandedQuery = preprocessQuery(query);
-    return this.db.searchProviders(expandedQuery);
+    const { raw, expanded } = preprocessQuery(query);
+    return this.db.searchProviders(raw, expanded);
   }
 
   async findNearbyProviders(h3Index: string): Promise<ProviderDetails[]> {

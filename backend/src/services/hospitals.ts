@@ -15,8 +15,8 @@ export class HospitalService implements IHospitalService {
   ) {}
 
   async searchHospitals(query: string): Promise<Hospital[]> {
-    const expandedQuery = preprocessQuery(query);
-    return this.db.searchHospitals(expandedQuery);
+    const { raw } = preprocessQuery(query);
+    return this.db.searchHospitals(raw);
   }
 
   async findNearbyHospitals(h3Index: string): Promise<HospitalDetails[]> {

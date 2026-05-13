@@ -220,11 +220,12 @@ export class SupabaseRepository implements IPersistenceRepository {
     return (data || []) as Booking[];
   }
 
-  async searchProviders(query: string): Promise<Provider[]> {
+  async searchProviders(raw: string, expanded: string): Promise<Provider[]> {
     const { data, error } = await this.client.rpc(
       "search_providers_optimized",
       {
-        search_term: query,
+        search_term: expanded,
+        raw_term: raw,
       },
     );
 
