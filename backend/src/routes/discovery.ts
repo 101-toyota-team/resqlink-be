@@ -30,11 +30,8 @@ discoveryApp.get(
         found_drivers: drivers,
       });
     } catch (error) {
-      logger.error("Discovery /nearby error: %O", error);
-      return c.json(
-        { error: ERROR_MESSAGES.DISCOVERY_FAILED },
-        500,
-      );
+      logger.error({ error }, "Discovery /nearby error");
+      return c.json({ error: ERROR_MESSAGES.DISCOVERY_FAILED }, 500);
     }
   },
 );

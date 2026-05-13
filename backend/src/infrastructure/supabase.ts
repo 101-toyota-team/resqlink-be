@@ -12,6 +12,17 @@ import {
 import { fetchWithTimeout } from "./util";
 import logger from "../utils/logger";
 
+interface AmbulanceDiscoveryResult {
+  id: string;
+  providers: {
+    latitude: number;
+    longitude: number;
+  }[] | {
+    latitude: number;
+    longitude: number;
+  };
+}
+
 function isValidBooking(data: unknown): data is Booking {
   return (
     typeof data === "object" &&
@@ -52,12 +63,12 @@ export class SupabaseRepository implements IPersistenceRepository {
       logger.error("Supabase createBooking error: %O", error);
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
-    
+
     if (!isValidBooking(booking)) {
       logger.error("Invalid booking response from Supabase: %O", booking);
       throw new Error("Invalid booking data received from database");
     }
-    
+
     return booking;
   }
 
@@ -73,12 +84,12 @@ export class SupabaseRepository implements IPersistenceRepository {
       logger.error("Supabase getBooking error: %O", error);
       return null;
     }
-    
+
     if (!isValidBooking(booking)) {
       logger.error("Invalid booking response from Supabase: %O", booking);
       return null;
     }
-    
+
     return booking;
   }
 
@@ -114,11 +125,16 @@ export class SupabaseRepository implements IPersistenceRepository {
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
-    return (data as unknown as AmbulanceDiscoveryResult[]).map((item) => ({
-      id: item.id,
-      lat: item.providers.latitude,
-      lng: item.providers.longitude,
-    }));
+    return (data as unknown as AmbulanceDiscoveryResult[]).map((item) => {
+      const provider = Array.isArray(item.providers)
+        ? item.providers[0]
+        : item.providers;
+      return {
+        id: item.id,
+        lat: provider?.latitude || 0,
+        lng: provider?.longitude || 0,
+      };
+    });
   }
 
   async broadcastTripLocation(
