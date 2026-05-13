@@ -1,3 +1,6 @@
+import type { Context } from "hono";
+import type { ZodError } from "zod";
+
 // Configuration constants for backend services
 
 // Distance Service
@@ -52,7 +55,12 @@ export const ERROR_MESSAGES = {
 /**
  * Shared validator hook for zValidator to ensure consistent error responses.
  */
-export const validatorHook = (result: any, c: any) => {
+export const validatorHook = (
+  result:
+    | { success: true; data: unknown }
+    | { success: false; error: ZodError },
+  c: Context,
+) => {
   if (!result.success) {
     return c.json(
       {
