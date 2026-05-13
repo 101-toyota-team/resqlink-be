@@ -44,6 +44,7 @@ describe("ProviderService", () => {
   it("should expand abbreviations like RS in search query", async () => {
     await service.searchProviders("RS Duren Sawit");
     expect(mockDb.searchProviders).toHaveBeenCalledWith(
+      "RS Duren Sawit",
       "Rumah Sakit Duren Sawit",
     );
   });
@@ -51,6 +52,7 @@ describe("ProviderService", () => {
   it("should expand multiple abbreviations", async () => {
     await service.searchProviders("RSUD and RSIA");
     expect(mockDb.searchProviders).toHaveBeenCalledWith(
+      "RSUD and RSIA",
       "Rumah Sakit Umum Daerah and Rumah Sakit Ibu dan Anak",
     );
   });

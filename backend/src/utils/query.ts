@@ -1,5 +1,7 @@
-export function preprocessQuery(query: string): string {
-  const processed = query.trim();
+export function preprocessQuery(
+  query: string,
+): { raw: string; expanded: string } {
+  const raw = query.trim();
 
   const abbreviations: Record<string, string> = {
     rs: "Rumah Sakit",
@@ -8,11 +10,11 @@ export function preprocessQuery(query: string): string {
     puskesmas: "Pusat Kesehatan Masyarakat",
   };
 
-  const words = processed.split(/\s+/);
+  const words = raw.split(/\s+/);
   const expandedWords = words.map((word) => {
     const lower = word.toLowerCase();
     return abbreviations[lower] || word;
   });
 
-  return expandedWords.join(" ");
+  return { raw, expanded: expandedWords.join(" ") };
 }
