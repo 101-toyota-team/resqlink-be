@@ -5,6 +5,7 @@ import { ERROR_MESSAGES } from "../src/utils/constants";
 import { AppVariables, JwtPayload } from "../src/types";
 import { Bindings } from "../src/schemas/env";
 import { IPersistenceRepository } from "../src/repositories/db";
+import { IDispatchService } from "../src/services/dispatch";
 
 interface MockDb {
   createBooking: ReturnType<typeof vi.fn>;
@@ -32,9 +33,9 @@ const createApp = (
         advanceSimulation: vi.fn(),
         startSimulationForBooking: vi.fn(),
       };
-      return dispatchMock
-        ? ({ ...baseMock, ...dispatchMock } as any)
-        : (baseMock as any);
+      return (
+        dispatchMock ? { ...baseMock, ...dispatchMock } : baseMock
+      ) as IDispatchService;
     });
     await next();
   });
