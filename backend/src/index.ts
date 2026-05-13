@@ -10,6 +10,7 @@ import discoveryApp from "./routes/discovery";
 import bookingsApp from "./routes/bookings";
 import driverApp from "./routes/driver";
 import hospitalsApp from "./routes/hospitals";
+import providersApp from "./routes/providers";
 
 const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
 
@@ -40,9 +41,10 @@ app.route("/ambulances", discoveryApp);
 app.route("/bookings", bookingsApp);
 app.route("/driver", driverApp);
 app.route("/hospitals", hospitalsApp);
+app.route("/providers", providersApp);
 
 app.onError((err, c) => {
-  logger.error("Unhandled exception: %s", err.message, { stack: err.stack });
+  logger.error({ err }, "Unhandled exception: %s", err.message);
   return c.json(
     {
       error: "Internal Server Error",
