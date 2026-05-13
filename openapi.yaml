@@ -15,27 +15,6 @@ security:
   - BearerAuth: []
 
 paths:
-  /auth/ping:
-    get:
-      summary: Verify Authentication
-      description: Validates the Supabase JWT and returns user identity/role.
-      tags:
-        - Auth
-      responses:
-        '200':
-          description: Successful authentication
-          content:
-            application/json:
-              example:
-                message: "Auth works!"
-                user:
-                  sub: "d290f1ee-6c54-4b01-90e6-d701748f0851"
-                  role: "authenticated"
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
   /providers/search:
     get:
       summary: Search Providers
