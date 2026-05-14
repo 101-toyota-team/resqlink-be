@@ -43,6 +43,8 @@ describe("DispatchService", () => {
       parseLatLng: vi.fn(),
       latLngToCell: vi.fn(),
       getNeighbors: vi.fn(),
+      cellToLatLng: vi.fn(),
+      haversineDistance: vi.fn(),
     } as Mocked<IGeoService>;
     mockDistance = {
       getEnrichedDrivers: vi.fn(),

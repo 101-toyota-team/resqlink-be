@@ -28,9 +28,15 @@ providersApp.get(
   zValidator("query", providerNearbySchema, validatorHook),
   async (c) => {
     try {
-      const { h3_index } = c.req.valid("query");
+      const { h3_index, lat, lng, page, per_page } = c.req.valid("query");
       const providerService = c.get("getProviderService")();
-      const results = await providerService.findNearbyProviders(h3_index);
+      const results = await providerService.findNearbyProviders(
+        h3_index,
+        lat,
+        lng,
+        page,
+        per_page,
+      );
       return c.json(results);
     } catch (error) {
       logger.error(error, "Error finding nearby providers");

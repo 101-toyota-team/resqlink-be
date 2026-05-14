@@ -32,6 +32,13 @@ export const DISCOVERY = {
   MAX_PAGE_SIZE: 100,
 };
 
+// Provider Search
+export const PROVIDER_SEARCH = {
+  MAX_RING_DISTANCE: 30,
+  DEFAULT_PAGE_SIZE: 20,
+  MAX_PAGE_SIZE: 100,
+};
+
 // Error messages
 export const ERROR_MESSAGES = {
   INVALID_COORDINATES: "Invalid coordinates provided",
