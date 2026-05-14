@@ -53,8 +53,8 @@ paths:
       deprecated: false
       description: >-
         Find providers within an expanding H3 ring search (up to ~60 km radius),
-        ordered by distance ascending. Paginated results wrapped in a JSON
-        envelope.
+        ordered by distance ascending. Returns up to 50 results closest to the
+        user.
       tags:
         - Providers
       parameters:
@@ -86,42 +86,15 @@ paths:
             type: number
             minimum: -180
             maximum: 180
-        - name: page
-          in: query
-          required: false
-          description: Page number for paginated results.
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-        - name: per_page
-          in: query
-          required: false
-          description: Number of results per page.
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
       responses:
         '200':
-          description: Paginated list of nearby providers sorted by distance.
+          description: Up to 50 nearby providers sorted by distance ascending.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  providers:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ProviderDetails'
-                  total:
-                    type: integer
-                    description: Total number of providers found.
-                  page:
-                    type: integer
-                  per_page:
-                    type: integer
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProviderDetails'
           headers: {}
         '400':
           $ref: '#/components/responses/ValidationError'

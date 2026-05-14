@@ -1,4 +1,4 @@
-import { ProviderDetails, PaginatedProviders } from "../types";
+import { ProviderDetails } from "../types";
 import { IPersistenceRepository } from "../repositories/db";
 import { IGeoService } from "./geo";
 import { preprocessQuery } from "../utils/query";
@@ -10,9 +10,7 @@ export interface IProviderService {
     h3Index: string,
     lat?: number,
     lng?: number,
-    page?: number,
-    perPage?: number,
-  ): Promise<PaginatedProviders>;
+  ): Promise<ProviderDetails[]>;
 }
 
 export class ProviderService implements IProviderService {
@@ -30,9 +28,7 @@ export class ProviderService implements IProviderService {
     h3Index: string,
     lat?: number,
     lng?: number,
-    page = 1,
-    perPage = PROVIDER_SEARCH.DEFAULT_PAGE_SIZE,
-  ): Promise<PaginatedProviders> {
+  ): Promise<ProviderDetails[]> {
     const center =
       lat !== undefined && lng !== undefined
         ? { lat, lng }
@@ -50,7 +46,7 @@ export class ProviderService implements IProviderService {
       providers.push(...result);
     }
 
-    const withDistance: ProviderDetails[] = providers.map((p) => ({
+    const withDistance = providers.map((p) => ({
       ...p,
       distance: `${this.geo.haversineDistance(center.lat, center.lng, p.latitude, p.longitude).toFixed(2)} km`,
     }));
@@ -59,10 +55,6 @@ export class ProviderService implements IProviderService {
       (a, b) => parseFloat(a.distance!) - parseFloat(b.distance!),
     );
 
-    const total = withDistance.length;
-    const start = (page - 1) * perPage;
-    const paginated = withDistance.slice(start, start + perPage);
-
-    return { providers: paginated, total, page, per_page: perPage };
+    return withDistance.slice(0, PROVIDER_SEARCH.MAX_RESULTS);
   }
 }
