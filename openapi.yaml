@@ -21,7 +21,7 @@ paths:
           in: query
           description: ''
           required: true
-          example: RSUD Duren Sawit
+          example: RS Universitas Indonesia
           schema:
             type: string
             minLength: 2
@@ -57,7 +57,9 @@ paths:
       parameters:
         - name: h3_index
           in: query
-          description: H3 cell index at resolution 7 (15-character hex string). Use h3.latLngToCell(lat, lng, 7) to generate.
+          description: >-
+            H3 cell index at resolution 7 (15-character hex string). Use
+            h3.latLngToCell(lat, lng, 7) to generate.
           required: true
           example: 878c10702ffffff
           schema:
