@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import providersApp from "../src/routes/providers";
-import { ERROR_MESSAGES, PROVIDER_SEARCH } from "../src/utils/constants";
-import { AppVariables, Provider, PaginatedProviders } from "../src/types";
+import { ERROR_MESSAGES } from "../src/utils/constants";
+import { AppVariables, Provider } from "../src/types";
 import { Bindings } from "../src/schemas/env";
 import { IProviderService, ProviderService } from "../src/services/providers";
 import { IPersistenceRepository } from "../src/repositories/db";
@@ -24,17 +24,6 @@ const createApp = (serviceMock: IProviderService) => {
   app.route("/providers", providersApp);
   return app;
 };
-
-const makePaginated = (
-  providers: Provider[],
-  page = 1,
-  perPage = PROVIDER_SEARCH.DEFAULT_PAGE_SIZE,
-): PaginatedProviders => ({
-  providers,
-  total: providers.length,
-  page,
-  per_page: perPage,
-});
 
 describe("ProviderService", () => {
   let mockDb: IPersistenceRepository;
@@ -125,9 +114,9 @@ describe("Providers API", () => {
   });
 
   describe("GET /providers/nearby", () => {
-    it("should return 200 and paginated nearby providers", async () => {
+    it("should return 200 and nearby providers sorted by distance", async () => {
       const h3Index = "878c106a4ffffff";
-      const mockResponse = makePaginated([
+      const mockResults: Provider[] = [
         {
           id: "1",
           name: "Provider A",
@@ -137,41 +126,36 @@ describe("Providers API", () => {
           provider_type: "rumah_sakit",
           created_at: new Date().toISOString(),
         },
-      ]);
-      serviceMock.findNearbyProviders.mockResolvedValue(mockResponse);
+      ];
+      serviceMock.findNearbyProviders.mockResolvedValue(mockResults);
 
       const app = createApp(serviceMock as unknown as IProviderService);
       const res = await app.request(`/providers/nearby?h3_index=${h3Index}`);
 
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual(mockResponse);
+      expect(await res.json()).toEqual(mockResults);
       expect(serviceMock.findNearbyProviders).toHaveBeenCalledWith(
         h3Index,
         undefined,
         undefined,
-        1,
-        PROVIDER_SEARCH.DEFAULT_PAGE_SIZE,
       );
     });
 
-    it("should pass pagination and coordinate params", async () => {
+    it("should pass optional lat/lng to service", async () => {
       const h3Index = "878c10702ffffff";
-      const mockResponse = makePaginated([], 2, 5);
-      serviceMock.findNearbyProviders.mockResolvedValue(mockResponse);
+      const mockResults: Provider[] = [];
+      serviceMock.findNearbyProviders.mockResolvedValue(mockResults);
 
       const app = createApp(serviceMock as unknown as IProviderService);
       const res = await app.request(
-        `/providers/nearby?h3_index=${h3Index}&lat=-6.2&lng=106.8&page=2&per_page=5`,
+        `/providers/nearby?h3_index=${h3Index}&lat=-6.2&lng=106.8`,
       );
 
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual(mockResponse);
       expect(serviceMock.findNearbyProviders).toHaveBeenCalledWith(
         h3Index,
         -6.2,
         106.8,
-        2,
-        5,
       );
     });
 

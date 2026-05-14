@@ -1,0 +1,8 @@
+# Purge assignment lines in wrangler.toml and scripts
+regex:^.*SUPABASE_SECRET_KEY\s*=.*$\n?==>
+regex:^.*UPSTASH_REDIS_REST_TOKEN\s*=.*$\n?==>
+regex:^.*GOOGLE_MAPS_API_KEY\s*=.*$\n?==>
+regex:^.*UPSTASH_REDIS_REST_URL\s*=.*$\n?==>
+
+# Specific purge for the hardcoded JWT in scripts/get-jwt.mjs
+regex:^.*"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.*"$\n?==>

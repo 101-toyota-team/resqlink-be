@@ -33,13 +33,6 @@ export interface ProviderDetails extends Provider {
   distance?: string;
 }
 
-export interface PaginatedProviders {
-  providers: ProviderDetails[];
-  total: number;
-  page: number;
-  per_page: number;
-}
-
 export interface Hospital extends Provider {
   igd_phone: string;
   igd_email?: string;
