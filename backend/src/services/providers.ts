@@ -38,7 +38,10 @@ export class ProviderService implements IProviderService {
         ? { lat, lng }
         : this.geo.cellToLatLng(h3Index);
 
-    const allCells = this.geo.getNeighbors(h3Index, PROVIDER_SEARCH.MAX_RING_DISTANCE);
+    const allCells = this.geo.getNeighbors(
+      h3Index,
+      PROVIDER_SEARCH.MAX_RING_DISTANCE,
+    );
     const providers = await this.db.findProvidersByH3Indexes(allCells);
 
     const withDistance: ProviderDetails[] = providers.map((p) => ({
