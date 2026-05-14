@@ -1,0 +1,2 @@
+-- Duplicate of 20260513161123_improve_search_ranking. This file exists solely to
+-- satisfy the local-remote migration version match requirement.

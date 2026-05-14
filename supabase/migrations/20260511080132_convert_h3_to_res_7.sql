@@ -1,0 +1,3 @@
+-- Actual column creation + index are now in
+-- 20260506000000_add_h3_index_to_providers.sql and 20260514000001_add_h3_index.sql.
+-- This file exists only to satisfy the local-remote migration version match in CI.
