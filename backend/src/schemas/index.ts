@@ -59,8 +59,7 @@ export const providerNearbySchema = z.object({
   lat: z.coerce.number().min(-90).max(90).optional(),
   lng: z.coerce.number().min(-180).max(180).optional(),
   page: z.coerce.number().int().min(1).default(1),
-  per_page: z
-    .coerce
+  per_page: z.coerce
     .number()
     .int()
     .min(1)
