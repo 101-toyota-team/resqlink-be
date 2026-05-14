@@ -56,7 +56,7 @@ describe("Hospitals API", () => {
         {
           id: "2",
           name: "Hospital B",
-          h3_index: "8828308282fffff",
+          h3_index: "878c107a4ffffff",
           latitude: -6.3,
           longitude: 106.9,
           provider_type: "rumah_sakit",
