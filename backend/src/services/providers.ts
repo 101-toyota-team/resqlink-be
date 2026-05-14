@@ -42,7 +42,13 @@ export class ProviderService implements IProviderService {
       h3Index,
       PROVIDER_SEARCH.MAX_RING_DISTANCE,
     );
-    const providers = await this.db.findProvidersByH3Indexes(allCells);
+
+    const providers: ProviderDetails[] = [];
+    for (let i = 0; i < allCells.length; i += PROVIDER_SEARCH.H3_BATCH_SIZE) {
+      const batch = allCells.slice(i, i + PROVIDER_SEARCH.H3_BATCH_SIZE);
+      const result = await this.db.findProvidersByH3Indexes(batch);
+      providers.push(...result);
+    }
 
     const withDistance: ProviderDetails[] = providers.map((p) => ({
       ...p,

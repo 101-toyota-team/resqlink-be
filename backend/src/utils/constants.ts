@@ -37,6 +37,7 @@ export const PROVIDER_SEARCH = {
   MAX_RING_DISTANCE: 30,
   DEFAULT_PAGE_SIZE: 20,
   MAX_PAGE_SIZE: 100,
+  H3_BATCH_SIZE: 100,
 };
 
 // Error messages
