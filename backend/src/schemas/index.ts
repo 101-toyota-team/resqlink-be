@@ -54,17 +54,22 @@ export const providerSearchSchema = z.object({
   q: z.string().min(2, "Search query must be at least 2 characters").max(256),
 });
 
+const coerceOptional = (schema: z.ZodTypeAny) =>
+  z.preprocess((val) => (val === "" ? undefined : val), schema);
+
 export const providerNearbySchema = z.object({
   h3_index: h3IndexSchema,
-  lat: z.coerce.number().min(-90).max(90).optional(),
-  lng: z.coerce.number().min(-180).max(180).optional(),
-  page: z.coerce.number().int().min(1).default(1),
-  per_page: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(PROVIDER_SEARCH.MAX_PAGE_SIZE)
-    .default(PROVIDER_SEARCH.DEFAULT_PAGE_SIZE),
+  lat: coerceOptional(z.coerce.number().min(-90).max(90).optional()),
+  lng: coerceOptional(z.coerce.number().min(-180).max(180).optional()),
+  page: coerceOptional(z.coerce.number().int().min(1).default(1)),
+  per_page: coerceOptional(
+    z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(PROVIDER_SEARCH.MAX_PAGE_SIZE)
+      .default(PROVIDER_SEARCH.DEFAULT_PAGE_SIZE),
+  ),
 });
 
 export const bookingIdParamSchema = z.object({
