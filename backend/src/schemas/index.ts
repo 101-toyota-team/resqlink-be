@@ -1,5 +1,6 @@
 import { z } from "zod";
 import * as h3 from "h3-js";
+import { PROVIDER_SEARCH } from "../utils/constants";
 
 const h3IndexSchema = z.string().refine(
   (val) => {
@@ -55,6 +56,16 @@ export const providerSearchSchema = z.object({
 
 export const providerNearbySchema = z.object({
   h3_index: h3IndexSchema,
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  per_page: z
+    .coerce
+    .number()
+    .int()
+    .min(1)
+    .max(PROVIDER_SEARCH.MAX_PAGE_SIZE)
+    .default(PROVIDER_SEARCH.DEFAULT_PAGE_SIZE),
 });
 
 export const bookingIdParamSchema = z.object({

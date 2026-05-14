@@ -241,8 +241,7 @@ export class SupabaseRepository implements IPersistenceRepository {
     const { data, error } = await this.client
       .from("providers")
       .select("*")
-      .in("h3_index", h3Indexes)
-      .order("name", { ascending: true });
+      .in("h3_index", h3Indexes);
 
     if (error) {
       logger.error(error, "Supabase findProvidersByH3Indexes error");

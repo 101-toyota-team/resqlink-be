@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import providersApp from "../src/routes/providers";
-import { ERROR_MESSAGES } from "../src/utils/constants";
-import { AppVariables, Provider } from "../src/types";
+import { ERROR_MESSAGES, PROVIDER_SEARCH } from "../src/utils/constants";
+import { AppVariables, Provider, PaginatedProviders } from "../src/types";
 import { Bindings } from "../src/schemas/env";
 import { IProviderService, ProviderService } from "../src/services/providers";
 import { IPersistenceRepository } from "../src/repositories/db";
@@ -24,6 +24,17 @@ const createApp = (serviceMock: IProviderService) => {
   app.route("/providers", providersApp);
   return app;
 };
+
+const makePaginated = (
+  providers: Provider[],
+  page = 1,
+  perPage = PROVIDER_SEARCH.DEFAULT_PAGE_SIZE,
+): PaginatedProviders => ({
+  providers,
+  total: providers.length,
+  page,
+  per_page: perPage,
+});
 
 describe("ProviderService", () => {
   let mockDb: IPersistenceRepository;
@@ -93,7 +104,7 @@ describe("Providers API", () => {
 
     it("should return 400 for validation errors (e.g. query too short)", async () => {
       const app = createApp(serviceMock as unknown as IProviderService);
-      const res = await app.request("/providers/search?q=P"); // 1 char, min is 2
+      const res = await app.request("/providers/search?q=P");
 
       expect(res.status).toBe(400);
       expect(serviceMock.searchProviders).not.toHaveBeenCalled();
@@ -114,9 +125,9 @@ describe("Providers API", () => {
   });
 
   describe("GET /providers/nearby", () => {
-    it("should return 200 and nearby providers", async () => {
+    it("should return 200 and paginated nearby providers", async () => {
       const h3Index = "878c106a4ffffff";
-      const mockResults: Provider[] = [
+      const mockResponse = makePaginated([
         {
           id: "1",
           name: "Provider A",
@@ -126,43 +137,57 @@ describe("Providers API", () => {
           provider_type: "rumah_sakit",
           created_at: new Date().toISOString(),
         },
-      ];
-      serviceMock.findNearbyProviders.mockResolvedValue(mockResults);
+      ]);
+      serviceMock.findNearbyProviders.mockResolvedValue(mockResponse);
 
       const app = createApp(serviceMock as unknown as IProviderService);
       const res = await app.request(`/providers/nearby?h3_index=${h3Index}`);
 
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual(mockResults);
-      expect(serviceMock.findNearbyProviders).toHaveBeenCalledWith(h3Index);
+      expect(await res.json()).toEqual(mockResponse);
+      expect(serviceMock.findNearbyProviders).toHaveBeenCalledWith(
+        h3Index,
+        undefined,
+        undefined,
+        1,
+        PROVIDER_SEARCH.DEFAULT_PAGE_SIZE,
+      );
     });
 
-    it("should accept resolution 7 index 878c10702ffffff", async () => {
+    it("should pass pagination and coordinate params", async () => {
       const h3Index = "878c10702ffffff";
-      const mockResults: Provider[] = [
-        {
-          id: "2",
-          name: "Provider B",
-          h3_index: h3Index,
-          latitude: -6.2,
-          longitude: 106.8,
-          provider_type: "rumah_sakit",
-          created_at: new Date().toISOString(),
-        },
-      ];
-      serviceMock.findNearbyProviders.mockResolvedValue(mockResults);
+      const mockResponse = makePaginated([], 2, 5);
+      serviceMock.findNearbyProviders.mockResolvedValue(mockResponse);
 
       const app = createApp(serviceMock as unknown as IProviderService);
-      const res = await app.request(`/providers/nearby?h3_index=${h3Index}`);
+      const res = await app.request(
+        `/providers/nearby?h3_index=${h3Index}&lat=-6.2&lng=106.8&page=2&per_page=5`,
+      );
 
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual(mockResults);
-      expect(serviceMock.findNearbyProviders).toHaveBeenCalledWith(h3Index);
+      expect(await res.json()).toEqual(mockResponse);
+      expect(serviceMock.findNearbyProviders).toHaveBeenCalledWith(
+        h3Index,
+        -6.2,
+        106.8,
+        2,
+        5,
+      );
     });
 
     it("should return 400 for invalid H3 index", async () => {
       const app = createApp(serviceMock as unknown as IProviderService);
       const res = await app.request("/providers/nearby?h3_index=invalid");
+
+      expect(res.status).toBe(400);
+      expect(serviceMock.findNearbyProviders).not.toHaveBeenCalled();
+    });
+
+    it("should return 400 for out-of-range lat", async () => {
+      const app = createApp(serviceMock as unknown as IProviderService);
+      const res = await app.request(
+        "/providers/nearby?h3_index=878c10702ffffff&lat=999",
+      );
 
       expect(res.status).toBe(400);
       expect(serviceMock.findNearbyProviders).not.toHaveBeenCalled();
