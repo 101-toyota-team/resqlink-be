@@ -127,7 +127,8 @@ export class SupabaseRepository implements IPersistenceRepository {
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
-    return (data as unknown as AmbulanceDiscoveryResult[]).map((item) => {
+    const results = (data || []) as unknown as AmbulanceDiscoveryResult[];
+    return results.map((item) => {
       const provider = Array.isArray(item.providers)
         ? item.providers[0]
         : item.providers;
@@ -179,12 +180,20 @@ export class SupabaseRepository implements IPersistenceRepository {
             latitude: number;
             longitude: number;
           }[]
+        | {
+            latitude: number;
+            longitude: number;
+          }
         | null;
     };
 
     const providerData = (data as AmbulanceData).providers;
-    if (!providerData || providerData.length === 0) return null;
-    const provider = providerData[0];
+    if (!providerData) return null;
+
+    const provider = Array.isArray(providerData)
+      ? providerData[0]
+      : providerData;
+
     if (!provider) return null;
 
     return {

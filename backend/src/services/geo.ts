@@ -23,7 +23,21 @@ export class GeoService implements IGeoService {
   }
 
   parseLatLng(location: string): { lat: number; lng: number } {
-    const [lat, lng] = location.split(",").map(Number);
+    const [latStr, lngStr] = location.split(",");
+    const lat = Number(latStr);
+    const lng = Number(lngStr);
+
+    if (
+      isNaN(lat) ||
+      isNaN(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      throw new Error("Invalid coordinate values");
+    }
+
     return { lat, lng };
   }
 
