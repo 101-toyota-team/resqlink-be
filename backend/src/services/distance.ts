@@ -32,20 +32,24 @@ export class DistanceService implements IDistanceService {
       DISTANCE_SERVICE.H3_RESOLUTION,
     );
 
-    const resultsWithCache = await Promise.all(
-      drivers.map(async (d) => {
-        const dIdx = this.geo.latLngToCell(
-          d.lat,
-          d.lng,
-          DISTANCE_SERVICE.H3_RESOLUTION,
-        );
-        const cacheKey = `dist_cache:${dIdx}:${pIdx}`;
-        const cached = await this.cache.get<{ eta: string; distance: string }>(
-          cacheKey,
-        );
-        return { driver: d, cached };
-      }),
-    );
+    const keys = drivers.map((d) => {
+      const dIdx = this.geo.latLngToCell(
+        d.lat,
+        d.lng,
+        DISTANCE_SERVICE.H3_RESOLUTION,
+      );
+      return `dist_cache:${dIdx}:${pIdx}`;
+    });
+
+    const cachedResults = await this.cache.mget<{
+      eta: string;
+      distance: string;
+    }>(keys);
+
+    const resultsWithCache = drivers.map((d, i) => ({
+      driver: d,
+      cached: cachedResults[i],
+    }));
 
     const uncached = resultsWithCache.filter((r) => !r.cached);
 
@@ -69,8 +73,8 @@ export class DistanceService implements IDistanceService {
 
       await Promise.all(
         uncached.map(async (r, i) => {
-          const element = matrix.rows[i].elements[0];
-          if (element.status === "OK") {
+          const element = matrix.rows[i]?.elements?.[0];
+          if (element?.status === "OK") {
             const cacheData = {
               eta: element.duration.text,
               distance: element.distance.text,

@@ -4,7 +4,7 @@ import { nearbyAmbulancesSchema } from "../schemas";
 import { AppVariables } from "../types";
 import { Bindings } from "../schemas/env";
 import logger from "../utils/logger";
-import { ERROR_MESSAGES } from "../utils/constants";
+import { ERROR_MESSAGES, validatorHook } from "../utils/constants";
 
 const discoveryApp = new Hono<{
   Bindings: Bindings;
@@ -13,7 +13,7 @@ const discoveryApp = new Hono<{
 
 discoveryApp.get(
   "/nearby",
-  zValidator("query", nearbyAmbulancesSchema),
+  zValidator("query", nearbyAmbulancesSchema, validatorHook),
   async (c) => {
     try {
       const { h3_index, pickup } = c.req.valid("query");

@@ -12,6 +12,17 @@ const h3IndexSchema = z.string().refine(
   { message: "Invalid H3 index" },
 );
 
+/**
+ * Coerces a value to a number, but returns undefined if it's an empty string or null.
+ * This prevents URL query params like ?lat=&lng= from being coerced to 0 (Null Island).
+ */
+const coerceOptionalNumber = (min: number, max: number) =>
+  z.preprocess((val) => {
+    if (val === "" || val === null || val === undefined) return undefined;
+    const num = Number(val);
+    return isNaN(num) ? val : num;
+  }, z.number().min(min).max(max).optional());
+
 export const nearbyAmbulancesSchema = z.object({
   h3_index: h3IndexSchema,
   pickup: z.string().optional(),
@@ -34,8 +45,8 @@ export const driverPingSchema = z.object({
   driver_id: z.string().uuid(),
   h3_index: z.string(),
   previous_h3_index: z.string().optional(),
-  lat: z.number(),
-  lng: z.number(),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
   heading: z.number().optional(),
   speed: z.number().optional(),
 });
@@ -55,8 +66,8 @@ export const providerSearchSchema = z.object({
 
 export const providerNearbySchema = z.object({
   h3_index: h3IndexSchema,
-  lat: z.coerce.number().min(-90).max(90).optional(),
-  lng: z.coerce.number().min(-180).max(180).optional(),
+  lat: coerceOptionalNumber(-90, 90),
+  lng: coerceOptionalNumber(-180, 180),
 });
 
 export const bookingIdParamSchema = z.object({
