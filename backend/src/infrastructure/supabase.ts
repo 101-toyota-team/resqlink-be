@@ -12,27 +12,13 @@ import {
 import { fetchWithTimeout } from "./util";
 import logger from "../utils/logger";
 
-interface AmbulanceDiscoveryResult {
-  id: string;
-  providers:
-    | {
-        latitude: number;
-        longitude: number;
-      }[]
-    | {
-        latitude: number;
-        longitude: number;
-      };
-}
-
-function isValidBooking(data: unknown): data is Booking {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    typeof (data as Record<string, unknown>).id === "string" &&
-    typeof (data as Record<string, unknown>).user_id === "string"
-  );
-}
+import {
+  dbBookingSchema,
+  dbProviderSchema,
+  dbHospitalSchema,
+  dbAmbulanceDiscoverySchema,
+  dbAmbulanceProviderSchema,
+} from "../schemas/db";
 
 function isStringUrl(url: unknown): url is string {
   return typeof url === "string";
@@ -66,12 +52,12 @@ export class SupabaseRepository implements IPersistenceRepository {
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
-    if (!isValidBooking(booking)) {
-      logger.error("Invalid booking response from Supabase: %O", booking);
-      throw new Error("Invalid booking data received from database");
+    try {
+      return dbBookingSchema.parse(booking) as Booking;
+    } catch (err) {
+      logger.error(err, "Database schema drift detected in createBooking");
+      throw new Error("Data integrity error occurred");
     }
-
-    return booking;
   }
 
   async getBooking(id: string): Promise<Booking | null> {
@@ -87,12 +73,12 @@ export class SupabaseRepository implements IPersistenceRepository {
       return null;
     }
 
-    if (!isValidBooking(booking)) {
-      logger.error("Invalid booking response from Supabase: %O", booking);
+    try {
+      return dbBookingSchema.parse(booking) as Booking;
+    } catch (err) {
+      logger.error(err, "Database schema drift detected in getBooking");
       return null;
     }
-
-    return booking;
   }
 
   async updateBookingStatus(id: string, status: string): Promise<void> {
@@ -127,17 +113,25 @@ export class SupabaseRepository implements IPersistenceRepository {
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
-    const results = (data || []) as unknown as AmbulanceDiscoveryResult[];
-    return results.map((item) => {
-      const provider = Array.isArray(item.providers)
-        ? item.providers[0]
-        : item.providers;
-      return {
-        id: item.id,
-        lat: provider?.latitude || 0,
-        lng: provider?.longitude || 0,
-      };
-    });
+    try {
+      const results = dbAmbulanceDiscoverySchema.array().parse(data || []);
+      return results.map((item) => {
+        const provider = Array.isArray(item.providers)
+          ? item.providers[0]
+          : item.providers;
+        return {
+          id: item.id,
+          lat: provider?.latitude || 0,
+          lng: provider?.longitude || 0,
+        };
+      });
+    } catch (err) {
+      logger.error(
+        err,
+        "Database schema drift detected in findAvailableAmbulances",
+      );
+      return [];
+    }
   }
 
   async broadcastTripLocation(
@@ -174,32 +168,28 @@ export class SupabaseRepository implements IPersistenceRepository {
       throw new Error(`Supabase error: ${error?.message}`, { cause: error });
     }
 
-    type AmbulanceData = {
-      providers:
-        | {
-            latitude: number;
-            longitude: number;
-          }[]
-        | {
-            latitude: number;
-            longitude: number;
-          }
-        | null;
-    };
+    try {
+      const parsed = dbAmbulanceProviderSchema.parse(data);
+      const providerData = parsed.providers;
+      if (!providerData) return null;
 
-    const providerData = (data as AmbulanceData).providers;
-    if (!providerData) return null;
+      const provider = Array.isArray(providerData)
+        ? providerData[0]
+        : providerData;
 
-    const provider = Array.isArray(providerData)
-      ? providerData[0]
-      : providerData;
+      if (!provider) return null;
 
-    if (!provider) return null;
-
-    return {
-      lat: provider.latitude,
-      lng: provider.longitude,
-    };
+      return {
+        lat: provider.latitude,
+        lng: provider.longitude,
+      };
+    } catch (err) {
+      logger.error(
+        err,
+        "Database schema drift detected in getAmbulanceProviderLocation",
+      );
+      return null;
+    }
   }
 
   async getConfirmedBookings(
@@ -226,7 +216,15 @@ export class SupabaseRepository implements IPersistenceRepository {
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
-    return (data || []) as Booking[];
+    try {
+      return dbBookingSchema.array().parse(data || []) as Booking[];
+    } catch (err) {
+      logger.error(
+        err,
+        "Database schema drift detected in getConfirmedBookings",
+      );
+      return [];
+    }
   }
 
   async searchProviders(raw: string, expanded: string): Promise<Provider[]> {
@@ -243,7 +241,12 @@ export class SupabaseRepository implements IPersistenceRepository {
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
-    return (data || []) as Provider[];
+    try {
+      return dbProviderSchema.array().parse(data || []) as Provider[];
+    } catch (err) {
+      logger.error(err, "Database schema drift detected in searchProviders");
+      return [];
+    }
   }
 
   async findProvidersByH3Indexes(h3Indexes: string[]): Promise<Provider[]> {
@@ -257,7 +260,15 @@ export class SupabaseRepository implements IPersistenceRepository {
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
-    return (data || []) as Provider[];
+    try {
+      return dbProviderSchema.array().parse(data || []) as Provider[];
+    } catch (err) {
+      logger.error(
+        err,
+        "Database schema drift detected in findProvidersByH3Indexes",
+      );
+      return [];
+    }
   }
 
   async searchHospitals(query: string): Promise<Hospital[]> {
@@ -300,35 +311,43 @@ export class SupabaseRepository implements IPersistenceRepository {
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
-    const results: Hospital[] = (data || [])
-      .map((item) => {
-        const provider = item.providers?.[0];
-        if (!provider) {
-          return null;
-        }
-        return {
-          id: provider.id,
-          name: provider.name,
-          h3_index: provider.h3_index,
-          latitude: provider.latitude,
-          longitude: provider.longitude,
-          provider_type: provider.provider_type,
-          address: provider.address,
-          phone: provider.phone,
-          created_at: provider.created_at,
-          igd_phone: item.igd_phone,
-          igd_email: item.igd_email,
-          bed_capacity: item.bed_capacity,
-          specializations: item.specializations,
-          accreditation: item.accreditation,
-          rating: item.rating,
-          rating_count: item.rating_count,
-          website_url: item.website_url,
-        } as Hospital;
-      })
-      .filter((h): h is Hospital => h !== null);
+    try {
+      const rawResults = dbHospitalSchema.array().parse(data || []);
+      const results: Hospital[] = rawResults
+        .map((item) => {
+          const provider = Array.isArray(item.providers)
+            ? item.providers[0]
+            : item.providers;
+          if (!provider) {
+            return null;
+          }
+          return {
+            id: provider.id,
+            name: provider.name,
+            h3_index: provider.h3_index,
+            latitude: provider.latitude,
+            longitude: provider.longitude,
+            provider_type: provider.provider_type,
+            address: provider.address,
+            phone: provider.phone,
+            created_at: provider.created_at,
+            igd_phone: item.igd_phone,
+            igd_email: item.igd_email,
+            bed_capacity: item.bed_capacity,
+            specializations: item.specializations,
+            accreditation: item.accreditation,
+            rating: item.rating,
+            rating_count: item.rating_count,
+            website_url: item.website_url,
+          } as Hospital;
+        })
+        .filter((h): h is Hospital => h !== null);
 
-    return results;
+      return results;
+    } catch (err) {
+      logger.error(err, "Database schema drift detected in searchHospitals");
+      return [];
+    }
   }
 
   async findHospitalsByH3Indexes(
@@ -370,34 +389,45 @@ export class SupabaseRepository implements IPersistenceRepository {
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
-    const results: HospitalDetails[] = (data || [])
-      .map((item) => {
-        const provider = item.providers?.[0];
-        if (!provider) {
-          return null;
-        }
-        return {
-          id: provider.id,
-          name: provider.name,
-          h3_index: provider.h3_index,
-          latitude: provider.latitude,
-          longitude: provider.longitude,
-          provider_type: provider.provider_type,
-          address: provider.address,
-          phone: provider.phone,
-          created_at: provider.created_at,
-          igd_phone: item.igd_phone,
-          igd_email: item.igd_email,
-          bed_capacity: item.bed_capacity,
-          specializations: item.specializations,
-          accreditation: item.accreditation,
-          rating: item.rating,
-          rating_count: item.rating_count,
-          website_url: item.website_url,
-        } as HospitalDetails;
-      })
-      .filter((h): h is HospitalDetails => h !== null);
+    try {
+      const rawResults = dbHospitalSchema.array().parse(data || []);
+      const results: HospitalDetails[] = rawResults
+        .map((item) => {
+          const provider = Array.isArray(item.providers)
+            ? item.providers[0]
+            : item.providers;
+          if (!provider) {
+            return null;
+          }
+          return {
+            id: provider.id,
+            name: provider.name,
+            h3_index: provider.h3_index,
+            latitude: provider.latitude,
+            longitude: provider.longitude,
+            provider_type: provider.provider_type,
+            address: provider.address,
+            phone: provider.phone,
+            created_at: provider.created_at,
+            igd_phone: item.igd_phone,
+            igd_email: item.igd_email,
+            bed_capacity: item.bed_capacity,
+            specializations: item.specializations,
+            accreditation: item.accreditation,
+            rating: item.rating,
+            rating_count: item.rating_count,
+            website_url: item.website_url,
+          } as HospitalDetails;
+        })
+        .filter((h): h is HospitalDetails => h !== null);
 
-    return results;
+      return results;
+    } catch (err) {
+      logger.error(
+        err,
+        "Database schema drift detected in findHospitalsByH3Indexes",
+      );
+      return [];
+    }
   }
 }

@@ -8,7 +8,301 @@ info:
   version: 1.0.0
 tags:
   - name: Providers
+  - name: Hospitals
+  - name: Ambulances
+  - name: Bookings
+  - name: Driver
 paths:
+  /ambulances/nearby:
+    get:
+      summary: Find Nearby Ambulances (Discovery)
+      description: >-
+        Find available ambulances near an H3 index. Returns a list of drivers
+        with ETA and distance if a pickup location is provided.
+      tags:
+        - Ambulances
+      parameters:
+        - name: h3_index
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 15
+            maxLength: 15
+        - name: pickup
+          in: query
+          required: false
+          description: Pickup location as "lat,lng" for distance/ETA calculation.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Found ambulances
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  center:
+                    type: string
+                  found_drivers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DriverDetails'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /hospitals/search:
+    get:
+      summary: Search Hospitals
+      description: Search for hospitals by name or email.
+      tags:
+        - Hospitals
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+      responses:
+        '200':
+          description: List of hospitals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Hospital'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /hospitals/nearby:
+    get:
+      summary: Find Nearby Hospitals
+      description: Find hospitals near an H3 index.
+      tags:
+        - Hospitals
+      parameters:
+        - name: h3_index
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 15
+            maxLength: 15
+      responses:
+        '200':
+          description: List of nearby hospitals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HospitalDetails'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /bookings:
+    post:
+      summary: Create a Booking
+      description: Create a new ambulance booking request.
+      tags:
+        - Bookings
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ambulance_id:
+                  type: string
+                  format: uuid
+                booking_type:
+                  type: string
+                  enum: [medis, sosial, jenazah, darurat]
+                patient_condition:
+                  type: string
+                pickup_address:
+                  type: string
+                pickup_lat:
+                  $ref: '#/components/schemas/Latitude'
+                pickup_lng:
+                  $ref: '#/components/schemas/Longitude'
+                pickup_h3:
+                  type: string
+                destination_address:
+                  type: string
+                destination_lat:
+                  $ref: '#/components/schemas/Latitude'
+                destination_lng:
+                  $ref: '#/components/schemas/Longitude'
+              required:
+                - ambulance_id
+                - booking_type
+                - patient_condition
+                - pickup_address
+                - pickup_lat
+                - pickup_lng
+                - pickup_h3
+                - destination_address
+                - destination_lat
+                - destination_lng
+      responses:
+        '201':
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /bookings/{id}:
+    get:
+      summary: Get Booking Details
+      tags:
+        - Bookings
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Booking details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /bookings/{id}/status:
+    put:
+      summary: Update Booking Status
+      description: >-
+        Update the status of a booking. Changing status to "en_route" triggers
+        the driver simulation.
+      tags:
+        - Bookings
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [confirmed, en_route, arrived, to_hospital, completed, cancelled]
+              required:
+                - status
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /driver/bookings:
+    get:
+      summary: Get Confirmed Bookings (Driver Queue)
+      description: Retrieve a list of all currently confirmed bookings.
+      tags:
+        - Driver
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of confirmed bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Booking'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+  /driver/ping:
+    post:
+      summary: Driver Ping (Telemetry)
+      description: >-
+        Simulate movement by pinging the driver's location. Advances the
+        pre-calculated simulation route.
+      tags:
+        - Driver
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                driver_id:
+                  type: string
+                  format: uuid
+                h3_index:
+                  type: string
+                lat:
+                  $ref: '#/components/schemas/Latitude'
+                lng:
+                  $ref: '#/components/schemas/Longitude'
+              required:
+                - driver_id
+                - h3_index
+                - lat
+                - lng
+      responses:
+        '200':
+          description: Ping successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
   /providers/search:
     get:
       summary: Search Providers
@@ -120,6 +414,19 @@ components:
           properties: {}
       required:
         - error
+    Coordinate:
+      type: number
+      format: float
+    Latitude:
+      allOf:
+        - $ref: '#/components/schemas/Coordinate'
+        - minimum: -90
+          maximum: 90
+    Longitude:
+      allOf:
+        - $ref: '#/components/schemas/Coordinate'
+        - minimum: -180
+          maximum: 180
     Provider:
       type: object
       properties:
@@ -131,15 +438,18 @@ components:
         h3_index:
           type: string
         latitude:
-          type: number
+          $ref: '#/components/schemas/Latitude'
         longitude:
-          type: number
+          $ref: '#/components/schemas/Longitude'
         provider_type:
           type: string
+          enum: [rumah_sakit, klinik, komunitas, rt_rw, yayasan, masjid, lainnya]
         address:
           type: string
+          nullable: true
         phone:
           type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -159,6 +469,132 @@ components:
             distance:
               type: string
               example: 1.2 km
+    Hospital:
+      allOf:
+        - $ref: '#/components/schemas/Provider'
+        - type: object
+          properties:
+            igd_phone:
+              type: string
+            igd_email:
+              type: string
+              nullable: true
+            bed_capacity:
+              type: integer
+              nullable: true
+            specializations:
+              type: array
+              items:
+                type: string
+              nullable: true
+            accreditation:
+              type: string
+              nullable: true
+            rating:
+              type: number
+            rating_count:
+              type: integer
+            website_url:
+              type: string
+              nullable: true
+          required:
+            - igd_phone
+            - rating
+            - rating_count
+    HospitalDetails:
+      allOf:
+        - $ref: '#/components/schemas/Hospital'
+        - type: object
+          properties:
+            distance:
+              type: string
+              example: 0.8 km
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ambulance_id:
+          type: string
+          format: uuid
+        booking_type:
+          type: string
+          enum: [medis, sosial, jenazah, darurat]
+        patient_condition:
+          type: string
+        pickup_address:
+          type: string
+        pickup_lat:
+          $ref: '#/components/schemas/Latitude'
+        pickup_lng:
+          $ref: '#/components/schemas/Longitude'
+        pickup_h3:
+          type: string
+        destination_address:
+          type: string
+        destination_lat:
+          $ref: '#/components/schemas/Latitude'
+        destination_lng:
+          $ref: '#/components/schemas/Longitude'
+        user_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [confirmed, en_route, arrived, to_hospital, completed, cancelled]
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - ambulance_id
+        - booking_type
+        - patient_condition
+        - pickup_address
+        - pickup_lat
+        - pickup_lng
+        - pickup_h3
+        - destination_address
+        - destination_lat
+        - destination_lng
+        - user_id
+        - status
+        - created_at
+    DriverLocation:
+      type: object
+      properties:
+        lat:
+          $ref: '#/components/schemas/Latitude'
+        lng:
+          $ref: '#/components/schemas/Longitude'
+        heading:
+          type: number
+          nullable: true
+        speed:
+          type: number
+          nullable: true
+      required:
+        - lat
+        - lng
+    DriverDetails:
+      allOf:
+        - $ref: '#/components/schemas/DriverLocation'
+        - type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            eta:
+              type: string
+              example: 5 mins
+              nullable: true
+            distance:
+              type: string
+              example: 2.5 km
+              nullable: true
+          required:
+            - id
   responses:
     ValidationError:
       description: Invalid payload or parameters

@@ -184,6 +184,44 @@ describe("DispatchService", () => {
       expect(mockCache.set).toHaveBeenCalledWith("sim:step:booking_1", 0, 3600);
     });
 
+    it("should not start simulation if directions are empty", async () => {
+      mockDb.getAmbulanceProviderLocation.mockResolvedValue({
+        lat: -6.0,
+        lng: 106.7,
+      });
+      mockMaps.getDirections.mockResolvedValue({
+        status: "OK",
+        routes: [
+          {
+            bounds: {},
+            copyrights: "",
+            legs: [],
+            overview_polyline: { points: "" },
+            summary: "",
+            warnings: [],
+            waypoint_order: [],
+          },
+        ],
+      });
+
+      await service.startSimulation(mockBooking);
+
+      expect(mockCache.set).not.toHaveBeenCalled();
+    });
+
+    it("should stop simulation gracefully if cache is missing route or step", async () => {
+      const mockDriverId = "driver_1";
+      mockCache.get.mockImplementation(async (key: string) => {
+        if (key === `sim:active:${mockDriverId}`) return "booking_1";
+        return null; // Missing route/step
+      });
+
+      await service.advanceSimulation(mockDriverId);
+
+      expect(mockDb.broadcastTripLocation).not.toHaveBeenCalled();
+      expect(mockDb.updateBookingStatus).not.toHaveBeenCalled();
+    });
+
     it("should advance simulation and broadcast location", async () => {
       const mockDriverId = "driver_1";
       const mockBookingId = "booking_1";
