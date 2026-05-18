@@ -62,7 +62,7 @@ export interface DriverDetails extends DriverLocation {
 }
 
 export interface BookingData {
-  ambulance_id: string;
+  ambulance_id?: string | null;
   booking_type: "medis" | "sosial" | "jenazah" | "darurat";
   patient_condition: string;
   pickup_address: string;

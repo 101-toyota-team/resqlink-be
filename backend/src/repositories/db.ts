@@ -12,6 +12,7 @@ export interface IPersistenceRepository {
   createBooking(data: BookingData): Promise<Booking>;
   getBooking(id: string): Promise<Booking | null>;
   updateBookingStatus(id: string, status: string): Promise<void>;
+  assignAmbulance(id: string, ambulanceId: string): Promise<void>;
   findAvailableAmbulances(h3Indexes: string[]): Promise<DriverDetails[]>;
   broadcastTripLocation(
     bookingId: string,

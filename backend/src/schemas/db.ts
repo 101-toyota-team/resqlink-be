@@ -33,7 +33,7 @@ export const dbHospitalSchema = z.object({
 
 export const dbBookingSchema = z.object({
   id: z.string().uuid(),
-  ambulance_id: z.string().uuid(),
+  ambulance_id: z.string().uuid().nullable().optional(),
   booking_type: z.enum(["medis", "sosial", "jenazah", "darurat"]),
   patient_condition: z.string(),
   pickup_address: z.string(),
