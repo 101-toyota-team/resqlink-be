@@ -11,6 +11,7 @@ interface MockDb {
   createBooking: ReturnType<typeof vi.fn>;
   getBooking: ReturnType<typeof vi.fn>;
   updateBookingStatus: ReturnType<typeof vi.fn>;
+  assignAmbulance: ReturnType<typeof vi.fn>;
 }
 
 // A minimal app wrapper to inject dependencies and middleware for testing
@@ -56,6 +57,7 @@ describe("Bookings API", () => {
       createBooking: vi.fn(),
       getBooking: vi.fn(),
       updateBookingStatus: vi.fn(),
+      assignAmbulance: vi.fn(),
     };
   });
 
@@ -73,12 +75,12 @@ describe("Bookings API", () => {
       destination_lng: 106.9,
     };
 
-    it("should return 201 and created booking on success", async () => {
+    it("should return 201 and create confirmed booking when ambulance_id is provided", async () => {
       const mockCreatedBooking = {
         id: mockBookingId,
         ...validBookingPayload,
         user_id: mockUserId,
-        status: "pending",
+        status: "confirmed",
       };
       dbMock.createBooking.mockResolvedValue(mockCreatedBooking);
 
@@ -93,6 +95,32 @@ describe("Bookings API", () => {
       expect(await res.json()).toEqual(mockCreatedBooking);
       expect(dbMock.createBooking).toHaveBeenCalledWith({
         ...validBookingPayload,
+        user_id: mockUserId,
+      });
+    });
+
+    it("should return 201 and create draft booking when ambulance_id is omitted", async () => {
+      const { ambulance_id, ...draftPayload } = validBookingPayload;
+      void ambulance_id;
+      const mockDraftBooking = {
+        id: mockBookingId,
+        ...draftPayload,
+        user_id: mockUserId,
+        status: "draft",
+      };
+      dbMock.createBooking.mockResolvedValue(mockDraftBooking);
+
+      const app = createApp(dbMock, { sub: mockUserId });
+      const res = await app.request("/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(draftPayload),
+      });
+
+      expect(res.status).toBe(201);
+      expect(await res.json()).toEqual(mockDraftBooking);
+      expect(dbMock.createBooking).toHaveBeenCalledWith({
+        ...draftPayload,
         user_id: mockUserId,
       });
     });
@@ -296,6 +324,29 @@ describe("Bookings API", () => {
       expect(dbMock.updateBookingStatus).not.toHaveBeenCalled();
     });
 
+    it("should return 200 for valid draft status update", async () => {
+      const mockBooking = {
+        id: mockBookingId,
+        user_id: mockUserId,
+        status: "draft",
+      };
+      dbMock.getBooking.mockResolvedValue(mockBooking);
+      dbMock.updateBookingStatus.mockResolvedValue(undefined);
+
+      const app = createApp(dbMock, { sub: mockUserId });
+      const res = await app.request(`/bookings/${mockBookingId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "draft" }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(dbMock.updateBookingStatus).toHaveBeenCalledWith(
+        mockBookingId,
+        "draft",
+      );
+    });
+
     it("should return 404 if the booking doesn't exist", async () => {
       dbMock.getBooking.mockResolvedValue(null);
 
@@ -343,6 +394,116 @@ describe("Bookings API", () => {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "en_route" }),
+      });
+
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as { error: string };
+      expect(json.error).toBe(ERROR_MESSAGES.INTERNAL_ERROR);
+    });
+  });
+
+  describe("PUT /bookings/:id/assign", () => {
+    it("should return 200 on successful ambulance assignment", async () => {
+      const mockBooking = {
+        id: mockBookingId,
+        user_id: mockUserId,
+        status: "draft",
+      };
+      dbMock.getBooking.mockResolvedValue(mockBooking);
+      dbMock.assignAmbulance.mockResolvedValue(undefined);
+
+      const app = createApp(dbMock, { sub: mockUserId });
+      const res = await app.request(`/bookings/${mockBookingId}/assign`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ambulance_id: "223e4567-e89b-12d3-a456-426614174001",
+        }),
+      });
+
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as { status: string };
+      expect(json.status).toBe("ok");
+      expect(dbMock.assignAmbulance).toHaveBeenCalledWith(
+        mockBookingId,
+        "223e4567-e89b-12d3-a456-426614174001",
+      );
+    });
+
+    it("should return 400 if booking is not in draft status", async () => {
+      const mockBooking = {
+        id: mockBookingId,
+        user_id: mockUserId,
+        status: "confirmed",
+      };
+      dbMock.getBooking.mockResolvedValue(mockBooking);
+
+      const app = createApp(dbMock, { sub: mockUserId });
+      const res = await app.request(`/bookings/${mockBookingId}/assign`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ambulance_id: "223e4567-e89b-12d3-a456-426614174001",
+        }),
+      });
+
+      expect(res.status).toBe(400);
+      expect(dbMock.assignAmbulance).not.toHaveBeenCalled();
+    });
+
+    it("should return 403 if not authorized", async () => {
+      const mockBooking = {
+        id: mockBookingId,
+        user_id: mockUserId,
+        status: "draft",
+      };
+      dbMock.getBooking.mockResolvedValue(mockBooking);
+
+      const app = createApp(dbMock, { sub: mockOtherUserId });
+      const res = await app.request(`/bookings/${mockBookingId}/assign`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ambulance_id: "223e4567-e89b-12d3-a456-426614174001",
+        }),
+      });
+
+      expect(res.status).toBe(403);
+      expect(dbMock.assignAmbulance).not.toHaveBeenCalled();
+    });
+
+    it("should return 404 if booking not found", async () => {
+      dbMock.getBooking.mockResolvedValue(null);
+
+      const app = createApp(dbMock, { sub: mockUserId });
+      const res = await app.request(`/bookings/${mockBookingId}/assign`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ambulance_id: "223e4567-e89b-12d3-a456-426614174001",
+        }),
+      });
+
+      expect(res.status).toBe(404);
+      expect(dbMock.assignAmbulance).not.toHaveBeenCalled();
+    });
+
+    it("should return 500 on database error", async () => {
+      const mockBooking = {
+        id: mockBookingId,
+        user_id: mockUserId,
+        status: "draft",
+      };
+      dbMock.getBooking.mockResolvedValue(mockBooking);
+      dbMock.assignAmbulance.mockRejectedValue(new Error("Assign failed"));
+
+      const app = createApp(dbMock, { sub: mockUserId });
+      const res = await app.request(`/bookings/${mockBookingId}/assign`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ambulance_id: "223e4567-e89b-12d3-a456-426614174001",
+        }),
       });
 
       expect(res.status).toBe(500);
