@@ -41,9 +41,14 @@ export class SupabaseRepository implements IPersistenceRepository {
   }
 
   async createBooking(data: BookingData): Promise<Booking> {
+    const insertData = {
+      ...data,
+      status: data.ambulance_id ? "confirmed" : "draft",
+    };
+
     const { data: booking, error } = await this.client
       .from("bookings")
-      .insert(data)
+      .insert(insertData)
       .select()
       .single();
 
@@ -53,7 +58,8 @@ export class SupabaseRepository implements IPersistenceRepository {
     }
 
     try {
-      return dbBookingSchema.parse(booking) as Booking;
+      const parsed = dbBookingSchema.parse(booking);
+      return { ...parsed, user_id: parsed.user_id || "" } as Booking;
     } catch (err) {
       logger.error(err, "Database schema drift detected in createBooking");
       throw new Error("Data integrity error occurred");
@@ -74,10 +80,23 @@ export class SupabaseRepository implements IPersistenceRepository {
     }
 
     try {
-      return dbBookingSchema.parse(booking) as Booking;
+      const parsed = dbBookingSchema.parse(booking);
+      return { ...parsed, user_id: parsed.user_id || "" } as Booking;
     } catch (err) {
       logger.error(err, "Database schema drift detected in getBooking");
       return null;
+    }
+  }
+
+  async assignAmbulance(id: string, ambulanceId: string): Promise<void> {
+    const { error } = await this.client
+      .from("bookings")
+      .update({ ambulance_id: ambulanceId, status: "confirmed" })
+      .eq("id", id);
+
+    if (error) {
+      logger.error("Supabase assignAmbulance error: %O", error);
+      throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
   }
 
@@ -217,7 +236,11 @@ export class SupabaseRepository implements IPersistenceRepository {
     }
 
     try {
-      return dbBookingSchema.array().parse(data || []) as Booking[];
+      const parsed = dbBookingSchema.array().parse(data || []);
+      return parsed.map((b) => ({
+        ...b,
+        user_id: b.user_id || "",
+      })) as Booking[];
     } catch (err) {
       logger.error(
         err,

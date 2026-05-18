@@ -68,6 +68,10 @@ export class DispatchService implements IDispatchService {
 
   async startSimulation(booking: Booking): Promise<void> {
     try {
+      if (!booking.ambulance_id) {
+        throw new Error("Cannot start simulation: no ambulance assigned");
+      }
+
       const providerLoc = await this.db.getAmbulanceProviderLocation(
         booking.ambulance_id,
       );

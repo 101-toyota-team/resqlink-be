@@ -29,7 +29,7 @@ export const nearbyAmbulancesSchema = z.object({
 });
 
 export const bookingSchema = z.object({
-  ambulance_id: z.string().uuid(),
+  ambulance_id: z.string().uuid().optional(),
   booking_type: z.enum(["medis", "sosial", "jenazah", "darurat"]),
   patient_condition: z.string(),
   pickup_address: z.string(),
@@ -74,9 +74,14 @@ export const bookingIdParamSchema = z.object({
   id: z.string().uuid("Invalid booking ID format"),
 });
 
+export const bookingAssignSchema = z.object({
+  ambulance_id: z.string().uuid(),
+});
+
 export const bookingStatusUpdateSchema = z.object({
   status: z.enum(
     [
+      "draft",
       "confirmed",
       "en_route",
       "arrived",

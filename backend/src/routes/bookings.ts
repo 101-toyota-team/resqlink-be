@@ -4,6 +4,7 @@ import {
   bookingSchema,
   bookingIdParamSchema,
   bookingStatusUpdateSchema,
+  bookingAssignSchema,
 } from "../schemas";
 import { AppVariables } from "../types";
 import { Bindings } from "../schemas/env";
@@ -92,6 +93,41 @@ bookingsApp.put(
       return c.json({ status: "ok" }, 200);
     } catch (error) {
       logger.error(error, "Bookings PUT /:id/status error");
+      return c.json({ error: ERROR_MESSAGES.INTERNAL_ERROR }, 500);
+    }
+  },
+);
+
+bookingsApp.put(
+  "/:id/assign",
+  zValidator("param", bookingIdParamSchema, validatorHook),
+  zValidator("json", bookingAssignSchema, validatorHook),
+  async (c) => {
+    try {
+      const { id } = c.req.valid("param");
+      const { ambulance_id } = c.req.valid("json");
+
+      const db = c.get("getDb")();
+      const payload = c.get("jwtPayload");
+
+      const booking = await db.getBooking(id);
+      if (!booking) {
+        return c.json({ error: ERROR_MESSAGES.BOOKING_NOT_FOUND }, 404);
+      }
+
+      if (!canAccessBooking(payload, booking.user_id)) {
+        return c.json(unauthorizedResponse(), 403);
+      }
+
+      if (booking.status !== "draft") {
+        return c.json({ error: "Booking is not in draft status" }, 400);
+      }
+
+      await db.assignAmbulance(id, ambulance_id);
+
+      return c.json({ status: "ok" }, 200);
+    } catch (error) {
+      logger.error(error, "Bookings PUT /:id/assign error");
       return c.json({ error: ERROR_MESSAGES.INTERNAL_ERROR }, 500);
     }
   },
