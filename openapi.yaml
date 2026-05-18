@@ -144,7 +144,6 @@ paths:
                 destination_lng:
                   $ref: '#/components/schemas/Longitude'
               required:
-                - ambulance_id
                 - booking_type
                 - patient_condition
                 - pickup_address
@@ -194,7 +193,55 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
-  /bookings/{id}/status:
+   /bookings/{id}/assign:
+    put:
+      summary: Assign Ambulance to Draft Booking
+      description: >-
+        Assign an ambulance to a draft booking, transitioning it to "confirmed"
+        status. Only works for bookings in "draft" status.
+      tags:
+        - Bookings
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ambulance_id:
+                  type: string
+                  format: uuid
+              required:
+                - ambulance_id
+      responses:
+        '200':
+          description: Ambulance assigned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+   /bookings/{id}/status:
     put:
       summary: Update Booking Status
       description: >-
@@ -220,7 +267,7 @@ paths:
               properties:
                 status:
                   type: string
-                  enum: [confirmed, en_route, arrived, to_hospital, completed, cancelled]
+                  enum: [draft, confirmed, en_route, arrived, to_hospital, completed, cancelled]
               required:
                 - status
       responses:
@@ -518,6 +565,7 @@ components:
         ambulance_id:
           type: string
           format: uuid
+          nullable: true
         booking_type:
           type: string
           enum: [medis, sosial, jenazah, darurat]
@@ -542,13 +590,12 @@ components:
           format: uuid
         status:
           type: string
-          enum: [confirmed, en_route, arrived, to_hospital, completed, cancelled]
+          enum: [draft, confirmed, en_route, arrived, to_hospital, completed, cancelled]
         created_at:
           type: string
           format: date-time
       required:
         - id
-        - ambulance_id
         - booking_type
         - patient_condition
         - pickup_address
