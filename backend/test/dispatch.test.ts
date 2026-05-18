@@ -30,6 +30,7 @@ describe("DispatchService", () => {
       createBooking: vi.fn(),
       getBooking: vi.fn(),
       updateBookingStatus: vi.fn(),
+      assignAmbulance: vi.fn(),
       findAvailableAmbulances: vi.fn(),
       broadcastTripLocation: vi.fn(),
       getAmbulanceProviderLocation: vi.fn(),
