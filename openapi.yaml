@@ -15,6 +15,7 @@ tags:
 paths:
   /ambulances/nearby:
     get:
+      operationId: findNearbyAmbulances
       summary: Find Nearby Ambulances (Discovery)
       description: >-
         Find available ambulances near an H3 index. Returns a list of drivers
@@ -55,6 +56,7 @@ paths:
           $ref: '#/components/responses/InternalError'
   /hospitals/search:
     get:
+      operationId: searchHospitals
       summary: Search Hospitals
       description: Search for hospitals by name or email.
       tags:
@@ -81,6 +83,7 @@ paths:
           $ref: '#/components/responses/InternalError'
   /hospitals/nearby:
     get:
+      operationId: findNearbyHospitals
       summary: Find Nearby Hospitals
       description: Find hospitals near an H3 index.
       tags:
@@ -108,6 +111,7 @@ paths:
           $ref: '#/components/responses/InternalError'
   /bookings:
     post:
+      operationId: createBooking
       summary: Create a Booking
       description: Create a new ambulance booking request.
       tags:
@@ -168,6 +172,7 @@ paths:
           $ref: '#/components/responses/InternalError'
   /bookings/{id}:
     get:
+      operationId: getBooking
       summary: Get Booking Details
       tags:
         - Bookings
@@ -193,8 +198,9 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
-   /bookings/{id}/assign:
+  /bookings/{id}/assign:
     put:
+      operationId: assignAmbulance
       summary: Assign Ambulance to Draft Booking
       description: >-
         Assign an ambulance to a draft booking, transitioning it to "confirmed"
@@ -241,8 +247,9 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalError'
-   /bookings/{id}/status:
+  /bookings/{id}/status:
     put:
+      operationId: updateBookingStatus
       summary: Update Booking Status
       description: >-
         Update the status of a booking. Changing status to "en_route" triggers
@@ -287,6 +294,7 @@ paths:
           $ref: '#/components/responses/NotFoundError'
   /driver/bookings:
     get:
+      operationId: getDriverQueue
       summary: Get Confirmed Bookings (Driver Queue)
       description: Retrieve a list of all currently confirmed bookings.
       tags:
@@ -306,6 +314,7 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
   /driver/ping:
     post:
+      operationId: driverPing
       summary: Driver Ping (Telemetry)
       description: >-
         Simulate movement by pinging the driver's location. Advances the
@@ -352,6 +361,7 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
   /providers/search:
     get:
+      operationId: searchProviders
       summary: Search Providers
       deprecated: false
       description: Search for providers by name (case-insensitive).
@@ -376,20 +386,17 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Provider'
-          headers: {}
         '400':
           $ref: '#/components/responses/ValidationError'
-          description: Invalid payload or parameters
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-          description: Missing or invalid JWT
         '500':
           $ref: '#/components/responses/InternalError'
-          description: Unexpected backend failure
       security:
         - BearerAuth: []
   /providers/nearby:
     get:
+      operationId: findNearbyProviders
       summary: Find Nearby Providers
       deprecated: false
       description: >-
@@ -436,16 +443,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ProviderDetails'
-          headers: {}
         '400':
           $ref: '#/components/responses/ValidationError'
-          description: Invalid payload or parameters
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-          description: Missing or invalid JWT
         '500':
           $ref: '#/components/responses/InternalError'
-          description: Unexpected backend failure
       security:
         - BearerAuth: []
 components:
@@ -458,12 +461,12 @@ components:
         details:
           type: object
           description: Optional Zod formatting details for validation errors
-          properties: {}
+          additionalProperties: true
       required:
         - error
     Coordinate:
       type: number
-      format: float
+      format: double
     Latitude:
       allOf:
         - $ref: '#/components/schemas/Coordinate'
@@ -704,6 +707,5 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-servers: []
 security:
   - BearerAuth: []
