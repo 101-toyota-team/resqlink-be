@@ -123,9 +123,9 @@ bookingsApp.put(
         return c.json({ error: "Booking is not in draft status" }, 400);
       }
 
-      await db.assignAmbulance(id, ambulance_id);
+      const updatedBooking = await db.assignAmbulance(id, ambulance_id);
 
-      return c.json({ status: "ok" }, 200);
+      return c.json(updatedBooking, 200);
     } catch (error) {
       logger.error(error, "Bookings PUT /:id/assign error");
       return c.json({ error: ERROR_MESSAGES.INTERNAL_ERROR }, 500);

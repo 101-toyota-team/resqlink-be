@@ -403,14 +403,29 @@ describe("Bookings API", () => {
   });
 
   describe("PUT /bookings/:id/assign", () => {
-    it("should return 200 on successful ambulance assignment", async () => {
+    it("should return 200 with updated booking on successful ambulance assignment", async () => {
       const mockBooking = {
         id: mockBookingId,
         user_id: mockUserId,
         status: "draft",
+        booking_type: "medis",
+        patient_condition: "test",
+        pickup_address: "test",
+        pickup_lat: -6.2,
+        pickup_lng: 106.8,
+        pickup_h3: "876526b33ffffff",
+        destination_address: "test",
+        destination_lat: -6.21,
+        destination_lng: 106.82,
+        created_at: "2025-01-01T00:00:00Z",
       };
       dbMock.getBooking.mockResolvedValue(mockBooking);
-      dbMock.assignAmbulance.mockResolvedValue(undefined);
+      const updatedBooking = {
+        ...mockBooking,
+        ambulance_id: "223e4567-e89b-12d3-a456-426614174001",
+        status: "confirmed",
+      };
+      dbMock.assignAmbulance.mockResolvedValue(updatedBooking);
 
       const app = createApp(dbMock, { sub: mockUserId });
       const res = await app.request(`/bookings/${mockBookingId}/assign`, {
@@ -422,8 +437,12 @@ describe("Bookings API", () => {
       });
 
       expect(res.status).toBe(200);
-      const json = (await res.json()) as { status: string };
-      expect(json.status).toBe("ok");
+      const json = await res.json();
+      expect(json).toMatchObject({
+        id: mockBookingId,
+        status: "confirmed",
+        ambulance_id: "223e4567-e89b-12d3-a456-426614174001",
+      });
       expect(dbMock.assignAmbulance).toHaveBeenCalledWith(
         mockBookingId,
         "223e4567-e89b-12d3-a456-426614174001",
