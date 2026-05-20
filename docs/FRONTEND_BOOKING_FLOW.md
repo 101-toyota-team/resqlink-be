@@ -1,5 +1,7 @@
 # Booking Flow
 
+> All endpoints require `Authorization: Bearer <JWT>` header. User identity is derived from the JWT payload.
+
 ## Overview
 The Booking API uses a **two-step submission model**:
 1. **Step 1 (Save Condition):** Submit patient info and location to create a `draft` booking (no ambulance assigned yet).
@@ -22,10 +24,12 @@ stateDiagram-v2
     SelectingAmbulance --> Assigning : User selects ambulance
     
     Assigning --> BookingConfirmed : PUT /bookings/{id}/assign\n(attaches ambulance_id)
-    Assigning --> SelectingAmbulance : API Returns 400/500 (Retry)
+    Assigning --> Assigning : API Error (retry)
     
-    BookingConfirmed --> [*]
+    BookingConfirmed --> [...] : continued...\n(see footnote 1)
 ```
+
+> **Footnote 1:** After confirmation the booking progresses through `en_route` → `arrived` → `to_hospital` → `completed`. Track live status via `GET /bookings/{id}`.
 
 ### 2. API Submission & Lifecycle
 
@@ -48,31 +52,30 @@ sequenceDiagram
         F-->>U: Show Error Message & Allow Retry
     else Success
         B-->>F: 201 Created (Returns Booking Object with status: "draft")
-        F->>F: Use booking.pickup_h3 to query nearby ambulances
+        F->>F: Prepare pickup_h3 param for nearby query
     end
     
-    F->>B: GET /ambulances/nearby?h3_index=...&pickup=lat,lng
+    F->>B: GET /ambulances/nearby?h3_index=...&pickup=[optional]lat,lng
     Note right of F: Returns list of nearby ambulances with ETA/distance
     B-->>F: 200 OK (List of DriverDetails)
     
     U->>F: Selects an ambulance from the list
     F->>B: PUT /bookings/{id}/assign { "ambulance_id": "uuid" }
     Note right of F: Attaches ambulance to draft booking
-    B-->>F: 200 OK (status: "ok")
-    
-    Note over F, B: Later: Dispatching the booking
-    F->>B: PUT /bookings/{id}/status <br/>{ "status": "en_route" }
-    Note right of B: Backend starts driver simulation<br/>(Supabase Realtime trip:{id})
-    B-->>F: 200 OK
+    B-->>F: 200 OK (Full booking object, status: "confirmed")
 ```
 
 ### 3. Required Payload Structure Reference
 
 **Step 1 — Create Draft Booking (`POST /bookings`):**
 
+Values for `booking_type`: `"medis"`, `"sosial"`, `"jenazah"`, `"darurat"`.
+
+Validation bounds: latitude ∈ `[-90, 90]`, longitude ∈ `[-180, 180]`. Invalid values return 400.
+
 ```json
 {
-  "booking_type": "medis | sosial | jenazah | darurat",
+  "booking_type": "medis",
   "patient_condition": "String description of condition",
   "pickup_address": "String address",
   "pickup_lat": -6.200000,
@@ -83,7 +86,7 @@ sequenceDiagram
   "destination_lng": 106.820000
 }
 ```
-*(Note: `ambulance_id` is **optional**. If omitted, the backend creates a `draft` booking. Do not send `user_id`; it is resolved from the JWT payload).*
+*(Note: `ambulance_id` is **optional**. If omitted, the backend creates a `draft` booking. If provided, the booking is created in `confirmed` status. Do not send `user_id`; it is resolved from the JWT payload).*
 
 **Step 2 — Assign Ambulance (`PUT /bookings/{id}/assign`):**
 
@@ -92,4 +95,52 @@ sequenceDiagram
   "ambulance_id": "uuid-string"
 }
 ```
-*(Note: Only works for bookings in `draft` status. Transitions the booking to `confirmed`).*
+*(Note: Only works for bookings in `draft` status. Transitions the booking to `confirmed` and returns the full updated booking object).*
+
+**Response:**
+
+```json
+{
+  "id": "uuid-string",
+  "status": "confirmed",
+  "ambulance_id": "uuid-string",
+  "booking_type": "medis",
+  "patient_condition": "String",
+  "pickup_address": "String",
+  "pickup_lat": -6.2,
+  "pickup_lng": 106.8,
+  "pickup_h3": "876526b33ffffff",
+  "destination_address": "String",
+  "destination_lat": -6.21,
+  "destination_lng": 106.82,
+  "user_id": "uuid-string",
+  "created_at": "ISO-8601 timestamp"
+}
+```
+
+### 4. Booking Statuses
+
+| Status | Description |
+|--------|-------------|
+| `draft` | Initial state, no ambulance assigned |
+| `confirmed` | Ambulance assigned, awaiting dispatch |
+| `en_route` | Ambulance en route to pickup |
+| `arrived` | Ambulance arrived at pickup location |
+| `to_hospital` | Ambulance transporting patient to hospital |
+| `completed` | Trip finished |
+| `cancelled` | Booking cancelled |
+
+**Expected transition flow:** `draft` → `confirmed` → `en_route` → `arrived` → `to_hospital` → `completed`. The backend does not enforce strict ordering, but deviating from this flow may produce unexpected behaviour.
+
+### 5. Error Responses
+
+All endpoints return errors in this shape:
+
+```json
+{
+  "error": "Human-readable error message",
+  "details": {}
+}
+```
+
+Common HTTP statuses: `400` (validation), `403` (unauthorized), `404` (not found), `500` (internal error).
