@@ -16,17 +16,17 @@ The frontend should implement a state machine or multi-step wizard. The backend 
 stateDiagram-v2
     [*] --> GatheringPickup : User starts booking
     
-    GatheringPickup --> GatheringDestination : Save Pickup\n(address, lat, lng, h3)
-    GatheringDestination --> GatheringPatientInfo : Save Destination\n(address, lat, lng)
-    GatheringPatientInfo --> DiscoverAmbulances : Submit POST /bookings\n(draft, no ambulance_id)
+    GatheringPickup --> GatheringDestination : Save Pickup<br>(address, lat, lng, h3)
+    GatheringDestination --> GatheringPatientInfo : Save Destination<br>(address, lat, lng)
+    GatheringPatientInfo --> DiscoverAmbulances : Submit POST /bookings<br>(draft, no ambulance_id)
     
-    DiscoverAmbulances --> SelectingAmbulance : GET /ambulances/nearby\n(list of nearby ambulances)
+    DiscoverAmbulances --> SelectingAmbulance : GET /ambulances/nearby<br>(list of nearby ambulances)
     SelectingAmbulance --> Assigning : User selects ambulance
     
-    Assigning --> BookingConfirmed : PUT /bookings/{id}/assign\n(attaches ambulance_id)
+    Assigning --> BookingConfirmed : PUT /bookings/{id}/assign<br>(attaches ambulance_id)
     Assigning --> Assigning : API Error (retry)
     
-    BookingConfirmed --> [...] : continued...\n(see footnote 1)
+    BookingConfirmed --> [...] : continued...<br>(see footnote 1)
 ```
 
 > **Footnote 1:** After confirmation the booking progresses through `en_route` → `arrived` → `to_hospital` → `completed`. Track live status via `GET /bookings/{id}`.
