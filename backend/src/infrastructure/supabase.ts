@@ -88,15 +88,25 @@ export class SupabaseRepository implements IPersistenceRepository {
     }
   }
 
-  async assignAmbulance(id: string, ambulanceId: string): Promise<void> {
-    const { error } = await this.client
+  async assignAmbulance(id: string, ambulanceId: string): Promise<Booking> {
+    const { data, error } = await this.client
       .from("bookings")
       .update({ ambulance_id: ambulanceId, status: "confirmed" })
-      .eq("id", id);
+      .eq("id", id)
+      .select()
+      .single<Booking>();
 
     if (error) {
       logger.error("Supabase assignAmbulance error: %O", error);
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
+    }
+
+    try {
+      const parsed = dbBookingSchema.parse(data);
+      return { ...parsed, user_id: parsed.user_id || "" } as Booking;
+    } catch (err) {
+      logger.error(err, "Database schema drift detected in assignAmbulance");
+      throw new Error("Data integrity error occurred");
     }
   }
 
