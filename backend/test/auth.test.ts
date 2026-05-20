@@ -141,6 +141,7 @@ describe("Authentication & Authorization", () => {
     expect(res.status).toBe(403);
     expect(await res.json()).toEqual({
       error: "You do not have permission to access this resource",
+      details: {},
     });
   });
 
@@ -172,6 +173,7 @@ describe("Authentication & Authorization", () => {
     expect(res.status).toBe(403);
     expect(await res.json()).toEqual({
       error: "You do not have permission to access this resource",
+      details: {},
     });
   });
 

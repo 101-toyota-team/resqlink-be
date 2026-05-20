@@ -3,7 +3,11 @@ import { zValidator } from "@hono/zod-validator";
 import { AppVariables } from "../types";
 import { Bindings } from "../schemas/env";
 import { hospitalSearchSchema, hospitalNearbySchema } from "../schemas";
-import { ERROR_MESSAGES, validatorHook } from "../utils/constants";
+import {
+  ERROR_MESSAGES,
+  errorResponse,
+  validatorHook,
+} from "../utils/constants";
 import logger from "../utils/logger";
 
 const hospitalsApp = new Hono<{
@@ -24,7 +28,7 @@ hospitalsApp.get(
       return c.json(results);
     } catch (error) {
       logger.error(error, "Hospitals search error");
-      return c.json({ error: ERROR_MESSAGES.HOSPITALS_FAILED }, 500);
+      return c.json(errorResponse(ERROR_MESSAGES.HOSPITALS_FAILED), 500);
     }
   },
 );
@@ -42,7 +46,7 @@ hospitalsApp.get(
       return c.json(results);
     } catch (error) {
       logger.error(error, "Hospitals nearby error");
-      return c.json({ error: ERROR_MESSAGES.HOSPITALS_FAILED }, 500);
+      return c.json(errorResponse(ERROR_MESSAGES.HOSPITALS_FAILED), 500);
     }
   },
 );

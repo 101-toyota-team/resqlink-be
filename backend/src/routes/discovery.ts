@@ -4,7 +4,11 @@ import { nearbyAmbulancesSchema } from "../schemas";
 import { AppVariables } from "../types";
 import { Bindings } from "../schemas/env";
 import logger from "../utils/logger";
-import { ERROR_MESSAGES, validatorHook } from "../utils/constants";
+import {
+  ERROR_MESSAGES,
+  errorResponse,
+  validatorHook,
+} from "../utils/constants";
 
 const discoveryApp = new Hono<{
   Bindings: Bindings;
@@ -31,7 +35,7 @@ discoveryApp.get(
       });
     } catch (error) {
       logger.error({ error }, "Discovery /nearby error");
-      return c.json({ error: ERROR_MESSAGES.DISCOVERY_FAILED }, 500);
+      return c.json(errorResponse(ERROR_MESSAGES.DISCOVERY_FAILED), 500);
     }
   },
 );

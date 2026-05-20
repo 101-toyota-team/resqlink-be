@@ -9,7 +9,11 @@ import {
 import { AppVariables } from "../types";
 import { Bindings } from "../schemas/env";
 import logger from "../utils/logger";
-import { ERROR_MESSAGES, validatorHook } from "../utils/constants";
+import {
+  ERROR_MESSAGES,
+  errorResponse,
+  validatorHook,
+} from "../utils/constants";
 import { canAccessBooking, unauthorizedResponse } from "../utils/auth";
 
 const bookingsApp = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
@@ -30,7 +34,7 @@ bookingsApp.post(
       return c.json(booking, 201);
     } catch (error) {
       logger.error(error, "Bookings POST error");
-      return c.json({ error: ERROR_MESSAGES.BOOKING_FAILED }, 500);
+      return c.json(errorResponse(ERROR_MESSAGES.BOOKING_FAILED), 500);
     }
   },
 );
@@ -46,7 +50,7 @@ bookingsApp.get(
 
       const booking = await db.getBooking(id);
       if (!booking) {
-        return c.json({ error: ERROR_MESSAGES.BOOKING_NOT_FOUND }, 404);
+        return c.json(errorResponse(ERROR_MESSAGES.BOOKING_NOT_FOUND), 404);
       }
 
       if (!canAccessBooking(payload, booking.user_id)) {
@@ -56,7 +60,7 @@ bookingsApp.get(
       return c.json(booking, 200);
     } catch (error) {
       logger.error(error, "Bookings GET /:id error");
-      return c.json({ error: ERROR_MESSAGES.INTERNAL_ERROR }, 500);
+      return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);
     }
   },
 );
@@ -75,7 +79,7 @@ bookingsApp.put(
 
       const booking = await db.getBooking(id);
       if (!booking) {
-        return c.json({ error: ERROR_MESSAGES.BOOKING_NOT_FOUND }, 404);
+        return c.json(errorResponse(ERROR_MESSAGES.BOOKING_NOT_FOUND), 404);
       }
 
       if (!canAccessBooking(payload, booking.user_id)) {
@@ -93,7 +97,7 @@ bookingsApp.put(
       return c.json({ status: "ok" }, 200);
     } catch (error) {
       logger.error(error, "Bookings PUT /:id/status error");
-      return c.json({ error: ERROR_MESSAGES.INTERNAL_ERROR }, 500);
+      return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);
     }
   },
 );
@@ -112,7 +116,7 @@ bookingsApp.put(
 
       const booking = await db.getBooking(id);
       if (!booking) {
-        return c.json({ error: ERROR_MESSAGES.BOOKING_NOT_FOUND }, 404);
+        return c.json(errorResponse(ERROR_MESSAGES.BOOKING_NOT_FOUND), 404);
       }
 
       if (!canAccessBooking(payload, booking.user_id)) {
@@ -120,7 +124,7 @@ bookingsApp.put(
       }
 
       if (booking.status !== "draft") {
-        return c.json({ error: "Booking is not in draft status" }, 400);
+        return c.json(errorResponse("Booking is not in draft status"), 400);
       }
 
       const updatedBooking = await db.assignAmbulance(id, ambulance_id);
@@ -128,7 +132,7 @@ bookingsApp.put(
       return c.json(updatedBooking, 200);
     } catch (error) {
       logger.error(error, "Bookings PUT /:id/assign error");
-      return c.json({ error: ERROR_MESSAGES.INTERNAL_ERROR }, 500);
+      return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);
     }
   },
 );
