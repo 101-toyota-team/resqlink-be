@@ -1,5 +1,5 @@
 import { JwtPayload } from "../types";
-import { ERROR_MESSAGES } from "./constants";
+import { ERROR_MESSAGES, errorResponse } from "./constants";
 
 export function getRoleFromMetadata(metadata: unknown): string | undefined {
   if (typeof metadata === "object" && metadata !== null) {
@@ -24,5 +24,5 @@ export function canAccessBooking(
 }
 
 export function unauthorizedResponse() {
-  return { error: ERROR_MESSAGES.FORBIDDEN_ACCESS };
+  return errorResponse(ERROR_MESSAGES.FORBIDDEN_ACCESS);
 }

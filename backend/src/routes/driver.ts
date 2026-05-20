@@ -4,7 +4,11 @@ import { driverPingSchema } from "../schemas";
 import { AppVariables } from "../types";
 import { Bindings } from "../schemas/env";
 import logger from "../utils/logger";
-import { ERROR_MESSAGES, validatorHook } from "../utils/constants";
+import {
+  ERROR_MESSAGES,
+  errorResponse,
+  validatorHook,
+} from "../utils/constants";
 import { isDriverRole } from "../utils/auth";
 
 const driverApp = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
@@ -15,7 +19,7 @@ driverApp.get("/bookings", async (c) => {
     const isDriver = isDriverRole(payload);
 
     if (!isDriver) {
-      return c.json({ error: ERROR_MESSAGES.FORBIDDEN_ACCESS }, 403);
+      return c.json(errorResponse(ERROR_MESSAGES.FORBIDDEN_ACCESS), 403);
     }
 
     const db = c.get("getDb")();
@@ -24,7 +28,7 @@ driverApp.get("/bookings", async (c) => {
     return c.json(bookings);
   } catch (error) {
     logger.error(error, "Driver /bookings error");
-    return c.json({ error: ERROR_MESSAGES.INTERNAL_ERROR }, 500);
+    return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);
   }
 });
 
@@ -40,7 +44,7 @@ driverApp.post(
       const isDriver = isDriverRole(payload);
 
       if (payload.sub !== driver_id || !isDriver) {
-        return c.json({ error: ERROR_MESSAGES.FORBIDDEN_ACCESS }, 403);
+        return c.json(errorResponse(ERROR_MESSAGES.FORBIDDEN_ACCESS), 403);
       }
 
       const dispatchService = c.get("getDispatchService")();
@@ -54,7 +58,7 @@ driverApp.post(
       return c.json({ status: "ok" });
     } catch (error) {
       logger.error(error, "Driver /ping error");
-      return c.json({ error: ERROR_MESSAGES.INTERNAL_ERROR }, 500);
+      return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);
     }
   },
 );

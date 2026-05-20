@@ -39,6 +39,11 @@ export const PROVIDER_SEARCH = {
   MAX_RESULTS: 50,
 };
 
+/** Standardised error response shape for all route handlers. */
+export function errorResponse(message: string) {
+  return { error: message, details: {} as Record<string, unknown> };
+}
+
 // Error messages
 export const ERROR_MESSAGES = {
   INVALID_COORDINATES: "Invalid coordinates provided",
