@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { AppVariables } from "./types";
 import { envSchema, Bindings } from "./schemas/env";
 import logger from "./utils/logger";
+import { ERROR_MESSAGES } from "./utils/constants";
 
 import { diMiddleware } from "./middleware/di";
 import { supabaseAuth } from "./middleware/auth";
@@ -18,11 +19,8 @@ const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
 app.use("*", async (c, next) => {
   const result = envSchema.safeParse(c.env);
   if (!result.success) {
-    logger.error("Invalid environment variables: %O", result.error.format());
-    return c.json(
-      { error: "Configuration error", details: result.error.format() },
-      500,
-    );
+    logger.error("Invalid environment variables");
+    return c.json({ error: ERROR_MESSAGES.CONFIGURATION_ERROR }, 500);
   }
   await next();
 });
@@ -45,13 +43,7 @@ app.route("/providers", providersApp);
 
 app.onError((err, c) => {
   logger.error({ err }, "Unhandled exception: %s", err.message);
-  return c.json(
-    {
-      error: "Internal Server Error",
-      message: err.message,
-    },
-    500,
-  );
+  return c.json({ error: ERROR_MESSAGES.INTERNAL_ERROR }, 500);
 });
 
 export default app;
