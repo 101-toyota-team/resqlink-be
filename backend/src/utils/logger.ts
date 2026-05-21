@@ -1,5 +1,13 @@
-import pino from "pino";
-
-const logger = pino({ level: "info" });
+const logger = {
+  info: (...args: unknown[]) => {
+    console.log(...args);
+  },
+  error: (...args: unknown[]) => {
+    console.error(...args);
+  },
+  warn: (...args: unknown[]) => {
+    console.warn(...args);
+  },
+};
 
 export default logger;

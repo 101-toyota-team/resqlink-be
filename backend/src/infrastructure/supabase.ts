@@ -298,14 +298,6 @@ export class SupabaseRepository implements IPersistenceRepository {
     };
   }
 
-  private mapHospitalDetailsItem(
-    item: z.infer<typeof dbHospitalSchema>,
-  ): HospitalDetails | null {
-    const base = this.mapHospitalItem(item);
-    if (!base) return null;
-    return base;
-  }
-
   async searchProviders(raw: string, expanded: string): Promise<Provider[]> {
     const { data, error } = await this.client.rpc(
       "search_providers_optimized",
@@ -351,6 +343,7 @@ export class SupabaseRepository implements IPersistenceRepository {
   }
 
   async searchHospitals(query: string): Promise<Hospital[]> {
+    const sanitized = query.replace(/%/g, "\\%").replace(/_/g, "\\_");
     const { data, error } = await this.client
       .from("hospitals")
       .select(
@@ -365,7 +358,6 @@ export class SupabaseRepository implements IPersistenceRepository {
         rating,
         rating_count,
         website_url,
-        provider_type,
         providers!inner (
           id,
           name,
@@ -381,8 +373,8 @@ export class SupabaseRepository implements IPersistenceRepository {
       )
       .eq("providers.provider_type", "rumah_sakit")
       .or(
-        `name.ilike.%${query.replace(/%/g, "\\%").replace(/_/g, "\\_")}%,` +
-          `igd_email.ilike.%${query.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`,
+        `providers.name.ilike.%${sanitized}%,` +
+          `hospitals.igd_email.ilike.%${sanitized}%`,
       );
 
     if (error) {
@@ -443,9 +435,7 @@ export class SupabaseRepository implements IPersistenceRepository {
     try {
       const rawResults = dbHospitalSchema.array().parse(data || []);
       return rawResults
-        .map((item): HospitalDetails | null =>
-          this.mapHospitalDetailsItem(item),
-        )
+        .map((item): HospitalDetails | null => this.mapHospitalItem(item))
         .filter((h): h is HospitalDetails => h !== null);
     } catch (err) {
       logger.error(
