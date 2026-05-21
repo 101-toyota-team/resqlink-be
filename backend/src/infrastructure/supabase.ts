@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { IPersistenceRepository } from "../repositories/db";
 import {
@@ -40,6 +41,22 @@ export class SupabaseRepository implements IPersistenceRepository {
     });
   }
 
+  private parseBooking(data: unknown): Booking {
+    const parsed = dbBookingSchema.parse(data);
+    return {
+      ...parsed,
+      user_id: parsed.user_id || "",
+    };
+  }
+
+  private parseBookingList(data: unknown): Booking[] {
+    const parsed = dbBookingSchema.array().parse(data || []);
+    return parsed.map((b) => ({
+      ...b,
+      user_id: b.user_id || "",
+    }));
+  }
+
   async createBooking(data: BookingData): Promise<Booking> {
     const insertData = {
       ...data,
@@ -58,8 +75,7 @@ export class SupabaseRepository implements IPersistenceRepository {
     }
 
     try {
-      const parsed = dbBookingSchema.parse(booking);
-      return { ...parsed, user_id: parsed.user_id || "" } as Booking;
+      return this.parseBooking(booking);
     } catch (err) {
       logger.error(err, "Database schema drift detected in createBooking");
       throw new Error("Data integrity error occurred");
@@ -80,8 +96,7 @@ export class SupabaseRepository implements IPersistenceRepository {
     }
 
     try {
-      const parsed = dbBookingSchema.parse(booking);
-      return { ...parsed, user_id: parsed.user_id || "" } as Booking;
+      return this.parseBooking(booking);
     } catch (err) {
       logger.error(err, "Database schema drift detected in getBooking");
       return null;
@@ -102,8 +117,7 @@ export class SupabaseRepository implements IPersistenceRepository {
     }
 
     try {
-      const parsed = dbBookingSchema.parse(data);
-      return { ...parsed, user_id: parsed.user_id || "" } as Booking;
+      return this.parseBooking(data);
     } catch (err) {
       logger.error(err, "Database schema drift detected in assignAmbulance");
       throw new Error("Data integrity error occurred");
@@ -246,11 +260,7 @@ export class SupabaseRepository implements IPersistenceRepository {
     }
 
     try {
-      const parsed = dbBookingSchema.array().parse(data || []);
-      return parsed.map((b) => ({
-        ...b,
-        user_id: b.user_id || "",
-      })) as Booking[];
+      return this.parseBookingList(data);
     } catch (err) {
       logger.error(
         err,
@@ -258,6 +268,42 @@ export class SupabaseRepository implements IPersistenceRepository {
       );
       return [];
     }
+  }
+
+  private mapHospitalItem(
+    item: z.infer<typeof dbHospitalSchema>,
+  ): Hospital | null {
+    const provider = Array.isArray(item.providers)
+      ? item.providers[0]
+      : item.providers;
+    if (!provider) return null;
+    return {
+      id: provider.id,
+      name: provider.name,
+      h3_index: provider.h3_index,
+      latitude: provider.latitude,
+      longitude: provider.longitude,
+      provider_type: provider.provider_type,
+      address: provider.address,
+      phone: provider.phone,
+      created_at: provider.created_at,
+      igd_phone: item.igd_phone,
+      igd_email: item.igd_email,
+      bed_capacity: item.bed_capacity,
+      specializations: item.specializations,
+      accreditation: item.accreditation,
+      rating: item.rating,
+      rating_count: item.rating_count,
+      website_url: item.website_url,
+    };
+  }
+
+  private mapHospitalDetailsItem(
+    item: z.infer<typeof dbHospitalSchema>,
+  ): HospitalDetails | null {
+    const base = this.mapHospitalItem(item);
+    if (!base) return null;
+    return base;
   }
 
   async searchProviders(raw: string, expanded: string): Promise<Provider[]> {
@@ -275,7 +321,7 @@ export class SupabaseRepository implements IPersistenceRepository {
     }
 
     try {
-      return dbProviderSchema.array().parse(data || []) as Provider[];
+      return dbProviderSchema.array().parse(data || []);
     } catch (err) {
       logger.error(err, "Database schema drift detected in searchProviders");
       return [];
@@ -294,7 +340,7 @@ export class SupabaseRepository implements IPersistenceRepository {
     }
 
     try {
-      return dbProviderSchema.array().parse(data || []) as Provider[];
+      return dbProviderSchema.array().parse(data || []);
     } catch (err) {
       logger.error(
         err,
@@ -346,37 +392,9 @@ export class SupabaseRepository implements IPersistenceRepository {
 
     try {
       const rawResults = dbHospitalSchema.array().parse(data || []);
-      const results: Hospital[] = rawResults
-        .map((item) => {
-          const provider = Array.isArray(item.providers)
-            ? item.providers[0]
-            : item.providers;
-          if (!provider) {
-            return null;
-          }
-          return {
-            id: provider.id,
-            name: provider.name,
-            h3_index: provider.h3_index,
-            latitude: provider.latitude,
-            longitude: provider.longitude,
-            provider_type: provider.provider_type,
-            address: provider.address,
-            phone: provider.phone,
-            created_at: provider.created_at,
-            igd_phone: item.igd_phone,
-            igd_email: item.igd_email,
-            bed_capacity: item.bed_capacity,
-            specializations: item.specializations,
-            accreditation: item.accreditation,
-            rating: item.rating,
-            rating_count: item.rating_count,
-            website_url: item.website_url,
-          } as Hospital;
-        })
+      return rawResults
+        .map((item): Hospital | null => this.mapHospitalItem(item))
         .filter((h): h is Hospital => h !== null);
-
-      return results;
     } catch (err) {
       logger.error(err, "Database schema drift detected in searchHospitals");
       return [];
@@ -424,37 +442,11 @@ export class SupabaseRepository implements IPersistenceRepository {
 
     try {
       const rawResults = dbHospitalSchema.array().parse(data || []);
-      const results: HospitalDetails[] = rawResults
-        .map((item) => {
-          const provider = Array.isArray(item.providers)
-            ? item.providers[0]
-            : item.providers;
-          if (!provider) {
-            return null;
-          }
-          return {
-            id: provider.id,
-            name: provider.name,
-            h3_index: provider.h3_index,
-            latitude: provider.latitude,
-            longitude: provider.longitude,
-            provider_type: provider.provider_type,
-            address: provider.address,
-            phone: provider.phone,
-            created_at: provider.created_at,
-            igd_phone: item.igd_phone,
-            igd_email: item.igd_email,
-            bed_capacity: item.bed_capacity,
-            specializations: item.specializations,
-            accreditation: item.accreditation,
-            rating: item.rating,
-            rating_count: item.rating_count,
-            website_url: item.website_url,
-          } as HospitalDetails;
-        })
+      return rawResults
+        .map((item): HospitalDetails | null =>
+          this.mapHospitalDetailsItem(item),
+        )
         .filter((h): h is HospitalDetails => h !== null);
-
-      return results;
     } catch (err) {
       logger.error(
         err,

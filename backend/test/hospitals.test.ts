@@ -15,10 +15,7 @@ const createApp = (serviceMock: MockHospitalService) => {
   const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
 
   app.use("*", async (c, next) => {
-    c.set(
-      "getHospitalService",
-      () => serviceMock as unknown as IHospitalService,
-    );
+    c.set("getHospitalService", () => serviceMock as IHospitalService);
     await next();
   });
 

@@ -1,9 +1,16 @@
 import { z } from "zod";
+import { PROVIDER_TYPES } from "../types";
 
 /**
  * Zod schemas for validating data returned from the Supabase/PostgreSQL database.
  * This acts as a runtime safety layer at the repository boundary.
  */
+
+const nullToUndefined = <T extends z.ZodTypeAny>(schema: T) =>
+  schema
+    .nullable()
+    .optional()
+    .transform((v) => v ?? undefined);
 
 export const dbProviderSchema = z.object({
   id: z.string().uuid(),
@@ -11,9 +18,9 @@ export const dbProviderSchema = z.object({
   h3_index: z.string(),
   latitude: z.coerce.number(),
   longitude: z.coerce.number(),
-  provider_type: z.string(),
-  address: z.string().nullable().optional(),
-  phone: z.string().nullable().optional(),
+  provider_type: z.enum(PROVIDER_TYPES),
+  address: nullToUndefined(z.string()),
+  phone: nullToUndefined(z.string()),
   created_at: z.string(),
 });
 
@@ -21,13 +28,13 @@ export const dbHospitalSchema = z.object({
   id: z.string().uuid(),
   provider_id: z.string().uuid(),
   igd_phone: z.string(),
-  igd_email: z.string().nullable().optional(),
-  bed_capacity: z.number().nullable().optional(),
-  specializations: z.array(z.string()).nullable().optional(),
-  accreditation: z.string().nullable().optional(),
+  igd_email: nullToUndefined(z.string()),
+  bed_capacity: nullToUndefined(z.number()),
+  specializations: nullToUndefined(z.array(z.string())),
+  accreditation: nullToUndefined(z.string()),
   rating: z.number(),
   rating_count: z.number(),
-  website_url: z.string().nullable().optional(),
+  website_url: nullToUndefined(z.string()),
   providers: z.union([z.array(dbProviderSchema), dbProviderSchema]).optional(),
 });
 

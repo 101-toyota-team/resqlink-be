@@ -31,14 +31,13 @@ export const handlers = [
     return HttpResponse.json({
       keys: [
         {
-          alg: "RS256",
-          kty: "RSA",
+          alg: "ES256",
+          kty: "EC",
+          crv: "P-256",
           use: "sig",
-          n: "test-n",
-          e: "AQAB",
-          kid: "test-kid",
-          x5c: ["test-x5c"],
-          x5t: "test-x5t",
+          kid: "test-kid-es256",
+          x: "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
+          y: "4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM",
         },
       ],
     });

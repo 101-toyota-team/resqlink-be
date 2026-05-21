@@ -19,13 +19,14 @@ describe("DispatchService", () => {
     mockCache = {
       set: vi.fn(),
       get: vi.fn(),
+      mget: vi.fn(),
       getDriversInBucket: vi.fn(),
       updateDriverLocation: vi.fn(),
       getDriverLocation: vi.fn(),
       getDriverLocations: vi.fn(),
       addDriverToBucket: vi.fn(),
       removeDriverFromBucket: vi.fn(),
-    } as unknown as Mocked<ICacheRepository>;
+    } as Mocked<ICacheRepository>;
     mockDb = {
       createBooking: vi.fn(),
       getBooking: vi.fn(),
