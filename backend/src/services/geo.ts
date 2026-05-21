@@ -23,19 +23,33 @@ export class GeoService implements IGeoService {
   }
 
   parseLatLng(location: string): { lat: number; lng: number } {
-    const [latStr, lngStr] = location.split(",");
+    if (!location || typeof location !== "string") {
+      throw new Error(
+        `Invalid coordinate string: expected "lat,lng", got "${String(location)}"`,
+      );
+    }
+
+    const parts = location.split(",");
+    if (parts.length !== 2) {
+      throw new Error(
+        `Invalid coordinate string: "${location}" — expected 2 comma-separated values, got ${parts.length}`,
+      );
+    }
+
+    const [latStr, lngStr] = parts;
     const lat = Number(latStr);
     const lng = Number(lngStr);
 
-    if (
-      isNaN(lat) ||
-      isNaN(lng) ||
-      lat < -90 ||
-      lat > 90 ||
-      lng < -180 ||
-      lng > 180
-    ) {
-      throw new Error("Invalid coordinate values");
+    if (isNaN(lat) || isNaN(lng)) {
+      throw new Error(
+        `Invalid coordinate values: lat="${latStr}", lng="${lngStr}"`,
+      );
+    }
+
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      throw new Error(
+        `Coordinate out of range: lat=${lat} (valid: -90..90), lng=${lng} (valid: -180..180)`,
+      );
     }
 
     return { lat, lng };

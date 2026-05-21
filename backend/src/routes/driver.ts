@@ -38,7 +38,7 @@ driverApp.post(
   async (c) => {
     try {
       const body = c.req.valid("json");
-      const { driver_id } = body;
+      const { driver_id, lat, lng, h3_index, previous_h3_index } = body;
 
       const payload = c.get("jwtPayload");
       const isDriver = isDriverRole(payload);
@@ -48,11 +48,11 @@ driverApp.post(
       }
 
       const dispatchService = c.get("getDispatchService")();
-      // Simulate with empty data since the path is pre-calculated
       await dispatchService.updateDriverStatus(
         driver_id,
-        { lat: 0, lng: 0 },
-        "",
+        { lat, lng },
+        h3_index,
+        previous_h3_index,
       );
 
       return c.json({ status: "ok" });

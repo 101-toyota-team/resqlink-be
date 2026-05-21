@@ -58,96 +58,86 @@ export class DispatchService implements IDispatchService {
 
   async updateDriverStatus(
     driverId: string,
-    _locationData: DriverLocation,
-    _h3Index: string,
-    _previousH3Index?: string,
+    locationData: DriverLocation,
+    h3Index: string,
+    previousH3Index?: string,
   ): Promise<void> {
-    // For Actual Flow simulation, /ping triggers the next step
+    await this.cache.updateDriverLocation(
+      driverId,
+      locationData,
+      h3Index,
+      300,
+      previousH3Index,
+    );
     await this.advanceSimulation(driverId);
   }
 
   async startSimulation(booking: Booking): Promise<void> {
-    try {
-      if (!booking.ambulance_id) {
-        throw new Error("Cannot start simulation: no ambulance assigned");
-      }
-
-      const providerLoc = await this.db.getAmbulanceProviderLocation(
-        booking.ambulance_id,
-      );
-
-      const origin = providerLoc
-        ? `${providerLoc.lat},${providerLoc.lng}`
-        : `${booking.pickup_lat},${booking.pickup_lng}`;
-
-      const directions = await this.maps.getDirections(
-        origin,
-        `${booking.pickup_lat},${booking.pickup_lng}`,
-      );
-
-      if (directions.status !== "OK" || !directions.routes[0]) {
-        logger.error(
-          "Directions API failed for simulation: %s",
-          directions.status,
-        );
-        return;
-      }
-
-      const encodedPolyline = directions.routes[0].overview_polyline
-        .points as string;
-      const points = this.decodePolyline(encodedPolyline);
-
-      if (points.length === 0) {
-        logger.error("Decoded polyline for booking %s is empty", booking.id);
-        return;
-      }
-
-      // Store in Redis
-      await this.cache.set(`sim:route:${booking.id}`, points, 3600);
-      await this.cache.set(`sim:step:${booking.id}`, 0, 3600);
-    } catch (error) {
-      logger.error(error, "Error starting simulation");
+    if (!booking.ambulance_id) {
+      throw new Error("Cannot start simulation: no ambulance assigned");
     }
+
+    const providerLoc = await this.db.getAmbulanceProviderLocation(
+      booking.ambulance_id,
+    );
+
+    const origin = providerLoc
+      ? `${providerLoc.lat},${providerLoc.lng}`
+      : `${booking.pickup_lat},${booking.pickup_lng}`;
+
+    const directions = await this.maps.getDirections(
+      origin,
+      `${booking.pickup_lat},${booking.pickup_lng}`,
+    );
+
+    if (directions.status !== "OK" || !directions.routes[0]) {
+      logger.error(
+        "Directions API failed for simulation: %s",
+        directions.status,
+      );
+      return;
+    }
+
+    const encodedPolyline = directions.routes[0].overview_polyline
+      .points as string;
+    const points = this.decodePolyline(encodedPolyline);
+
+    if (points.length === 0) {
+      logger.error("Decoded polyline for booking %s is empty", booking.id);
+      return;
+    }
+
+    await this.cache.set(`sim:route:${booking.id}`, points, 3600);
+    await this.cache.set(`sim:step:${booking.id}`, 0, 3600);
   }
 
   async advanceSimulation(driverId: string): Promise<void> {
-    try {
-      // 1. Find the active booking for this driver
-      const bookingId = await this.cache.get<string>(`sim:active:${driverId}`);
-      if (!bookingId) return;
+    const bookingId = await this.cache.get<string>(`sim:active:${driverId}`);
+    if (!bookingId) return;
 
-      // 2. Get route and current step
-      const route = await this.cache.get<{ lat: number; lng: number }[]>(
-        `sim:route:${bookingId}`,
-      );
-      const step = await this.cache.get<number>(`sim:step:${bookingId}`);
+    const route = await this.cache.get<{ lat: number; lng: number }[]>(
+      `sim:route:${bookingId}`,
+    );
+    const step = await this.cache.get<number>(`sim:step:${bookingId}`);
 
-      if (!route || step === null || step >= route.length) {
-        // Simulation finished or not found
-        if (step !== null && route && step >= route.length) {
-          await this.db.updateBookingStatus(bookingId, "arrived");
-        }
-        return;
-      }
-
-      // 3. Get next coordinate
-      const nextCoord = route[step];
-
-      // 4. Broadcast
-      await this.db.broadcastTripLocation(bookingId, {
-        lat: nextCoord.lat,
-        lng: nextCoord.lng,
-      });
-
-      // 5. Update step
-      await this.cache.set(`sim:step:${bookingId}`, step + 1, 3600);
-
-      // 6. Check if arrived
-      if (step + 1 >= route.length) {
+    if (!route || step === null || step >= route.length) {
+      if (step !== null && route && step >= route.length) {
         await this.db.updateBookingStatus(bookingId, "arrived");
       }
-    } catch (error) {
-      logger.error(error, "Error advancing simulation");
+      return;
+    }
+
+    const nextCoord = route[step];
+
+    await this.db.broadcastTripLocation(bookingId, {
+      lat: nextCoord.lat,
+      lng: nextCoord.lng,
+    });
+
+    await this.cache.set(`sim:step:${bookingId}`, step + 1, 3600);
+
+    if (step + 1 >= route.length) {
+      await this.db.updateBookingStatus(bookingId, "arrived");
     }
   }
 

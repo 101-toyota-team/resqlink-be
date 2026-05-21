@@ -30,7 +30,7 @@ export class UpstashRedisRepository implements ICacheRepository {
     const pipeline = this.client.pipeline();
     const now = Date.now();
 
-    pipeline.set(`driver:loc:${driverId}`, JSON.stringify(locationData), {
+    pipeline.set(`driver:loc:${driverId}`, locationData, {
       ex: ttl,
     });
 
@@ -74,9 +74,9 @@ export class UpstashRedisRepository implements ICacheRepository {
 
   async set(key: string, value: unknown, ttl?: number): Promise<void> {
     if (ttl) {
-      await this.client.set(key, JSON.stringify(value), { ex: ttl });
+      await this.client.set(key, value, { ex: ttl });
     } else {
-      await this.client.set(key, JSON.stringify(value));
+      await this.client.set(key, value);
     }
   }
 
@@ -100,6 +100,10 @@ export class UpstashRedisRepository implements ICacheRepository {
       } catch {
         return null;
       }
+    }
+
+    if (typeof data === "object") {
+      return data as T;
     }
 
     return data as unknown as T;
