@@ -1,6 +1,11 @@
 import { env } from "cloudflare:test";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { JwtPayload } from "../src/types";
+import {
+  isDriverRole,
+  canAccessBooking,
+  getRoleFromMetadata,
+} from "../src/utils/auth";
 
 // ALL MOCKS AT THE TOP
 vi.mock("hono/jwt", async (importOriginal) => {
@@ -204,5 +209,67 @@ describe("Authentication & Authorization", () => {
 
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ status: "ok" });
+  });
+});
+
+describe("isDriverRole", () => {
+  it("returns true when payload.role is driver", () => {
+    expect(isDriverRole({ sub: "abc", role: "driver" })).toBe(true);
+  });
+
+  it("returns true when app_metadata.role is driver", () => {
+    expect(
+      isDriverRole({
+        sub: "abc",
+        role: "user",
+        app_metadata: { role: "driver" },
+      }),
+    ).toBe(true);
+  });
+
+  it("returns false when no driver role present", () => {
+    expect(isDriverRole({ sub: "abc", role: "user" })).toBe(false);
+  });
+
+  it("returns false when role is missing", () => {
+    expect(isDriverRole({ sub: "abc" })).toBe(false);
+  });
+});
+
+describe("canAccessBooking", () => {
+  it("allows booking owner", () => {
+    expect(canAccessBooking({ sub: "abc" }, "abc")).toBe(true);
+  });
+
+  it("allows driver users", () => {
+    expect(canAccessBooking({ sub: "abc", role: "driver" }, "xyz")).toBe(true);
+  });
+
+  it("denies unrelated non-driver", () => {
+    expect(canAccessBooking({ sub: "abc", role: "user" }, "xyz")).toBe(false);
+  });
+
+  it("handles undefined booking user id", () => {
+    expect(canAccessBooking({ sub: "abc", role: "user" }, undefined)).toBe(
+      false,
+    );
+  });
+});
+
+describe("getRoleFromMetadata", () => {
+  it("extracts role from metadata object", () => {
+    expect(getRoleFromMetadata({ role: "driver" })).toBe("driver");
+  });
+
+  it("returns undefined for null metadata", () => {
+    expect(getRoleFromMetadata(null)).toBeUndefined();
+  });
+
+  it("returns undefined for non-object metadata", () => {
+    expect(getRoleFromMetadata("string")).toBeUndefined();
+  });
+
+  it("returns undefined when role is not a string", () => {
+    expect(getRoleFromMetadata({ role: 123 })).toBeUndefined();
   });
 });
