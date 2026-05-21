@@ -12,6 +12,14 @@ interface MockDb {
   getBooking: ReturnType<typeof vi.fn>;
   updateBookingStatus: ReturnType<typeof vi.fn>;
   assignAmbulance: ReturnType<typeof vi.fn>;
+  findAvailableAmbulances: ReturnType<typeof vi.fn>;
+  broadcastTripLocation: ReturnType<typeof vi.fn>;
+  getAmbulanceProviderLocation: ReturnType<typeof vi.fn>;
+  getConfirmedBookings: ReturnType<typeof vi.fn>;
+  searchProviders: ReturnType<typeof vi.fn>;
+  findProvidersByH3Indexes: ReturnType<typeof vi.fn>;
+  searchHospitals: ReturnType<typeof vi.fn>;
+  findHospitalsByH3Indexes: ReturnType<typeof vi.fn>;
 }
 
 // A minimal app wrapper to inject dependencies and middleware for testing
@@ -24,7 +32,7 @@ const createApp = (
 
   // Inject mocks
   app.use("*", async (c, next) => {
-    c.set("getDb", () => dbMock as unknown as IPersistenceRepository);
+    c.set("getDb", () => dbMock as IPersistenceRepository);
     c.set("jwtPayload", jwtPayloadMock);
     c.set("getDispatchService", () => {
       const baseMock = {
@@ -58,6 +66,14 @@ describe("Bookings API", () => {
       getBooking: vi.fn(),
       updateBookingStatus: vi.fn(),
       assignAmbulance: vi.fn(),
+      findAvailableAmbulances: vi.fn(),
+      broadcastTripLocation: vi.fn(),
+      getAmbulanceProviderLocation: vi.fn(),
+      getConfirmedBookings: vi.fn(),
+      searchProviders: vi.fn(),
+      findProvidersByH3Indexes: vi.fn(),
+      searchHospitals: vi.fn(),
+      findHospitalsByH3Indexes: vi.fn(),
     };
   });
 

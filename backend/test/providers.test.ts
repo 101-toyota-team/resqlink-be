@@ -32,12 +32,26 @@ describe("ProviderService", () => {
 
   beforeEach(() => {
     mockDb = {
+      createBooking: vi.fn(),
+      getBooking: vi.fn(),
+      updateBookingStatus: vi.fn(),
+      assignAmbulance: vi.fn(),
+      findAvailableAmbulances: vi.fn(),
+      broadcastTripLocation: vi.fn(),
+      getAmbulanceProviderLocation: vi.fn(),
+      getConfirmedBookings: vi.fn(),
       searchProviders: vi.fn(),
       findProvidersByH3Indexes: vi.fn(),
-    } as unknown as IPersistenceRepository;
+      searchHospitals: vi.fn(),
+      findHospitalsByH3Indexes: vi.fn(),
+    } as IPersistenceRepository;
     mockGeo = {
       getNeighbors: vi.fn(),
-    } as unknown as IGeoService;
+      latLngToCell: vi.fn(),
+      parseLatLng: vi.fn(),
+      cellToLatLng: vi.fn(),
+      haversineDistance: vi.fn(),
+    } as IGeoService;
     service = new ProviderService(mockDb, mockGeo);
   });
 
@@ -83,7 +97,7 @@ describe("Providers API", () => {
       ];
       serviceMock.searchProviders.mockResolvedValue(mockResults);
 
-      const app = createApp(serviceMock as unknown as IProviderService);
+      const app = createApp(serviceMock as IProviderService);
       const res = await app.request("/providers/search?q=Provider");
 
       expect(res.status).toBe(200);
@@ -92,7 +106,7 @@ describe("Providers API", () => {
     });
 
     it("should return 400 for validation errors (e.g. query too short)", async () => {
-      const app = createApp(serviceMock as unknown as IProviderService);
+      const app = createApp(serviceMock as IProviderService);
       const res = await app.request("/providers/search?q=P");
 
       expect(res.status).toBe(400);
@@ -104,7 +118,7 @@ describe("Providers API", () => {
         new Error("Database error"),
       );
 
-      const app = createApp(serviceMock as unknown as IProviderService);
+      const app = createApp(serviceMock as IProviderService);
       const res = await app.request("/providers/search?q=Provider");
 
       expect(res.status).toBe(500);
@@ -129,7 +143,7 @@ describe("Providers API", () => {
       ];
       serviceMock.findNearbyProviders.mockResolvedValue(mockResults);
 
-      const app = createApp(serviceMock as unknown as IProviderService);
+      const app = createApp(serviceMock as IProviderService);
       const res = await app.request(`/providers/nearby?h3_index=${h3Index}`);
 
       expect(res.status).toBe(200);
@@ -146,7 +160,7 @@ describe("Providers API", () => {
       const mockResults: Provider[] = [];
       serviceMock.findNearbyProviders.mockResolvedValue(mockResults);
 
-      const app = createApp(serviceMock as unknown as IProviderService);
+      const app = createApp(serviceMock as IProviderService);
       const res = await app.request(
         `/providers/nearby?h3_index=${h3Index}&lat=-6.2&lng=106.8`,
       );
@@ -160,7 +174,7 @@ describe("Providers API", () => {
     });
 
     it("should return 400 for invalid H3 index", async () => {
-      const app = createApp(serviceMock as unknown as IProviderService);
+      const app = createApp(serviceMock as IProviderService);
       const res = await app.request("/providers/nearby?h3_index=invalid");
 
       expect(res.status).toBe(400);
@@ -168,7 +182,7 @@ describe("Providers API", () => {
     });
 
     it("should return 400 for out-of-range lat", async () => {
-      const app = createApp(serviceMock as unknown as IProviderService);
+      const app = createApp(serviceMock as IProviderService);
       const res = await app.request(
         "/providers/nearby?h3_index=878c10702ffffff&lat=999",
       );
