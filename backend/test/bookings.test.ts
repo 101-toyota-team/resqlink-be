@@ -15,6 +15,7 @@ interface MockDb {
   findAvailableAmbulances: ReturnType<typeof vi.fn>;
   broadcastTripLocation: ReturnType<typeof vi.fn>;
   getAmbulanceProviderLocation: ReturnType<typeof vi.fn>;
+  getUserBookings: ReturnType<typeof vi.fn>;
   getConfirmedBookings: ReturnType<typeof vi.fn>;
   searchProviders: ReturnType<typeof vi.fn>;
   findProvidersByH3Indexes: ReturnType<typeof vi.fn>;
@@ -69,6 +70,7 @@ describe("Bookings API", () => {
       findAvailableAmbulances: vi.fn(),
       broadcastTripLocation: vi.fn(),
       getAmbulanceProviderLocation: vi.fn(),
+      getUserBookings: vi.fn(),
       getConfirmedBookings: vi.fn(),
       searchProviders: vi.fn(),
       findProvidersByH3Indexes: vi.fn(),
@@ -116,8 +118,8 @@ describe("Bookings API", () => {
     });
 
     it("should return 201 and create draft booking when ambulance_id is omitted", async () => {
-      const { ambulance_id, ...draftPayload } = validBookingPayload;
-      void ambulance_id;
+      const { ambulance_id: _ambulance_id, ...draftPayload } =
+        validBookingPayload;
       const mockDraftBooking = {
         id: mockBookingId,
         ...draftPayload,

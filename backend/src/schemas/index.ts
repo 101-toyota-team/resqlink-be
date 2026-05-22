@@ -51,18 +51,17 @@ export const driverPingSchema = z.object({
   speed: z.number().optional(),
 });
 
-// Hospital search endpoint validation - standardized to use 'q' like providers
-export const hospitalSearchSchema = z.object({
+export const searchQuerySchema = z.object({
   q: z.string().min(2, "Search query must be at least 2 characters").max(256),
 });
+
+export const hospitalSearchSchema = searchQuerySchema;
 
 export const hospitalNearbySchema = z.object({
   h3_index: h3IndexSchema,
 });
 
-export const providerSearchSchema = z.object({
-  q: z.string().min(2, "Search query must be at least 2 characters").max(256),
-});
+export const providerSearchSchema = searchQuerySchema;
 
 export const providerNearbySchema = z.object({
   h3_index: h3IndexSchema,
@@ -76,6 +75,11 @@ export const bookingIdParamSchema = z.object({
 
 export const bookingAssignSchema = z.object({
   ambulance_id: z.string().uuid(),
+});
+
+export const paginationSchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
 });
 
 export const bookingStatusUpdateSchema = z.object({

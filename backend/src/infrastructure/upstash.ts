@@ -87,7 +87,7 @@ export class UpstashRedisRepository implements ICacheRepository {
 
   async mget<T>(keys: string[]): Promise<(T | null)[]> {
     if (keys.length === 0) return [];
-    const results = await this.client.mget<unknown[]>(...keys);
+    const results = await this.client.mget<(T | null)[]>(keys);
     return results.map((r) => this.parseRedisResult<T>(r));
   }
 

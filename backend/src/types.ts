@@ -103,7 +103,7 @@ export interface GoogleDirectionsResponse {
     bounds: Record<string, unknown>;
     copyrights: string;
     legs: unknown[];
-    overview_polyline: Record<string, unknown>;
+    overview_polyline: { points: string };
     summary: string;
     warnings: string[];
     waypoint_order: number[];
