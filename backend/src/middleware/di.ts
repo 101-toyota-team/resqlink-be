@@ -20,12 +20,17 @@ export const diMiddleware: MiddlewareHandler<{
   let dbRepo: SupabaseRepository | undefined;
   let mapsRepo: GoogleMapsRepository | undefined;
   let cacheRepo: UpstashRedisRepository | undefined;
+  let geoService: GeoService | undefined;
+
+  const getGeo = () => {
+    if (!geoService) geoService = new GeoService();
+    return geoService;
+  };
 
   c.set("getProviderService", () => {
     if (!providerService) {
       const dbRepo = c.get("getDb")();
-      const geoService = new GeoService();
-      providerService = new ProviderService(dbRepo, geoService);
+      providerService = new ProviderService(dbRepo, getGeo());
     }
     return providerService;
   });
@@ -33,27 +38,23 @@ export const diMiddleware: MiddlewareHandler<{
   c.set("getHospitalService", () => {
     if (!hospitalService) {
       const dbRepo = c.get("getDb")();
-      const geoService = new GeoService();
-      hospitalService = new HospitalService(dbRepo, geoService);
+      hospitalService = new HospitalService(dbRepo, getGeo());
     }
     return hospitalService;
   });
 
   c.set("getDispatchService", () => {
     if (!dispatchService) {
-      const cacheRepo = new UpstashRedisRepository(
-        c.env.UPSTASH_REDIS_REST_URL,
-        c.env.UPSTASH_REDIS_REST_TOKEN,
-      );
+      const cacheRepo = c.get("getCache")();
       const dbRepo = c.get("getDb")();
-      const maps = new GoogleMapsRepository(c.env.GOOGLE_MAPS_API_KEY);
-      const geoService = new GeoService();
-      const distanceService = new DistanceService(maps, cacheRepo, geoService);
+      const maps = c.get("getMaps")();
+      const geo = getGeo();
+      const distanceService = new DistanceService(maps, cacheRepo, geo);
 
       dispatchService = new DispatchService(
         cacheRepo,
         dbRepo,
-        geoService,
+        geo,
         distanceService,
         maps,
       );

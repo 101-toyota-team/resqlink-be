@@ -71,7 +71,7 @@ export class DistanceService implements IDistanceService {
         }));
       }
 
-      await Promise.all(
+      const writeResults = await Promise.allSettled(
         uncached.map(async (r, i) => {
           const element = matrix.rows[i]?.elements?.[0];
           if (element?.status === "OK") {
@@ -94,6 +94,11 @@ export class DistanceService implements IDistanceService {
           }
         }),
       );
+      for (const result of writeResults) {
+        if (result.status === "rejected") {
+          logger.warn("Distance cache write failed: %s", result.reason);
+        }
+      }
     }
 
     return resultsWithCache.map((r) => ({

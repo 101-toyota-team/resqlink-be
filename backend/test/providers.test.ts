@@ -40,6 +40,7 @@ describe("ProviderService", () => {
       broadcastTripLocation: vi.fn(),
       getAmbulanceProviderLocation: vi.fn(),
       getConfirmedBookings: vi.fn(),
+      getUserBookings: vi.fn(),
       searchProviders: vi.fn(),
       findProvidersByH3Indexes: vi.fn(),
       searchHospitals: vi.fn(),

@@ -6,6 +6,7 @@ import { ERROR_MESSAGES } from "./utils/constants";
 
 import { diMiddleware } from "./middleware/di";
 import { supabaseAuth } from "./middleware/auth";
+import { rateLimiter } from "./middleware/rate-limit";
 
 import discoveryApp from "./routes/discovery";
 import bookingsApp from "./routes/bookings";
@@ -28,7 +29,13 @@ app.use("*", async (c, next) => {
 // 1. Dependency Injection Middleware
 app.use("*", diMiddleware);
 
-// 2. Auth Middleware
+// 2. Rate Limiting Middleware (after DI, before auth)
+app.use("/ambulances/*", rateLimiter(30));
+app.use("/driver/*", rateLimiter(60));
+app.use("/providers/*", rateLimiter(30));
+app.use("/hospitals/*", rateLimiter(30));
+
+// 3. Auth Middleware
 app.use("/bookings", supabaseAuth);
 app.use("/bookings/*", supabaseAuth);
 app.use("/driver/*", supabaseAuth);
