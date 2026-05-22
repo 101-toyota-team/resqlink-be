@@ -5,6 +5,7 @@ import {
   bookingIdParamSchema,
   bookingStatusUpdateSchema,
   bookingAssignSchema,
+  paginationSchema,
 } from "../schemas";
 import { AppVariables } from "../types";
 import { Bindings } from "../schemas/env";
@@ -17,6 +18,24 @@ import {
 import { canAccessBooking, unauthorizedResponse } from "../utils/auth";
 
 const bookingsApp = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
+
+bookingsApp.get(
+  "",
+  zValidator("query", paginationSchema, validatorHook),
+  async (c) => {
+    try {
+      const { limit, offset } = c.req.valid("query");
+      const db = c.get("getDb")();
+      const payload = c.get("jwtPayload");
+
+      const bookings = await db.getUserBookings(payload.sub, limit, offset);
+      return c.json(bookings, 200);
+    } catch (error) {
+      logger.error(error, "Bookings GET / error");
+      return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);
+    }
+  },
+);
 
 // Use empty string to match the base path when mounted
 bookingsApp.post(
