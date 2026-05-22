@@ -98,8 +98,7 @@ export class DispatchService implements IDispatchService {
       return;
     }
 
-    const encodedPolyline = directions.routes[0].overview_polyline
-      .points as string;
+    const encodedPolyline = directions.routes[0].overview_polyline.points;
     const points = this.decodePolyline(encodedPolyline);
 
     if (points.length === 0) {

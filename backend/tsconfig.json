@@ -6,14 +6,11 @@
     "strict": true,
     "lib": ["ESNext"],
     "types": ["@cloudflare/workers-types", "@cloudflare/vitest-pool-workers"],
-    "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "noImplicitAny": true,
   },
   "include": ["src/**/*", "test/**/*"]
 }
