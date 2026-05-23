@@ -2,6 +2,7 @@ import { z } from "zod";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { IPersistenceRepository } from "../repositories/db";
 import {
+  AmbulanceInfo,
   Booking,
   BookingData,
   DriverDetails,
@@ -20,6 +21,7 @@ import {
   dbHospitalSchema,
   dbAmbulanceDiscoverySchema,
   dbAmbulanceProviderSchema,
+  dbAmbulanceSchema,
 } from "../schemas/db";
 
 function isStringUrl(url: unknown): url is string {
@@ -100,6 +102,27 @@ export class SupabaseRepository implements IPersistenceRepository {
       return this.parseBooking(booking);
     } catch (err) {
       logger.error(err, "Database schema drift detected in getBooking");
+      return null;
+    }
+  }
+
+  async getAmbulance(ambulanceId: string): Promise<AmbulanceInfo | null> {
+    const { data, error } = await this.client
+      .from("ambulances")
+      .select("id, provider_id")
+      .eq("id", ambulanceId)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") return null;
+      logger.error(error, "Supabase getAmbulance error");
+      throw new Error(`Supabase error: ${error.message}`, { cause: error });
+    }
+
+    try {
+      return dbAmbulanceSchema.parse(data);
+    } catch (err) {
+      logger.error(err, "Database schema drift detected in getAmbulance");
       return null;
     }
   }
