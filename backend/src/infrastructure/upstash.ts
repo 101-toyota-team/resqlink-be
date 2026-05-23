@@ -1,6 +1,6 @@
 import { Redis } from "@upstash/redis/cloudflare";
 import { ICacheRepository } from "../repositories/cache";
-import { DriverLocation } from "../types";
+import { AmbulanceLocation } from "../types";
 
 export class UpstashRedisRepository implements ICacheRepository {
   private client: Redis;
@@ -22,7 +22,7 @@ export class UpstashRedisRepository implements ICacheRepository {
 
   async updateDriverLocation(
     driverId: string,
-    locationData: DriverLocation,
+    locationData: AmbulanceLocation,
     h3Index: string,
     ttl: number,
     previousH3Index?: string,
@@ -60,16 +60,16 @@ export class UpstashRedisRepository implements ICacheRepository {
     await this.client.zrem(`h3_zone:${h3Index}`, driverId);
   }
 
-  async getDriverLocation(driverId: string): Promise<DriverLocation | null> {
+  async getDriverLocation(driverId: string): Promise<AmbulanceLocation | null> {
     return await this.client.get(`driver:loc:${driverId}`);
   }
 
   async getDriverLocations(
     driverIds: string[],
-  ): Promise<(DriverLocation | null)[]> {
+  ): Promise<(AmbulanceLocation | null)[]> {
     if (driverIds.length === 0) return [];
     const keys = driverIds.map((id) => `driver:loc:${id}`);
-    return await this.client.mget<(DriverLocation | null)[]>(keys);
+    return await this.client.mget<(AmbulanceLocation | null)[]>(keys);
   }
 
   async incr(key: string): Promise<number> {

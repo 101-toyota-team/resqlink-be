@@ -1,7 +1,6 @@
 import {
   GoogleDirectionsResponse,
   GoogleDistanceMatrixResponse,
-  GooglePlacesResponse,
 } from "../types";
 
 export interface IMapsRepository {
@@ -13,5 +12,4 @@ export interface IMapsRepository {
     origin: string,
     destination: string,
   ): Promise<GoogleDirectionsResponse>;
-  searchPlaces(query: string): Promise<GooglePlacesResponse>;
 }

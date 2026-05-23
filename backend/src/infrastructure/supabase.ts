@@ -9,8 +9,8 @@ import {
   AmbulanceInfo,
   Booking,
   BookingData,
-  DriverDetails,
-  DriverLocation,
+  AmbulanceDetails,
+  AmbulanceLocation,
   Provider,
   Hospital,
   HospitalDetails,
@@ -178,7 +178,9 @@ export class SupabaseRepository
     }
   }
 
-  async findAvailableAmbulances(h3Indexes: string[]): Promise<DriverDetails[]> {
+  async findAvailableAmbulances(
+    h3Indexes: string[],
+  ): Promise<AmbulanceDetails[]> {
     const { data, error } = await this.client
       .from("ambulances")
       .select(
@@ -221,7 +223,7 @@ export class SupabaseRepository
 
   async broadcastTripLocation(
     bookingId: string,
-    location: DriverLocation,
+    location: AmbulanceLocation,
   ): Promise<void> {
     const channel = this.client.channel(`trip:${bookingId}`);
     try {

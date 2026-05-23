@@ -1,16 +1,18 @@
-import { DriverLocation } from "../types";
+import { AmbulanceLocation } from "../types";
 
 export interface ICacheRepository {
   getDriversInBucket(h3Index: string): Promise<string[]>;
   updateDriverLocation(
     driverId: string,
-    locationData: DriverLocation,
+    locationData: AmbulanceLocation,
     h3Index: string,
     ttl: number,
     previousH3Index?: string,
   ): Promise<void>;
-  getDriverLocation(driverId: string): Promise<DriverLocation | null>;
-  getDriverLocations(driverIds: string[]): Promise<(DriverLocation | null)[]>;
+  getDriverLocation(driverId: string): Promise<AmbulanceLocation | null>;
+  getDriverLocations(
+    driverIds: string[],
+  ): Promise<(AmbulanceLocation | null)[]>;
   addDriverToBucket(h3Index: string, driverId: string): Promise<void>;
   removeDriverFromBucket(h3Index: string, driverId: string): Promise<void>;
   set(key: string, value: unknown, ttl?: number): Promise<void>;

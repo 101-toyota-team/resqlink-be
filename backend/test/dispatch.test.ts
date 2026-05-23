@@ -7,7 +7,7 @@ import { IRealtimeBroadcaster } from "../src/repositories/realtime";
 import { IGeoService } from "../src/services/geo";
 import { IDistanceService } from "../src/services/distance";
 import { IMapsRepository } from "../src/repositories/maps";
-import { DriverLocation, Booking } from "../src/types";
+import { AmbulanceLocation, Booking } from "../src/types";
 
 describe("DispatchService", () => {
   let mockCache: Mocked<ICacheRepository>;
@@ -63,7 +63,6 @@ describe("DispatchService", () => {
     mockMaps = {
       getDirections: vi.fn(),
       getDistanceMatrix: vi.fn(),
-      searchPlaces: vi.fn(),
     } as Mocked<IMapsRepository>;
     service = new DispatchService(
       mockCache,
@@ -89,11 +88,11 @@ describe("DispatchService", () => {
         lng: 106.8,
         eta: "5 mins",
         distance: "1.2 km",
-      } as DriverLocation & { id: string; eta: string; distance: string },
+      } as AmbulanceLocation & { id: string; eta: string; distance: string },
     ]);
 
     // 2. Execute
-    const results = await service.findNearbyDrivers(
+    const results = await service.findNearbyAmbulances(
       "878c84c525fff",
       1,
       "-6.12,106.85",
@@ -120,7 +119,7 @@ describe("DispatchService", () => {
     ]);
 
     // 2. Call service
-    const results = await service.findNearbyDrivers("878c84c525fff", 1);
+    const results = await service.findNearbyAmbulances("878c84c525fff", 1);
 
     // 3. Verify results
     expect(mockGeo.getNeighbors).toHaveBeenCalledWith("878c84c525fff", 1);
@@ -137,7 +136,7 @@ describe("DispatchService", () => {
     mockGeo.getNeighbors.mockReturnValue(["878c84c525fff"]);
     mockAmbulanceRepo.findAvailableAmbulances.mockResolvedValue([]);
 
-    const results = await service.findNearbyDrivers(
+    const results = await service.findNearbyAmbulances(
       "878c84c525fff",
       1,
       "-6.12,106.85",

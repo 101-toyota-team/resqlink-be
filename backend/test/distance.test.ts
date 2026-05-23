@@ -45,7 +45,6 @@ describe("DistanceService", () => {
     mockMaps = {
       getDistanceMatrix: vi.fn(),
       getDirections: vi.fn(),
-      searchPlaces: vi.fn(),
     } as Mocked<IMapsRepository>;
 
     mockCache = {

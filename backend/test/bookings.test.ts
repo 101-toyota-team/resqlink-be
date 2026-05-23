@@ -37,12 +37,12 @@ const createApp = (
 
   // Inject mocks
   app.use("*", async (c, next) => {
-    c.set("getDb", () => dbMock as IPersistenceRepository);
+    c.set("getSupabaseRepo", () => dbMock as IPersistenceRepository);
     c.set("jwtPayload", jwtPayloadMock);
 
     const buildDispatchService = () => {
       const baseMock = {
-        findNearbyDrivers: vi.fn(),
+        findNearbyAmbulances: vi.fn(),
         updateDriverStatus: vi.fn(),
         startSimulation: vi.fn(),
         advanceSimulation: vi.fn(),
