@@ -27,7 +27,7 @@ paths:
             text/plain:
               schema:
                 type: string
-                example: ResQLink Robust API - Status: Online
+                example: 'ResQLink Robust API - Status: Online'
   /ambulances/nearby:
     get:
       operationId: findNearbyAmbulances
