@@ -40,6 +40,14 @@ function isValidPlaces(data: unknown): data is GooglePlacesResponse {
 export class GoogleMapsRepository implements IMapsRepository {
   constructor(private apiKey: string) {}
 
+  private async handleResponse(response: Response): Promise<Response> {
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Google Maps API error: ${response.status} ${errorText}`);
+    }
+    return response;
+  }
+
   async getDistanceMatrix(
     origins: string[],
     destinations: string[],
@@ -50,12 +58,7 @@ export class GoogleMapsRepository implements IMapsRepository {
       originsQuery,
     )}&destinations=${encodeURIComponent(destinationsQuery)}&key=${this.apiKey}`;
 
-    const response = await fetchWithTimeout(url);
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Google Maps API error: ${response.status} ${errorText}`);
-    }
-
+    const response = await this.handleResponse(await fetchWithTimeout(url));
     const data = await response.json();
     if (!isValidDistanceMatrix(data)) {
       logger.error({ data }, "Invalid distance matrix response");
@@ -72,12 +75,7 @@ export class GoogleMapsRepository implements IMapsRepository {
       origin,
     )}&destination=${encodeURIComponent(destination)}&key=${this.apiKey}`;
 
-    const response = await fetchWithTimeout(url);
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Google Maps API error: ${response.status} ${errorText}`);
-    }
-
+    const response = await this.handleResponse(await fetchWithTimeout(url));
     const data = await response.json();
     if (!isValidDirections(data)) {
       logger.error({ data }, "Invalid directions response");
@@ -91,12 +89,7 @@ export class GoogleMapsRepository implements IMapsRepository {
       query,
     )}&key=${this.apiKey}`;
 
-    const response = await fetchWithTimeout(url);
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Google Maps API error: ${response.status} ${errorText}`);
-    }
-
+    const response = await this.handleResponse(await fetchWithTimeout(url));
     const data = await response.json();
     if (!isValidPlaces(data)) {
       logger.error({ data }, "Invalid places response");

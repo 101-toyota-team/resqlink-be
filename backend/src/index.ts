@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { AppVariables } from "./types";
 import { envSchema, Bindings } from "./schemas/env";
 import logger from "./utils/logger";
-import { ERROR_MESSAGES } from "./utils/constants";
+import { ERROR_MESSAGES, errorResponse } from "./utils/constants";
 
 import { diMiddleware } from "./middleware/di";
 import { supabaseAuth } from "./middleware/auth";
@@ -21,7 +21,7 @@ app.use("*", async (c, next) => {
   const result = envSchema.safeParse(c.env);
   if (!result.success) {
     logger.error("Invalid environment variables");
-    return c.json({ error: ERROR_MESSAGES.CONFIGURATION_ERROR }, 500);
+    return c.json(errorResponse(ERROR_MESSAGES.CONFIGURATION_ERROR), 500);
   }
   await next();
 });
@@ -31,6 +31,8 @@ app.use("*", diMiddleware);
 
 // 2. Rate Limiting Middleware (after DI, before auth)
 app.use("/ambulances/*", rateLimiter(30));
+app.use("/bookings/*", rateLimiter(30));
+app.use("/bookings", rateLimiter(30));
 app.use("/driver/*", rateLimiter(60));
 app.use("/providers/*", rateLimiter(30));
 app.use("/hospitals/*", rateLimiter(30));
@@ -50,7 +52,7 @@ app.route("/providers", providersApp);
 
 app.onError((err, c) => {
   logger.error({ err }, "Unhandled exception: %s", err.message);
-  return c.json({ error: ERROR_MESSAGES.INTERNAL_ERROR }, 500);
+  return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);
 });
 
 export default app;
