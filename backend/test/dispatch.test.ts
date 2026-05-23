@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, Mocked } from "vitest";
 import { DispatchService } from "../src/services/dispatch";
 import { ICacheRepository } from "../src/repositories/cache";
-import { IPersistenceRepository } from "../src/repositories/db";
+import { IBookingRepository } from "../src/repositories/booking";
+import { IAmbulanceRepository } from "../src/repositories/ambulance";
+import { IRealtimeBroadcaster } from "../src/repositories/realtime";
 import { IGeoService } from "../src/services/geo";
 import { IDistanceService } from "../src/services/distance";
 import { IMapsRepository } from "../src/repositories/maps";
@@ -9,7 +11,9 @@ import { DriverLocation, Booking } from "../src/types";
 
 describe("DispatchService", () => {
   let mockCache: Mocked<ICacheRepository>;
-  let mockDb: Mocked<IPersistenceRepository>;
+  let mockBookingRepo: Mocked<IBookingRepository>;
+  let mockAmbulanceRepo: Mocked<IAmbulanceRepository>;
+  let mockRealtime: Mocked<IRealtimeBroadcaster>;
   let mockGeo: Mocked<IGeoService>;
   let mockDistance: Mocked<IDistanceService>;
   let mockMaps: Mocked<IMapsRepository>;
@@ -30,22 +34,22 @@ describe("DispatchService", () => {
       incr: vi.fn(),
       del: vi.fn(),
     } as Mocked<ICacheRepository>;
-    mockDb = {
+    mockBookingRepo = {
       createBooking: vi.fn(),
       getBooking: vi.fn(),
       updateBookingStatus: vi.fn(),
       assignAmbulance: vi.fn(),
-      getAmbulance: vi.fn(),
-      findAvailableAmbulances: vi.fn(),
-      broadcastTripLocation: vi.fn(),
-      getAmbulanceProviderLocation: vi.fn(),
       getConfirmedBookings: vi.fn(),
       getUserBookings: vi.fn(),
-      searchProviders: vi.fn(),
-      findProvidersByH3Indexes: vi.fn(),
-      searchHospitals: vi.fn(),
-      findHospitalsByH3Indexes: vi.fn(),
-    } as Mocked<IPersistenceRepository>;
+    } as Mocked<IBookingRepository>;
+    mockAmbulanceRepo = {
+      getAmbulance: vi.fn(),
+      findAvailableAmbulances: vi.fn(),
+      getAmbulanceProviderLocation: vi.fn(),
+    } as Mocked<IAmbulanceRepository>;
+    mockRealtime = {
+      broadcastTripLocation: vi.fn(),
+    } as Mocked<IRealtimeBroadcaster>;
     mockGeo = {
       parseLatLng: vi.fn(),
       latLngToCell: vi.fn(),
@@ -63,7 +67,9 @@ describe("DispatchService", () => {
     } as Mocked<IMapsRepository>;
     service = new DispatchService(
       mockCache,
-      mockDb,
+      mockBookingRepo,
+      mockAmbulanceRepo,
+      mockRealtime,
       mockGeo,
       mockDistance,
       mockMaps,
@@ -73,7 +79,7 @@ describe("DispatchService", () => {
   it("should find nearby drivers from DB and call distance service for enrichment", async () => {
     // 1. Setup mocks
     mockGeo.getNeighbors.mockReturnValue(["878c84c525fff"]);
-    mockDb.findAvailableAmbulances.mockResolvedValue([
+    mockAmbulanceRepo.findAvailableAmbulances.mockResolvedValue([
       { id: "driver_1", lat: -6.1, lng: 106.8 },
     ]);
     mockDistance.getEnrichedDrivers.mockResolvedValue([
@@ -101,7 +107,7 @@ describe("DispatchService", () => {
     });
 
     expect(mockGeo.getNeighbors).toHaveBeenCalledWith("878c84c525fff", 1);
-    expect(mockDb.findAvailableAmbulances).toHaveBeenCalledWith([
+    expect(mockAmbulanceRepo.findAvailableAmbulances).toHaveBeenCalledWith([
       "878c84c525fff",
     ]);
     expect(mockDistance.getEnrichedDrivers).toHaveBeenCalled();
@@ -109,7 +115,7 @@ describe("DispatchService", () => {
 
   it("should return raw drivers from DB without enrichment if pickupLocation is missing", async () => {
     mockGeo.getNeighbors.mockReturnValue(["878c84c525fff"]);
-    mockDb.findAvailableAmbulances.mockResolvedValue([
+    mockAmbulanceRepo.findAvailableAmbulances.mockResolvedValue([
       { id: "driver_1", lat: -6.1, lng: 106.8 },
     ]);
 
@@ -118,7 +124,7 @@ describe("DispatchService", () => {
 
     // 3. Verify results
     expect(mockGeo.getNeighbors).toHaveBeenCalledWith("878c84c525fff", 1);
-    expect(mockDb.findAvailableAmbulances).toHaveBeenCalledWith([
+    expect(mockAmbulanceRepo.findAvailableAmbulances).toHaveBeenCalledWith([
       "878c84c525fff",
     ]);
 
@@ -129,7 +135,7 @@ describe("DispatchService", () => {
 
   it("should return empty array and skip distance enrichment if no drivers found in DB", async () => {
     mockGeo.getNeighbors.mockReturnValue(["878c84c525fff"]);
-    mockDb.findAvailableAmbulances.mockResolvedValue([]);
+    mockAmbulanceRepo.findAvailableAmbulances.mockResolvedValue([]);
 
     const results = await service.findNearbyDrivers(
       "878c84c525fff",
@@ -160,7 +166,7 @@ describe("DispatchService", () => {
     };
 
     it("should start simulation by fetching directions and storing in cache", async () => {
-      mockDb.getAmbulanceProviderLocation.mockResolvedValue({
+      mockAmbulanceRepo.getAmbulanceProviderLocation.mockResolvedValue({
         lat: -6.0,
         lng: 106.7,
       });
@@ -181,7 +187,9 @@ describe("DispatchService", () => {
 
       await service.startSimulation(mockBooking);
 
-      expect(mockDb.getAmbulanceProviderLocation).toHaveBeenCalledWith("amb_1");
+      expect(
+        mockAmbulanceRepo.getAmbulanceProviderLocation,
+      ).toHaveBeenCalledWith("amb_1");
       expect(mockMaps.getDirections).toHaveBeenCalled();
       expect(mockCache.set).toHaveBeenCalledWith(
         "sim:route:booking_1",
@@ -192,7 +200,7 @@ describe("DispatchService", () => {
     });
 
     it("should not start simulation if directions are empty", async () => {
-      mockDb.getAmbulanceProviderLocation.mockResolvedValue({
+      mockAmbulanceRepo.getAmbulanceProviderLocation.mockResolvedValue({
         lat: -6.0,
         lng: 106.7,
       });
@@ -225,8 +233,8 @@ describe("DispatchService", () => {
 
       await service.advanceSimulation(mockDriverId);
 
-      expect(mockDb.broadcastTripLocation).not.toHaveBeenCalled();
-      expect(mockDb.updateBookingStatus).not.toHaveBeenCalled();
+      expect(mockRealtime.broadcastTripLocation).not.toHaveBeenCalled();
+      expect(mockBookingRepo.updateBookingStatus).not.toHaveBeenCalled();
     });
 
     it("should advance simulation and broadcast location", async () => {
@@ -236,7 +244,7 @@ describe("DispatchService", () => {
         { lat: -6.05, lng: 106.75 },
         { lat: -6.1, lng: 106.8 },
       ];
-      mockDb.getBooking.mockResolvedValue({
+      mockBookingRepo.getBooking.mockResolvedValue({
         id: mockBookingId,
         status: "en_route",
         user_id: "user_1",
@@ -252,10 +260,13 @@ describe("DispatchService", () => {
 
       await service.advanceSimulation(mockDriverId);
 
-      expect(mockDb.broadcastTripLocation).toHaveBeenCalledWith(mockBookingId, {
-        lat: -6.05,
-        lng: 106.75,
-      });
+      expect(mockRealtime.broadcastTripLocation).toHaveBeenCalledWith(
+        mockBookingId,
+        {
+          lat: -6.05,
+          lng: 106.75,
+        },
+      );
       expect(mockCache.set).toHaveBeenCalledWith("sim:step:booking_1", 1, 3600);
     });
 
@@ -263,7 +274,7 @@ describe("DispatchService", () => {
       const mockDriverId = "driver_1";
       const mockBookingId = "booking_1";
       const mockRoute = [{ lat: -6.1, lng: 106.8 }];
-      mockDb.getBooking.mockResolvedValue({
+      mockBookingRepo.getBooking.mockResolvedValue({
         id: mockBookingId,
         status: "en_route",
         user_id: "user_1",
@@ -279,7 +290,7 @@ describe("DispatchService", () => {
 
       await service.advanceSimulation(mockDriverId);
 
-      expect(mockDb.updateBookingStatus).toHaveBeenCalledWith(
+      expect(mockBookingRepo.updateBookingStatus).toHaveBeenCalledWith(
         mockBookingId,
         "arrived",
       );
@@ -290,7 +301,7 @@ describe("DispatchService", () => {
         status: "NOT_FOUND",
         routes: [],
       });
-      mockDb.getAmbulanceProviderLocation.mockResolvedValue({
+      mockAmbulanceRepo.getAmbulanceProviderLocation.mockResolvedValue({
         lat: -6.0,
         lng: 106.7,
       });
@@ -310,7 +321,7 @@ describe("DispatchService", () => {
         if (key === `sim:active:${mockDriverId}`) return "booking_1";
         return null;
       });
-      mockDb.getBooking.mockResolvedValue(null);
+      mockBookingRepo.getBooking.mockResolvedValue(null);
       mockCache.del.mockResolvedValue(undefined);
 
       await service.advanceSimulation(mockDriverId);
@@ -318,7 +329,7 @@ describe("DispatchService", () => {
       expect(mockCache.del).toHaveBeenCalledWith("sim:active:driver_1");
       expect(mockCache.del).toHaveBeenCalledWith("sim:route:booking_1");
       expect(mockCache.del).toHaveBeenCalledWith("sim:step:booking_1");
-      expect(mockDb.broadcastTripLocation).not.toHaveBeenCalled();
+      expect(mockRealtime.broadcastTripLocation).not.toHaveBeenCalled();
     });
   });
 

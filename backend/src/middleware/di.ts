@@ -38,31 +38,35 @@ export const diMiddleware: MiddlewareHandler<{
 
   c.set("getProviderService", () => {
     if (!providerService) {
-      const dbRepo = c.get("getDb")();
-      providerService = new ProviderService(dbRepo, getGeo());
+      const repo = c.get("getDb")();
+      providerService = new ProviderService(repo, getGeo());
     }
     return providerService;
   });
 
   c.set("getHospitalService", () => {
     if (!hospitalService) {
-      const dbRepo = c.get("getDb")();
-      hospitalService = new HospitalService(dbRepo, getGeo());
+      const repo = c.get("getDb")();
+      hospitalService = new HospitalService(repo, getGeo());
     }
     return hospitalService;
   });
 
   c.set("getDispatchService", () => {
     if (!dispatchService) {
-      const cacheRepo = c.get("getCache")();
-      const dbRepo = c.get("getDb")();
+      const cache = c.get("getCache")();
+      const bookingRepo = c.get("getDb")();
+      const ambulanceRepo = c.get("getDb")();
+      const realtime = c.get("getDb")();
       const maps = c.get("getMaps")();
       const geo = getGeo();
-      const distanceService = new DistanceService(maps, cacheRepo, geo);
+      const distanceService = new DistanceService(maps, cache, geo);
 
       dispatchService = new DispatchService(
-        cacheRepo,
-        dbRepo,
+        cache,
+        bookingRepo,
+        ambulanceRepo,
+        realtime,
         geo,
         distanceService,
         maps,

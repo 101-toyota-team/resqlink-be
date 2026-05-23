@@ -1,5 +1,5 @@
 import { ProviderDetails } from "../types";
-import { IPersistenceRepository } from "../repositories/db";
+import { IProviderRepository } from "../repositories/provider";
 import { IGeoService } from "./geo";
 import { preprocessQuery } from "../utils/query";
 import { PROVIDER_SEARCH } from "../utils/constants";
@@ -15,13 +15,13 @@ export interface IProviderService {
 
 export class ProviderService implements IProviderService {
   constructor(
-    private db: IPersistenceRepository,
+    private providerRepo: IProviderRepository,
     private geo: IGeoService,
   ) {}
 
   async searchProviders(query: string): Promise<ProviderDetails[]> {
     const { raw, expanded } = preprocessQuery(query);
-    return this.db.searchProviders(raw, expanded);
+    return this.providerRepo.searchProviders(raw, expanded);
   }
 
   async findNearbyProviders(
@@ -42,7 +42,7 @@ export class ProviderService implements IProviderService {
     const providers: ProviderDetails[] = [];
     for (let i = 0; i < allCells.length; i += PROVIDER_SEARCH.H3_BATCH_SIZE) {
       const batch = allCells.slice(i, i + PROVIDER_SEARCH.H3_BATCH_SIZE);
-      const result = await this.db.findProvidersByH3Indexes(batch);
+      const result = await this.providerRepo.findProvidersByH3Indexes(batch);
       providers.push(...result);
     }
 
