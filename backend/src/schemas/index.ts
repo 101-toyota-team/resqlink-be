@@ -1,11 +1,13 @@
 import { z } from "zod";
 import * as h3 from "h3-js";
-import { BOOKING_STATUSES } from "../utils/constants";
+import { BOOKING_STATUSES, GLOBAL_H3_RESOLUTION } from "../utils/constants";
 
 const h3IndexSchema = z.string().refine(
   (val) => {
     try {
-      return h3.isValidCell(val) && h3.getResolution(val) === 7;
+      return (
+        h3.isValidCell(val) && h3.getResolution(val) === GLOBAL_H3_RESOLUTION
+      );
     } catch {
       return false;
     }

@@ -3,7 +3,7 @@ import { IMapsRepository } from "../repositories/maps";
 import { DriverLocation } from "../types";
 import { IGeoService } from "./geo";
 import logger from "../utils/logger";
-import { DISTANCE_SERVICE } from "../utils/constants";
+import { DISTANCE_SERVICE, GLOBAL_H3_RESOLUTION } from "../utils/constants";
 
 export interface IDistanceService {
   getEnrichedDrivers<T extends DriverLocation>(
@@ -29,15 +29,11 @@ export class DistanceService implements IDistanceService {
     const pIdx = this.geo.latLngToCell(
       pickupLatLng.lat,
       pickupLatLng.lng,
-      DISTANCE_SERVICE.H3_RESOLUTION,
+      GLOBAL_H3_RESOLUTION,
     );
 
     const keys = drivers.map((d) => {
-      const dIdx = this.geo.latLngToCell(
-        d.lat,
-        d.lng,
-        DISTANCE_SERVICE.H3_RESOLUTION,
-      );
+      const dIdx = this.geo.latLngToCell(d.lat, d.lng, GLOBAL_H3_RESOLUTION);
       return `dist_cache:${dIdx}:${pIdx}`;
     });
 
@@ -82,7 +78,7 @@ export class DistanceService implements IDistanceService {
             const dIdx = this.geo.latLngToCell(
               r.driver.lat,
               r.driver.lng,
-              DISTANCE_SERVICE.H3_RESOLUTION,
+              GLOBAL_H3_RESOLUTION,
             );
             const cacheKey = `dist_cache:${dIdx}:${pIdx}`;
             await this.cache.set(

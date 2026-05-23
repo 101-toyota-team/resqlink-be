@@ -3,6 +3,10 @@ import type { ZodError } from "zod";
 
 // Configuration constants for backend services
 
+// Global H3 resolution used throughout the application.
+// All H3 indexes are validated, generated, and cached at this resolution.
+export const GLOBAL_H3_RESOLUTION = 7;
+
 // Distance Service
 export const DISTANCE_SERVICE = {
   CACHE_TTL_SECONDS: 300,
@@ -10,7 +14,6 @@ export const DISTANCE_SERVICE = {
   RADIUS_KM: 50,
   BATCH_SIZE: 25,
   DISTANCE_THRESHOLD_KM: 100,
-  H3_RESOLUTION: 10,
 };
 
 // Upstash Redis
