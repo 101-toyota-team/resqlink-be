@@ -1,4 +1,3 @@
-import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import {
   bookingSchema,
@@ -7,8 +6,7 @@ import {
   bookingAssignSchema,
   paginationSchema,
 } from "../schemas";
-import { AppVariables } from "../types";
-import { Bindings } from "../schemas/env";
+import { createRouteApp } from "../utils/route";
 import logger from "../utils/logger";
 import {
   ERROR_MESSAGES,
@@ -21,7 +19,7 @@ import {
   BookingStateError,
 } from "../services/bookings";
 
-const bookingsApp = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
+const bookingsApp = createRouteApp();
 
 bookingsApp.get(
   "",
@@ -94,8 +92,8 @@ bookingsApp.put(
       const { status } = c.req.valid("json");
       const payload = c.get("jwtPayload");
       const bookingService = c.get("getBookingService")();
-      const result = await bookingService.updateStatus(id, status, payload);
-      return c.json(result, 200);
+      const booking = await bookingService.updateStatus(id, status, payload);
+      return c.json(booking, 200);
     } catch (error) {
       if (error instanceof NotFoundError) {
         return c.json(errorResponse(ERROR_MESSAGES.BOOKING_NOT_FOUND), 404);

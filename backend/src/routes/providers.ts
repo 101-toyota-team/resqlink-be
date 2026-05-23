@@ -1,8 +1,6 @@
-import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { AppVariables } from "../types";
-import { Bindings } from "../schemas/env";
 import { providerSearchSchema, providerNearbySchema } from "../schemas";
+import { createRouteApp } from "../utils/route";
 import {
   ERROR_MESSAGES,
   errorResponse,
@@ -10,10 +8,7 @@ import {
 } from "../utils/constants";
 import logger from "../utils/logger";
 
-const providersApp = new Hono<{
-  Bindings: Bindings;
-  Variables: AppVariables;
-}>();
+const providersApp = createRouteApp();
 
 providersApp.get(
   "/search",
