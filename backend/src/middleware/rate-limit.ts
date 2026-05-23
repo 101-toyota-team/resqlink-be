@@ -3,10 +3,9 @@ import type { AppVariables } from "../types";
 import { errorResponse } from "../utils/constants";
 import logger from "../utils/logger";
 
-const WINDOW_SECONDS = 60;
-
 export function rateLimiter(
   maxRequests: number = 30,
+  windowSeconds: number = 60,
 ): MiddlewareHandler<{ Variables: AppVariables }> {
   return async (c, next) => {
     const ip =
@@ -25,7 +24,7 @@ export function rateLimiter(
     }
 
     if (count === 1) {
-      await cache.expire(key, WINDOW_SECONDS);
+      await cache.expire(key, windowSeconds);
     }
 
     if (count > maxRequests) {

@@ -33,7 +33,7 @@ export const supabaseAuth = async (
     });
 
     if (!isValidJwtPayload(payload)) {
-      logger.error("Invalid JWT payload structure: %O", payload);
+      logger.error(payload, "Invalid JWT payload structure");
       return c.json(errorResponse(ERROR_MESSAGES.INVALID_TOKEN), 401);
     }
 

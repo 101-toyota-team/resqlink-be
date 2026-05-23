@@ -85,7 +85,7 @@ export class SupabaseRepository
       .single();
 
     if (error) {
-      logger.error("Supabase createBooking error: %O", error);
+      logger.error(error, "Supabase createBooking error");
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
@@ -106,7 +106,7 @@ export class SupabaseRepository
 
     if (error) {
       if (error.code === "PGRST116") return null;
-      logger.error("Supabase getBooking error: %O", error);
+      logger.error(error, "Supabase getBooking error");
       return null;
     }
 
@@ -154,7 +154,7 @@ export class SupabaseRepository
           cause: error,
         });
       }
-      logger.error("Supabase assignAmbulance error: %O", error);
+      logger.error(error, "Supabase assignAmbulance error");
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
@@ -173,7 +173,7 @@ export class SupabaseRepository
       .eq("id", id);
 
     if (error) {
-      logger.error("Supabase updateBookingStatus error: %O", error);
+      logger.error(error, "Supabase updateBookingStatus error");
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
   }
