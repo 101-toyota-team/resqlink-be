@@ -49,6 +49,11 @@ export interface HospitalDetails extends Hospital {
   distance?: string;
 }
 
+export interface AmbulanceInfo {
+  id: string;
+  provider_id: string;
+}
+
 export interface DriverLocation {
   lat: number;
   lng: number;
@@ -64,6 +69,7 @@ export interface DriverDetails extends DriverLocation {
 
 export interface BookingData {
   ambulance_id?: string | null;
+  provider_id?: string | null;
   booking_type: "medis" | "sosial" | "jenazah" | "darurat";
   patient_condition: string;
   pickup_address: string;

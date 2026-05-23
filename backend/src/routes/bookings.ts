@@ -181,6 +181,19 @@ bookingsApp.put(
         return c.json(errorResponse("Booking is not in draft status"), 400);
       }
 
+      if (booking.provider_id) {
+        const ambulance = await db.getAmbulance(ambulance_id);
+        if (!ambulance) {
+          return c.json(errorResponse("Ambulance not found"), 404);
+        }
+        if (ambulance.provider_id !== booking.provider_id) {
+          return c.json(
+            errorResponse("Ambulance does not belong to the selected provider"),
+            403,
+          );
+        }
+      }
+
       const updatedBooking = await db.assignAmbulance(id, ambulance_id);
 
       return c.json(updatedBooking, 200);

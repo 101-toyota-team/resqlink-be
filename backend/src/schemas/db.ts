@@ -42,6 +42,7 @@ export const dbHospitalSchema = z.object({
 export const dbBookingSchema = z.object({
   id: z.string().uuid(),
   ambulance_id: z.string().uuid().nullable().optional(),
+  provider_id: z.string().uuid().nullable().optional(),
   booking_type: z.enum(["medis", "sosial", "jenazah", "darurat"]),
   patient_condition: z.string(),
   pickup_address: z.string(),
@@ -62,6 +63,11 @@ export const dbAmbulanceDiscoverySchema = z.object({
     dbProviderSchema.pick({ latitude: true, longitude: true }),
     z.array(dbProviderSchema.pick({ latitude: true, longitude: true })),
   ]),
+});
+
+export const dbAmbulanceSchema = z.object({
+  id: z.string().uuid(),
+  provider_id: z.string().uuid(),
 });
 
 export const dbAmbulanceProviderSchema = z.object({
