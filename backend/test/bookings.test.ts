@@ -5,6 +5,9 @@ import { ERROR_MESSAGES } from "../src/utils/constants";
 import { AppVariables, JwtPayload } from "../src/types";
 import { Bindings } from "../src/schemas/env";
 import { IPersistenceRepository } from "../src/repositories/db";
+import { IBookingRepository } from "../src/repositories/booking";
+import { IAmbulanceRepository } from "../src/repositories/ambulance";
+import { BookingService } from "../src/services/bookings";
 import { IDispatchService } from "../src/services/dispatch";
 
 interface MockDb {
@@ -36,7 +39,8 @@ const createApp = (
   app.use("*", async (c, next) => {
     c.set("getDb", () => dbMock as IPersistenceRepository);
     c.set("jwtPayload", jwtPayloadMock);
-    c.set("getDispatchService", () => {
+
+    const buildDispatchService = () => {
       const baseMock = {
         findNearbyDrivers: vi.fn(),
         updateDriverStatus: vi.fn(),
@@ -47,7 +51,18 @@ const createApp = (
       return (
         dispatchMock ? { ...baseMock, ...dispatchMock } : baseMock
       ) as IDispatchService;
+    };
+
+    c.set("getDispatchService", buildDispatchService);
+
+    c.set("getBookingService", () => {
+      return new BookingService(
+        dbMock as IBookingRepository,
+        dbMock as IAmbulanceRepository,
+        buildDispatchService(),
+      );
     });
+
     await next();
   });
 
