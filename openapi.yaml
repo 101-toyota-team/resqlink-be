@@ -33,8 +33,9 @@ paths:
       operationId: findNearbyAmbulances
       summary: Find Nearby Ambulances (Discovery)
       description: >-
-        Find available ambulances near an H3 index. Returns a list of drivers
-        with ETA and distance if a pickup location is provided.
+        **[Deprecated]** Find available ambulances near an H3 index. New
+        frontends should use `GET /providers/nearby` instead. This endpoint
+        remains operational for legacy compatibility.
       tags:
         - Ambulances
       parameters:
@@ -130,7 +131,12 @@ paths:
     post:
       operationId: createBooking
       summary: Create a Booking
-      description: Create a new ambulance booking request.
+      description: >-
+        Create a new booking request. The user selects a provider via `GET
+        /providers/nearby` and includes its `provider_id` here to lock the
+        booking to that facility. If `ambulance_id` is omitted, a `draft`
+        booking is created for the provider to assign an ambulance via `PUT
+        /bookings/{id}/assign`.
       tags:
         - Bookings
       security:
@@ -145,6 +151,16 @@ paths:
                 ambulance_id:
                   type: string
                   format: uuid
+                  description: >-
+                    Optional. If provided, the booking is created as
+                    "confirmed". Omit to create a "draft" for the provider to
+                    later assign.
+                provider_id:
+                  type: string
+                  format: uuid
+                  description: >-
+                    ID of the provider the user selected. Required for draft
+                    bookings to lock the request to a specific facility.
                 booking_type:
                   type: string
                   enum: [medis, sosial, jenazah, darurat]
@@ -261,10 +277,15 @@ paths:
   /bookings/{id}/assign:
     put:
       operationId: assignAmbulance
-      summary: Assign Ambulance to Draft Booking
+      summary: Assign Ambulance to Draft Booking (Provider-side)
       description: >-
         Assign an ambulance to a draft booking, transitioning it to "confirmed"
-        status. Only works for bookings in "draft" status.
+        status. This endpoint is intended to be called by the **selected
+        provider's dispatch system**, not the end-user.
+
+        If the draft booking has a `provider_id`, the assigned ambulance
+        **must** belong to that provider (`ambulances.provider_id` must match
+        `bookings.provider_id`). A mismatch results in `403 Forbidden`.
       tags:
         - Bookings
       security:
@@ -637,6 +658,13 @@ components:
           type: string
           format: uuid
           nullable: true
+        provider_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: >-
+            ID of the provider this booking is locked to. Set at creation time.
+            Null for legacy bookings.
         booking_type:
           type: string
           enum: [medis, sosial, jenazah, darurat]

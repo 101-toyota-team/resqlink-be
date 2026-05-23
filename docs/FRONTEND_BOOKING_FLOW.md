@@ -3,11 +3,11 @@
 > All endpoints require `Authorization: Bearer <JWT>` header. User identity is derived from the JWT payload.
 
 ## Overview
-The Booking API uses a **two-step submission model**:
-1. **Step 1 (Save Condition):** Submit patient info and location to create a `draft` booking (no ambulance assigned yet).
-2. **Step 2 (Assign Ambulance):** After selecting an ambulance from the nearby list, call the `/assign` endpoint to attach it and transition the booking to `confirmed`.
+The Booking API uses a **provider-directed dispatch model**:
+1. **Step 1 (User Request):** The user selects a nearby provider (`GET /providers/nearby`), then submits their booking request with `provider_id` to create a `draft` booking locked to that provider.
+2. **Step 2 (Provider Assignment):** The chosen provider's dispatch system sees the draft request and calls `PUT /bookings/{id}/assign` with an `ambulance_id` to accept and confirm it. Only ambulances belonging to the locked provider can be assigned — other providers cannot interfere.
 
-The backend persists the draft booking immediately so the user's data is never lost — even if they refresh, close the app, or switch devices.
+This ensures the user has full control over which provider they contact, and providers manage their own fleet assignments in a directed manner rather than competing for requests.
 
 ### 1. Local State Accumulation (UI Flow)
 The frontend should implement a state machine or multi-step wizard. The backend endpoints are called at the appropriate steps rather than in a single final submission.
@@ -18,13 +18,16 @@ stateDiagram-v2
     
     GatheringPickup --> GatheringDestination : Save Pickup<br>(address, lat, lng, h3)
     GatheringDestination --> GatheringPatientInfo : Save Destination<br>(address, lat, lng)
-    GatheringPatientInfo --> DiscoverAmbulances : Submit POST /bookings<br>(draft, no ambulance_id)
+    GatheringPatientInfo --> DiscoverProviders : Submit POST /bookings<br>(draft, no ambulance_id)
     
-    DiscoverAmbulances --> SelectingAmbulance : GET /ambulances/nearby<br>(list of nearby ambulances)
-    SelectingAmbulance --> Assigning : User selects ambulance
+    DiscoverProviders --> SelectingProvider : GET /providers/nearby<br>(list of nearby providers)
+    SelectingProvider --> SubmittingRequest : User selects provider
     
-    Assigning --> BookingConfirmed : PUT /bookings/{id}/assign<br>(attaches ambulance_id)
-    Assigning --> Assigning : API Error (retry)
+    SubmittingRequest --> DraftCreated : POST /bookings<br>(includes provider_id)
+    
+    DraftCreated --> WaitingForProvider : User sees "Waiting for provider" screen
+    WaitingForProvider --> BookingConfirmed : Provider calls PUT /bookings/{id}/assign<br>(attaches ambulance_id, status → confirmed)
+    WaitingForProvider --> WaitingForProvider : Poll GET /bookings/{id}<br>until status changes from draft
     
     BookingConfirmed --> [...] : continued...<br>(see footnote 1)
 ```
@@ -37,32 +40,49 @@ stateDiagram-v2
 sequenceDiagram
     participant U as User
     participant F as Frontend App
-    participant B as Backend API (/bookings)
+    participant B as Backend API
+    participant P as Provider Dispatch
     
     Note over U, F: Gather pickup, destination, and patient info
     
-    U->>F: Clicks "Find Ambulances"
-    Note over F: Construct payload WITHOUT ambulance_id
+    U->>F: Clicks "Find Nearby Providers"
+    F->>B: GET /providers/nearby?h3_index=...&lat=...&lng=...
+    Note right of F: Returns list of nearby providers sorted by distance
+    B-->>F: 200 OK (List of ProviderDetails)
+    F-->>U: Shows list of providers
     
-    F->>B: POST /bookings (no ambulance_id)
-    Note right of F: Payload includes:<br/>- booking_type, patient_condition<br/>- pickup_address, pickup_lat, pickup_lng, pickup_h3<br/>- destination_address, destination_lat, destination_lng
+    U->>F: Selects a provider from the list
+    Note over F: Construct payload WITH provider_id, WITHOUT ambulance_id
+    
+    F->>B: POST /bookings { provider_id, ...other fields }
+    Note right of F: Payload includes:<br/>- provider_id<br/>- booking_type, patient_condition<br/>- pickup_address, pickup_lat, pickup_lng, pickup_h3<br/>- destination_address, destination_lat, destination_lng
     
     alt Validation / Server Error
         B-->>F: 400 Bad Request / 500 Internal Error
         F-->>U: Show Error Message & Allow Retry
     else Success
-        B-->>F: 201 Created (Returns Booking Object with status: "draft")
-        F->>F: Prepare pickup_h3 param for nearby query
+        B-->>F: 201 Created (Returns Booking Object with status: "draft", provider_id set)
+        Note over F: Booking is locked to the chosen provider
     end
     
-    F->>B: GET /ambulances/nearby?h3_index=...&pickup=[optional]lat,lng
-    Note right of F: Returns list of nearby ambulances with ETA/distance
-    B-->>F: 200 OK (List of DriverDetails)
+    Note over F: Transition to "Waiting for Provider" screen
     
-    U->>F: Selects an ambulance from the list
-    F->>B: PUT /bookings/{id}/assign { "ambulance_id": "uuid" }
-    Note right of F: Attaches ambulance to draft booking
-    B-->>F: 200 OK (Full booking object, status: "confirmed")
+    loop Poll until status != "draft"
+        F->>B: GET /bookings/{id}
+        B-->>F: 200 OK (current booking status)
+    end
+    
+    Note over P: Provider acknowledges the request
+    P->>B: PUT /bookings/{id}/assign { "ambulance_id": "uuid" }
+    Note right of P: Only ambulances belonging to the locked provider are accepted
+    alt Provider Mismatch
+        B-->>P: 403 Forbidden (Ambulance does not belong to the selected provider)
+    else Success
+        B-->>P: 200 OK (Full booking object, status: "confirmed")
+    end
+    
+    Note over F: Next poll detects status = "confirmed"
+    F-->>U: Shows "Provider accepted — ambulance en route"
 ```
 
 ### 3. Required Payload Structure Reference
@@ -75,6 +95,7 @@ Validation bounds: latitude ∈ `[-90, 90]`, longitude ∈ `[-180, 180]`. Invali
 
 ```json
 {
+  "provider_id": "uuid-string",
   "booking_type": "medis",
   "patient_condition": "String description of condition",
   "pickup_address": "String address",
@@ -86,16 +107,16 @@ Validation bounds: latitude ∈ `[-90, 90]`, longitude ∈ `[-180, 180]`. Invali
   "destination_lng": 106.820000
 }
 ```
-*(Note: `ambulance_id` is **optional**. If omitted, the backend creates a `draft` booking. If provided, the booking is created in `confirmed` status. Do not send `user_id`; it is resolved from the JWT payload).*
+*(Note: Pass `provider_id` to lock the draft booking to a specific healthcare facility. Omit `ambulance_id` to create a `draft` booking. If `ambulance_id` is also provided, the booking is created in `confirmed` status. Do not send `user_id`; it is resolved from the JWT payload).*
 
-**Step 2 — Assign Ambulance (`PUT /bookings/{id}/assign`):**
+**Step 2 — Assign Ambulance (Provider-only, `PUT /bookings/{id}/assign`):**
 
 ```json
 {
   "ambulance_id": "uuid-string"
 }
 ```
-*(Note: Only works for bookings in `draft` status. Transitions the booking to `confirmed` and returns the full updated booking object).*
+*(Note: This endpoint is intended to be called by the **provider's dispatch system**. The assigned ambulance must belong to the provider the booking is locked to — otherwise the request is rejected with `403 Forbidden`).*
 
 **Response:**
 
@@ -104,6 +125,7 @@ Validation bounds: latitude ∈ `[-90, 90]`, longitude ∈ `[-180, 180]`. Invali
   "id": "uuid-string",
   "status": "confirmed",
   "ambulance_id": "uuid-string",
+  "provider_id": "uuid-string",
   "booking_type": "medis",
   "patient_condition": "String",
   "pickup_address": "String",
@@ -122,7 +144,7 @@ Validation bounds: latitude ∈ `[-90, 90]`, longitude ∈ `[-180, 180]`. Invali
 
 | Status | Description |
 |--------|-------------|
-| `draft` | Initial state, no ambulance assigned |
+| `draft` | Initial state, no ambulance assigned, locked to a provider |
 | `confirmed` | Ambulance assigned, awaiting dispatch |
 | `en_route` | Ambulance en route to pickup |
 | `arrived` | Ambulance arrived at pickup location |
@@ -144,3 +166,9 @@ All endpoints return errors in this shape:
 ```
 
 Common HTTP statuses: `400` (validation), `403` (unauthorized), `404` (not found), `500` (internal error).
+
+### 6. Provider Discovery
+
+**`GET /providers/nearby?h3_index=...&lat=...&lng=...`**
+
+Returns up to 50 providers within an expanding H3 ring search (up to ~60 km radius), ordered by distance ascending. Use `GET /providers/search?q=...` for text-based provider search.
