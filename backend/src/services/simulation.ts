@@ -55,7 +55,7 @@ export class SimulationService implements ISimulationService {
     const points = this.decodePolyline(encodedPolyline);
 
     if (points.length === 0) {
-      logger.error("Decoded polyline for booking %s is empty", booking.id);
+      logger.error(booking.id, "Decoded polyline for booking is empty");
       return false;
     }
 
