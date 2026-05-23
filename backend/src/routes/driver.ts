@@ -1,17 +1,15 @@
-import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { driverPingSchema } from "../schemas";
-import { AppVariables } from "../types";
-import { Bindings } from "../schemas/env";
-import logger from "../utils/logger";
+import { createRouteApp } from "../utils/route";
 import {
   ERROR_MESSAGES,
   errorResponse,
   validatorHook,
 } from "../utils/constants";
+import logger from "../utils/logger";
 import { isDriverRole } from "../utils/auth";
 
-const driverApp = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
+const driverApp = createRouteApp();
 
 driverApp.get("/bookings", async (c) => {
   try {
@@ -55,7 +53,7 @@ driverApp.post(
         previous_h3_index,
       );
 
-      return c.json({ status: "ok" });
+      return c.json({ driver_id, lat, lng, h3_index, previous_h3_index });
     } catch (error) {
       logger.error(error, "Driver /ping error");
       return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);

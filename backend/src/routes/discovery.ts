@@ -1,20 +1,15 @@
-import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { nearbyAmbulancesSchema } from "../schemas";
-import { AppVariables } from "../types";
-import { Bindings } from "../schemas/env";
-import logger from "../utils/logger";
+import { createRouteApp } from "../utils/route";
 import {
   ERROR_MESSAGES,
   errorResponse,
   validatorHook,
   DISCOVERY,
 } from "../utils/constants";
+import logger from "../utils/logger";
 
-const discoveryApp = new Hono<{
-  Bindings: Bindings;
-  Variables: AppVariables;
-}>();
+const discoveryApp = createRouteApp();
 
 discoveryApp.get(
   "/nearby",

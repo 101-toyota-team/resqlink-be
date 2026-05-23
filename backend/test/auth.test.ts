@@ -210,7 +210,12 @@ describe("Authentication & Authorization", () => {
     );
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ status: "ok" });
+    expect(await res.json()).toEqual({
+      driver_id: driverId,
+      h3_index: "878c106a4ffffff",
+      lat: -6.2,
+      lng: 106.8,
+    });
   });
 });
 

@@ -33,7 +33,7 @@ export interface IBookingService {
     id: string,
     status: BookingStatus,
     payload: JwtPayload,
-  ): Promise<{ status: string }>;
+  ): Promise<Booking>;
 }
 
 export class BookingService implements IBookingService {
@@ -104,7 +104,7 @@ export class BookingService implements IBookingService {
     id: string,
     newStatus: BookingStatus,
     payload: JwtPayload,
-  ): Promise<{ status: string }> {
+  ): Promise<Booking> {
     const booking = await this.bookingRepo.getBooking(id);
     if (!booking) {
       throw new NotFoundError(ERROR_MESSAGES.BOOKING_NOT_FOUND);
@@ -136,7 +136,9 @@ export class BookingService implements IBookingService {
     }
 
     await this.bookingRepo.updateBookingStatus(id, newStatus);
-    return { status: "ok" };
+    const updated = await this.bookingRepo.getBooking(id);
+    if (!updated) throw new Error("Booking not found after update");
+    return updated;
   }
 }
 
