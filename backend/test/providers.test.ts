@@ -5,7 +5,7 @@ import { ERROR_MESSAGES } from "../src/utils/constants";
 import { AppVariables, Provider } from "../src/types";
 import { Bindings } from "../src/schemas/env";
 import { IProviderService, ProviderService } from "../src/services/providers";
-import { IPersistenceRepository } from "../src/repositories/db";
+import { IProviderRepository } from "../src/repositories/provider";
 import { IGeoService } from "../src/services/geo";
 
 interface MockProviderService {
@@ -26,27 +26,15 @@ const createApp = (serviceMock: IProviderService) => {
 };
 
 describe("ProviderService", () => {
-  let mockDb: IPersistenceRepository;
+  let mockProviderRepo: IProviderRepository;
   let mockGeo: IGeoService;
   let service: ProviderService;
 
   beforeEach(() => {
-    mockDb = {
-      createBooking: vi.fn(),
-      getBooking: vi.fn(),
-      updateBookingStatus: vi.fn(),
-      assignAmbulance: vi.fn(),
-      getAmbulance: vi.fn(),
-      findAvailableAmbulances: vi.fn(),
-      broadcastTripLocation: vi.fn(),
-      getAmbulanceProviderLocation: vi.fn(),
-      getConfirmedBookings: vi.fn(),
-      getUserBookings: vi.fn(),
+    mockProviderRepo = {
       searchProviders: vi.fn(),
       findProvidersByH3Indexes: vi.fn(),
-      searchHospitals: vi.fn(),
-      findHospitalsByH3Indexes: vi.fn(),
-    } as IPersistenceRepository;
+    } as IProviderRepository;
     mockGeo = {
       getNeighbors: vi.fn(),
       latLngToCell: vi.fn(),
@@ -54,12 +42,12 @@ describe("ProviderService", () => {
       cellToLatLng: vi.fn(),
       haversineDistance: vi.fn(),
     } as IGeoService;
-    service = new ProviderService(mockDb, mockGeo);
+    service = new ProviderService(mockProviderRepo, mockGeo);
   });
 
   it("should expand abbreviations like RS in search query", async () => {
     await service.searchProviders("RS Duren Sawit");
-    expect(mockDb.searchProviders).toHaveBeenCalledWith(
+    expect(mockProviderRepo.searchProviders).toHaveBeenCalledWith(
       "RS Duren Sawit",
       "Rumah Sakit Duren Sawit",
     );
@@ -67,7 +55,7 @@ describe("ProviderService", () => {
 
   it("should expand multiple abbreviations", async () => {
     await service.searchProviders("RSUD and RSIA");
-    expect(mockDb.searchProviders).toHaveBeenCalledWith(
+    expect(mockProviderRepo.searchProviders).toHaveBeenCalledWith(
       "RSUD and RSIA",
       "Rumah Sakit Umum Daerah and Rumah Sakit Ibu dan Anak",
     );

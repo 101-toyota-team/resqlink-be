@@ -1,5 +1,7 @@
 import { ICacheRepository } from "../repositories/cache";
-import { IPersistenceRepository } from "../repositories/db";
+import { IBookingRepository } from "../repositories/booking";
+import { IAmbulanceRepository } from "../repositories/ambulance";
+import { IRealtimeBroadcaster } from "../repositories/realtime";
 import { DriverDetails, DriverLocation, Booking } from "../types";
 import { IGeoService } from "./geo";
 import { IDistanceService } from "./distance";
@@ -30,7 +32,9 @@ export interface IDispatchService {
 export class DispatchService implements IDispatchService {
   constructor(
     private cache: ICacheRepository,
-    private db: IPersistenceRepository,
+    private bookingRepo: IBookingRepository,
+    private ambulanceRepo: IAmbulanceRepository,
+    private realtime: IRealtimeBroadcaster,
     private geo: IGeoService,
     private distance: IDistanceService,
     private maps: IMapsRepository,
@@ -43,7 +47,7 @@ export class DispatchService implements IDispatchService {
   ): Promise<DriverDetails[]> {
     const neighbors = this.geo.getNeighbors(h3Index, radius);
 
-    const drivers = await this.db.findAvailableAmbulances(neighbors);
+    const drivers = await this.ambulanceRepo.findAvailableAmbulances(neighbors);
 
     if (drivers.length === 0) {
       return [];
@@ -85,7 +89,7 @@ export class DispatchService implements IDispatchService {
       return false;
     }
 
-    const providerLoc = await this.db.getAmbulanceProviderLocation(
+    const providerLoc = await this.ambulanceRepo.getAmbulanceProviderLocation(
       booking.ambulance_id,
     );
 
@@ -123,7 +127,7 @@ export class DispatchService implements IDispatchService {
     const bookingId = await this.cache.get<string>(`sim:active:${driverId}`);
     if (!bookingId) return;
 
-    const booking = await this.db.getBooking(bookingId);
+    const booking = await this.bookingRepo.getBooking(bookingId);
     if (!booking) {
       await this.cleanupSimulation(driverId, bookingId);
       return;
@@ -146,7 +150,7 @@ export class DispatchService implements IDispatchService {
 
     if (!route || step === null || step >= route.length) {
       if (step !== null && route && step >= route.length) {
-        await this.db.updateBookingStatus(bookingId, "arrived");
+        await this.bookingRepo.updateBookingStatus(bookingId, "arrived");
         await this.cleanupSimulation(driverId, bookingId);
       }
       return;
@@ -154,7 +158,7 @@ export class DispatchService implements IDispatchService {
 
     const nextCoord = route[step];
 
-    await this.db.broadcastTripLocation(bookingId, {
+    await this.realtime.broadcastTripLocation(bookingId, {
       lat: nextCoord.lat,
       lng: nextCoord.lng,
     });
@@ -164,7 +168,7 @@ export class DispatchService implements IDispatchService {
     await this.cache.expire(`sim:active:${driverId}`, 3600);
 
     if (step + 1 >= route.length) {
-      await this.db.updateBookingStatus(bookingId, "arrived");
+      await this.bookingRepo.updateBookingStatus(bookingId, "arrived");
       await this.cleanupSimulation(driverId, bookingId);
     }
   }

@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { IPersistenceRepository } from "../repositories/db";
+import { IBookingRepository } from "../repositories/booking";
+import { IAmbulanceRepository } from "../repositories/ambulance";
+import { IProviderRepository } from "../repositories/provider";
+import { IHospitalRepository } from "../repositories/hospital";
+import { IRealtimeBroadcaster } from "../repositories/realtime";
 import {
   AmbulanceInfo,
   Booking,
@@ -12,6 +16,7 @@ import {
   HospitalDetails,
 } from "../types";
 import type { BookingStatus } from "../utils/constants";
+import { DatabaseSchemaDriftError } from "../utils/constants";
 import { fetchWithTimeout } from "./util";
 import logger from "../utils/logger";
 
@@ -28,7 +33,14 @@ function isStringUrl(url: unknown): url is string {
   return typeof url === "string";
 }
 
-export class SupabaseRepository implements IPersistenceRepository {
+export class SupabaseRepository
+  implements
+    IBookingRepository,
+    IAmbulanceRepository,
+    IProviderRepository,
+    IHospitalRepository,
+    IRealtimeBroadcaster
+{
   private client: SupabaseClient;
 
   constructor(url: string, key: string) {
@@ -102,7 +114,7 @@ export class SupabaseRepository implements IPersistenceRepository {
       return this.parseBooking(booking);
     } catch (err) {
       logger.error(err, "Database schema drift detected in getBooking");
-      return null;
+      throw new DatabaseSchemaDriftError("Booking", err);
     }
   }
 
@@ -123,7 +135,7 @@ export class SupabaseRepository implements IPersistenceRepository {
       return dbAmbulanceSchema.parse(data);
     } catch (err) {
       logger.error(err, "Database schema drift detected in getAmbulance");
-      return null;
+      throw new DatabaseSchemaDriftError("Ambulance", err);
     }
   }
 
@@ -203,7 +215,7 @@ export class SupabaseRepository implements IPersistenceRepository {
         err,
         "Database schema drift detected in findAvailableAmbulances",
       );
-      return [];
+      throw new DatabaseSchemaDriftError("Ambulance", err);
     }
   }
 
@@ -264,7 +276,7 @@ export class SupabaseRepository implements IPersistenceRepository {
         err,
         "Database schema drift detected in getAmbulanceProviderLocation",
       );
-      return null;
+      throw new DatabaseSchemaDriftError("AmbulanceProvider", err);
     }
   }
 
@@ -297,7 +309,7 @@ export class SupabaseRepository implements IPersistenceRepository {
       return this.parseBookingList(data);
     } catch (err) {
       logger.error(err, "Database schema drift detected in getUserBookings");
-      return [];
+      throw new DatabaseSchemaDriftError("Booking", err);
     }
   }
 
@@ -332,7 +344,7 @@ export class SupabaseRepository implements IPersistenceRepository {
         err,
         "Database schema drift detected in getConfirmedBookings",
       );
-      return [];
+      throw new DatabaseSchemaDriftError("Booking", err);
     }
   }
 
@@ -382,7 +394,7 @@ export class SupabaseRepository implements IPersistenceRepository {
       return dbProviderSchema.array().parse(data || []);
     } catch (err) {
       logger.error(err, "Database schema drift detected in searchProviders");
-      return [];
+      throw new DatabaseSchemaDriftError("Provider", err);
     }
   }
 
@@ -405,7 +417,7 @@ export class SupabaseRepository implements IPersistenceRepository {
         err,
         "Database schema drift detected in findProvidersByH3Indexes",
       );
-      return [];
+      throw new DatabaseSchemaDriftError("Provider", err);
     }
   }
 
@@ -459,7 +471,7 @@ export class SupabaseRepository implements IPersistenceRepository {
         .filter((h): h is Hospital => h !== null);
     } catch (err) {
       logger.error(err, "Database schema drift detected in searchHospitals");
-      return [];
+      throw new DatabaseSchemaDriftError("Hospital", err);
     }
   }
 
@@ -513,7 +525,7 @@ export class SupabaseRepository implements IPersistenceRepository {
         err,
         "Database schema drift detected in findHospitalsByH3Indexes",
       );
-      return [];
+      throw new DatabaseSchemaDriftError("Hospital", err);
     }
   }
 }
