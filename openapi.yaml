@@ -13,6 +13,21 @@ tags:
   - name: Bookings
   - name: Driver
 paths:
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health Check
+      description: Returns a simple status text confirming the API is running.
+      tags:
+        - Ambulances
+      responses:
+        '200':
+          description: API is online
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ResQLink Robust API - Status: Online
   /ambulances/nearby:
     get:
       operationId: findNearbyAmbulances
@@ -30,6 +45,7 @@ paths:
             type: string
             minLength: 15
             maxLength: 15
+            pattern: ^[0-9a-f]+$
         - name: pickup
           in: query
           required: false
@@ -96,6 +112,7 @@ paths:
             type: string
             minLength: 15
             maxLength: 15
+            pattern: ^[0-9a-f]+$
       responses:
         '200':
           description: List of nearby hospitals
@@ -141,6 +158,9 @@ paths:
                   $ref: '#/components/schemas/Longitude'
                 pickup_h3:
                   type: string
+                  minLength: 15
+                  maxLength: 15
+                  pattern: ^[0-9a-f]+$
                 destination_address:
                   type: string
                 destination_lat:
@@ -164,6 +184,44 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Booking'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      operationId: listUserBookings
+      summary: List User Bookings
+      description: >-
+        Retrieve all bookings for the authenticated user, with optional
+        pagination.
+      tags:
+        - Bookings
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        '200':
+          description: List of user bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Booking'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -198,6 +256,8 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /bookings/{id}/assign:
     put:
       operationId: assignAmbulance
@@ -234,11 +294,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: ok
+                $ref: '#/components/schemas/Booking'
         '400':
           $ref: '#/components/responses/ValidationError'
         '403':
@@ -290,8 +346,12 @@ paths:
                     example: ok
         '400':
           $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /driver/bookings:
     get:
       operationId: getDriverQueue
@@ -312,6 +372,8 @@ paths:
                   $ref: '#/components/schemas/Booking'
         '403':
           $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /driver/ping:
     post:
       operationId: driverPing
@@ -335,10 +397,22 @@ paths:
                   format: uuid
                 h3_index:
                   type: string
+                  minLength: 15
+                  maxLength: 15
+                  pattern: ^[0-9a-f]+$
+                previous_h3_index:
+                  type: string
+                  minLength: 15
+                  maxLength: 15
+                  pattern: ^[0-9a-f]+$
                 lat:
                   $ref: '#/components/schemas/Latitude'
                 lng:
                   $ref: '#/components/schemas/Longitude'
+                heading:
+                  type: number
+                speed:
+                  type: number
               required:
                 - driver_id
                 - h3_index
@@ -359,6 +433,8 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /providers/search:
     get:
       operationId: searchProviders
@@ -388,12 +464,8 @@ paths:
                   $ref: '#/components/schemas/Provider'
         '400':
           $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalError'
-      security:
-        - BearerAuth: []
   /providers/nearby:
     get:
       operationId: findNearbyProviders
@@ -445,12 +517,8 @@ paths:
                   $ref: '#/components/schemas/ProviderDetails'
         '400':
           $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalError'
-      security:
-        - BearerAuth: []
 components:
   schemas:
     ErrorResponse:
@@ -582,6 +650,9 @@ components:
           $ref: '#/components/schemas/Longitude'
         pickup_h3:
           type: string
+          minLength: 15
+          maxLength: 15
+          pattern: ^[0-9a-f]+$
         destination_address:
           type: string
         destination_lat:
@@ -669,6 +740,7 @@ components:
               summary: Success
               value:
                 error: Unauthorized access
+                details: {}
     ForbiddenError:
       description: Valid JWT but inadequate permissions/roles
       content:
@@ -680,6 +752,7 @@ components:
               summary: Success
               value:
                 error: You do not have permission to access this resource
+                details: {}
     NotFoundError:
       description: Resource does not exist
       content:
@@ -691,6 +764,7 @@ components:
               summary: Success
               value:
                 error: Booking not found
+                details: {}
     InternalError:
       description: Unexpected backend failure
       content:
@@ -702,6 +776,7 @@ components:
               summary: Success
               value:
                 error: Internal server error
+                details: {}
   securitySchemes:
     BearerAuth:
       type: http
