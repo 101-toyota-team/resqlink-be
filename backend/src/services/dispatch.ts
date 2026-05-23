@@ -4,6 +4,7 @@ import { DriverDetails, DriverLocation, Booking } from "../types";
 import { IGeoService } from "./geo";
 import { IDistanceService } from "./distance";
 import { IMapsRepository } from "../repositories/maps";
+import { DISTANCE_SERVICE } from "../utils/constants";
 import logger from "../utils/logger";
 
 export interface IDispatchService {
@@ -18,9 +19,12 @@ export interface IDispatchService {
     h3Index: string,
     previousH3Index?: string,
   ): Promise<void>;
-  startSimulation(booking: Booking): Promise<void>;
+  startSimulation(booking: Booking): Promise<boolean>;
   advanceSimulation(driverId: string): Promise<void>;
-  startSimulationForBooking(booking: Booking, driverId: string): Promise<void>;
+  startSimulationForBooking(
+    booking: Booking,
+    driverId: string,
+  ): Promise<boolean>;
 }
 
 export class DispatchService implements IDispatchService {
@@ -46,7 +50,10 @@ export class DispatchService implements IDispatchService {
     }
 
     if (pickupLocation && drivers.length > 0) {
-      const limitedDrivers = drivers.slice(0, 10);
+      const limitedDrivers = drivers.slice(
+        0,
+        DISTANCE_SERVICE.MAX_DRIVERS_PER_LOCATION,
+      );
       return await this.distance.getEnrichedDrivers(
         limitedDrivers,
         pickupLocation,
@@ -72,9 +79,10 @@ export class DispatchService implements IDispatchService {
     await this.advanceSimulation(driverId);
   }
 
-  async startSimulation(booking: Booking): Promise<void> {
+  async startSimulation(booking: Booking): Promise<boolean> {
     if (!booking.ambulance_id) {
-      throw new Error("Cannot start simulation: no ambulance assigned");
+      logger.error("Cannot start simulation: no ambulance assigned");
+      return false;
     }
 
     const providerLoc = await this.db.getAmbulanceProviderLocation(
@@ -95,7 +103,7 @@ export class DispatchService implements IDispatchService {
         "Directions API failed for simulation: %s",
         directions.status,
       );
-      return;
+      return false;
     }
 
     const encodedPolyline = directions.routes[0].overview_polyline.points;
@@ -103,16 +111,33 @@ export class DispatchService implements IDispatchService {
 
     if (points.length === 0) {
       logger.error("Decoded polyline for booking %s is empty", booking.id);
-      return;
+      return false;
     }
 
     await this.cache.set(`sim:route:${booking.id}`, points, 3600);
     await this.cache.set(`sim:step:${booking.id}`, 0, 3600);
+    return true;
   }
 
   async advanceSimulation(driverId: string): Promise<void> {
     const bookingId = await this.cache.get<string>(`sim:active:${driverId}`);
     if (!bookingId) return;
+
+    const booking = await this.db.getBooking(bookingId);
+    if (!booking) {
+      await this.cleanupSimulation(driverId, bookingId);
+      return;
+    }
+
+    if (
+      booking.status === "arrived" ||
+      booking.status === "to_hospital" ||
+      booking.status === "completed" ||
+      booking.status === "cancelled"
+    ) {
+      await this.cleanupSimulation(driverId, bookingId);
+      return;
+    }
 
     const route = await this.cache.get<{ lat: number; lng: number }[]>(
       `sim:route:${bookingId}`,
@@ -122,6 +147,7 @@ export class DispatchService implements IDispatchService {
     if (!route || step === null || step >= route.length) {
       if (step !== null && route && step >= route.length) {
         await this.db.updateBookingStatus(bookingId, "arrived");
+        await this.cleanupSimulation(driverId, bookingId);
       }
       return;
     }
@@ -134,18 +160,32 @@ export class DispatchService implements IDispatchService {
     });
 
     await this.cache.set(`sim:step:${bookingId}`, step + 1, 3600);
+    await this.cache.expire(`sim:route:${bookingId}`, 3600);
+    await this.cache.expire(`sim:active:${driverId}`, 3600);
 
     if (step + 1 >= route.length) {
       await this.db.updateBookingStatus(bookingId, "arrived");
+      await this.cleanupSimulation(driverId, bookingId);
     }
+  }
+
+  private async cleanupSimulation(
+    driverId: string,
+    bookingId: string,
+  ): Promise<void> {
+    await this.cache.del(`sim:active:${driverId}`);
+    await this.cache.del(`sim:route:${bookingId}`);
+    await this.cache.del(`sim:step:${bookingId}`);
   }
 
   async startSimulationForBooking(
     booking: Booking,
     driverId: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
+    const ok = await this.startSimulation(booking);
+    if (!ok) return false;
     await this.cache.set(`sim:active:${driverId}`, booking.id, 3600);
-    await this.startSimulation(booking);
+    return true;
   }
 
   private decodePolyline(encoded: string): { lat: number; lng: number }[] {
