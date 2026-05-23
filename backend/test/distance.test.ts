@@ -55,10 +55,12 @@ describe("DistanceService", () => {
       getDriversInBucket: vi.fn(),
       getDriverLocation: vi.fn(),
       getDriverLocations: vi.fn(),
-      updateDriverLocation: vi.fn(),
       addDriverToBucket: vi.fn(),
       removeDriverFromBucket: vi.fn(),
-    } as Mocked<ICacheRepository>;
+      expire: vi.fn(),
+      incr: vi.fn(),
+      del: vi.fn(),
+    } as unknown as Mocked<ICacheRepository>;
 
     mockGeo = {
       parseLatLng: vi.fn().mockReturnValue({ lat: -6.2, lng: 106.8 }),

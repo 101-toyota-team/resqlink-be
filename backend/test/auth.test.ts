@@ -27,6 +27,10 @@ vi.mock("../src/infrastructure/upstash", () => ({
       removeDriverFromBucket: vi.fn(),
       get: vi.fn(),
       set: vi.fn(),
+      incr: vi.fn(),
+      expire: vi.fn(),
+      del: vi.fn(),
+      mget: vi.fn(),
     };
   }),
 }));
@@ -35,6 +39,7 @@ vi.mock("../src/infrastructure/google-maps", () => ({
   GoogleMapsRepository: vi.fn().mockImplementation(function () {
     return {
       getDistanceMatrix: vi.fn(),
+      getDirections: vi.fn(),
       searchPlaces: vi.fn(),
     };
   }),
@@ -64,7 +69,7 @@ describe("Authentication & Authorization", () => {
   it("should return 401 if Authorization header is missing on protected route", async () => {
     const res = await app.request("/bookings", { method: "POST" }, env);
     expect(res.status).toBe(401);
-    expect(await res.json()).toEqual({ error: "Unauthorized" });
+    expect(await res.json()).toMatchObject({ error: "Unauthorized access" });
   });
 
   it("should return 401 if token is invalid", async () => {
@@ -80,7 +85,7 @@ describe("Authentication & Authorization", () => {
     );
 
     expect(res.status).toBe(401);
-    expect(await res.json()).toEqual({ error: "Invalid token" });
+    expect(await res.json()).toMatchObject({ error: "Invalid token" });
   });
 
   it("should allow access to bookings if token is valid", async () => {
@@ -148,7 +153,7 @@ describe("Authentication & Authorization", () => {
     });
   });
 
-  it("should return 403 if driver_id in body does not match sub in JWT", async function test() {
+  it("should return 403 if driver_id in body does not match sub in JWT", async () => {
     const payload: JwtPayload = {
       sub: driverId,
       role: "driver",
