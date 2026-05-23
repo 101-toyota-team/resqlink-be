@@ -1,12 +1,25 @@
+function formatLogArgs(args: unknown[]): unknown[] {
+  return args.map((a) => {
+    if (typeof a === "object" && a !== null && !(a instanceof Error)) {
+      try {
+        return JSON.stringify(a);
+      } catch {
+        return String(a);
+      }
+    }
+    return a;
+  });
+}
+
 const logger = {
   info: (...args: unknown[]) => {
-    console.log(...args);
+    console.log(...formatLogArgs(args));
   },
   error: (...args: unknown[]) => {
-    console.error(...args);
+    console.error(...formatLogArgs(args));
   },
   warn: (...args: unknown[]) => {
-    console.warn(...args);
+    console.warn(...formatLogArgs(args));
   },
 };
 
