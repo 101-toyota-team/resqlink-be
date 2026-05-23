@@ -4,6 +4,7 @@ import { IHospitalService } from "./services/hospitals";
 import { IPersistenceRepository } from "./repositories/db";
 import { IMapsRepository } from "./repositories/maps";
 import { ICacheRepository } from "./repositories/cache";
+import type { BookingStatus } from "./utils/constants";
 
 export const PROVIDER_TYPES = [
   "rumah_sakit",
@@ -77,7 +78,7 @@ export interface BookingData {
 
 export interface Booking extends BookingData {
   id: string;
-  status: string;
+  status: BookingStatus;
   created_at: string;
 }
 

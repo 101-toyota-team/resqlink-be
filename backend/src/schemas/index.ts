@@ -1,5 +1,6 @@
 import { z } from "zod";
 import * as h3 from "h3-js";
+import { BOOKING_STATUSES } from "../utils/constants";
 
 const h3IndexSchema = z.string().refine(
   (val) => {
@@ -25,7 +26,24 @@ const coerceOptionalNumber = (min: number, max: number) =>
 
 export const nearbyAmbulancesSchema = z.object({
   h3_index: h3IndexSchema,
-  pickup: z.string().optional(),
+  pickup: z
+    .string()
+    .optional()
+    .refine((val) => {
+      if (!val) return true;
+      const parts = val.split(",");
+      if (parts.length !== 2) return false;
+      const lat = Number(parts[0]);
+      const lng = Number(parts[1]);
+      return (
+        !isNaN(lat) &&
+        !isNaN(lng) &&
+        lat >= -90 &&
+        lat <= 90 &&
+        lng >= -180 &&
+        lng <= 180
+      );
+    }, "Invalid pickup format — expected lat,lng (e.g. -6.2,106.8)"),
 });
 
 export const bookingSchema = z.object({
@@ -35,7 +53,7 @@ export const bookingSchema = z.object({
   pickup_address: z.string(),
   pickup_lat: z.number().min(-90).max(90),
   pickup_lng: z.number().min(-180).max(180),
-  pickup_h3: z.string(),
+  pickup_h3: h3IndexSchema,
   destination_address: z.string(),
   destination_lat: z.number().min(-90).max(90),
   destination_lng: z.number().min(-180).max(180),
@@ -43,7 +61,7 @@ export const bookingSchema = z.object({
 
 export const driverPingSchema = z.object({
   driver_id: z.string().uuid(),
-  h3_index: z.string(),
+  h3_index: h3IndexSchema,
   previous_h3_index: z.string().optional(),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
@@ -83,16 +101,7 @@ export const paginationSchema = z.object({
 });
 
 export const bookingStatusUpdateSchema = z.object({
-  status: z.enum(
-    [
-      "draft",
-      "confirmed",
-      "en_route",
-      "arrived",
-      "to_hospital",
-      "completed",
-      "cancelled",
-    ],
-    { errorMap: () => ({ message: "Invalid status value" }) },
-  ),
+  status: z.enum(BOOKING_STATUSES, {
+    errorMap: () => ({ message: "Invalid status value" }),
+  }),
 });

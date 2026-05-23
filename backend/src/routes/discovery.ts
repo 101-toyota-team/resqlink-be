@@ -8,6 +8,7 @@ import {
   ERROR_MESSAGES,
   errorResponse,
   validatorHook,
+  DISCOVERY,
 } from "../utils/constants";
 
 const discoveryApp = new Hono<{
@@ -25,7 +26,7 @@ discoveryApp.get(
       const dispatchService = c.get("getDispatchService")();
       const drivers = await dispatchService.findNearbyDrivers(
         h3_index,
-        1,
+        DISCOVERY.H3_RING_RADIUS,
         pickup,
       );
 

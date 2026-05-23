@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PROVIDER_TYPES } from "../types";
+import { BOOKING_STATUSES } from "../utils/constants";
 
 /**
  * Zod schemas for validating data returned from the Supabase/PostgreSQL database.
@@ -51,7 +52,7 @@ export const dbBookingSchema = z.object({
   destination_lat: z.coerce.number(),
   destination_lng: z.coerce.number(),
   user_id: z.string(),
-  status: z.string(),
+  status: z.enum(BOOKING_STATUSES),
   created_at: z.string(),
 });
 
