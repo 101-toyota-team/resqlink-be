@@ -14,6 +14,9 @@ export interface ICacheRepository {
   addDriverToBucket(h3Index: string, driverId: string): Promise<void>;
   removeDriverFromBucket(h3Index: string, driverId: string): Promise<void>;
   set(key: string, value: unknown, ttl?: number): Promise<void>;
+  incr(key: string): Promise<number>;
+  expire(key: string, ttl: number): Promise<void>;
+  del(key: string): Promise<void>;
   get<T>(key: string): Promise<T | null>;
   mget<T>(keys: string[]): Promise<(T | null)[]>;
 }

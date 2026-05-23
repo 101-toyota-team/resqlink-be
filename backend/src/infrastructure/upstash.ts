@@ -69,7 +69,15 @@ export class UpstashRedisRepository implements ICacheRepository {
   ): Promise<(DriverLocation | null)[]> {
     if (driverIds.length === 0) return [];
     const keys = driverIds.map((id) => `driver:loc:${id}`);
-    return await this.client.mget<(DriverLocation | null)[]>(...keys);
+    return await this.client.mget<(DriverLocation | null)[]>(keys);
+  }
+
+  async incr(key: string): Promise<number> {
+    return await this.client.incr(key);
+  }
+
+  async expire(key: string, ttl: number): Promise<void> {
+    await this.client.expire(key, ttl);
   }
 
   async set(key: string, value: unknown, ttl?: number): Promise<void> {
@@ -82,30 +90,20 @@ export class UpstashRedisRepository implements ICacheRepository {
 
   async get<T>(key: string): Promise<T | null> {
     const data = await this.client.get(key);
-    return this.parseRedisResult<T>(data);
+    if (data === null || data === undefined) return null;
+    return data as T;
   }
 
   async mget<T>(keys: string[]): Promise<(T | null)[]> {
     if (keys.length === 0) return [];
     const results = await this.client.mget<(T | null)[]>(keys);
-    return results.map((r) => this.parseRedisResult<T>(r));
+    return results.map((r) => {
+      if (r === null || r === undefined) return null;
+      return r as T;
+    });
   }
 
-  private parseRedisResult<T>(data: unknown): T | null {
-    if (!data) return null;
-
-    if (typeof data === "string") {
-      try {
-        return JSON.parse(data) as T;
-      } catch {
-        return null;
-      }
-    }
-
-    if (typeof data === "object") {
-      return data as T;
-    }
-
-    return data as unknown as T;
+  async del(key: string): Promise<void> {
+    await this.client.del(key);
   }
 }

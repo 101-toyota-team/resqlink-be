@@ -1,5 +1,7 @@
 import type { MiddlewareHandler } from "hono";
 import type { AppVariables } from "../types";
+import { errorResponse } from "../utils/constants";
+import logger from "../utils/logger";
 
 const WINDOW_SECONDS = 60;
 
@@ -13,13 +15,22 @@ export function rateLimiter(
       "unknown";
     const key = `ratelimit:${ip}`;
     const cache = c.get("getCache")();
-    const count = (await cache.get<number>(key)) ?? 0;
-
-    if (count >= maxRequests) {
-      return c.json({ error: "Too many requests" }, 429);
+    let count: number;
+    try {
+      count = await cache.incr(key);
+    } catch {
+      logger.error("Rate limiter cache error — allowing request");
+      await next();
+      return;
     }
 
-    await cache.set(key, count + 1, WINDOW_SECONDS);
+    if (count === 1) {
+      await cache.expire(key, WINDOW_SECONDS);
+    }
+
+    if (count > maxRequests) {
+      return c.json(errorResponse("Too many requests"), 429);
+    }
     await next();
   };
 }
