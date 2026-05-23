@@ -24,7 +24,7 @@ discoveryApp.get(
       const { h3_index, pickup } = c.req.valid("query");
 
       const dispatchService = c.get("getDispatchService")();
-      const drivers = await dispatchService.findNearbyDrivers(
+      const drivers = await dispatchService.findNearbyAmbulances(
         h3_index,
         DISCOVERY.H3_RING_RADIUS,
         pickup,

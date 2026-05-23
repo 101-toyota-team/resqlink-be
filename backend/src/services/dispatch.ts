@@ -2,7 +2,7 @@ import { ICacheRepository } from "../repositories/cache";
 import { IBookingRepository } from "../repositories/booking";
 import { IAmbulanceRepository } from "../repositories/ambulance";
 import { IRealtimeBroadcaster } from "../repositories/realtime";
-import { DriverDetails, DriverLocation, Booking } from "../types";
+import { AmbulanceDetails, AmbulanceLocation, Booking } from "../types";
 import { IGeoService } from "./geo";
 import { IDistanceService } from "./distance";
 import { IMapsRepository } from "../repositories/maps";
@@ -10,14 +10,14 @@ import { DISTANCE_SERVICE } from "../utils/constants";
 import logger from "../utils/logger";
 
 export interface IDispatchService {
-  findNearbyDrivers(
+  findNearbyAmbulances(
     h3Index: string,
     radius?: number,
     pickupLocation?: string,
-  ): Promise<DriverDetails[]>;
+  ): Promise<AmbulanceDetails[]>;
   updateDriverStatus(
     driverId: string,
-    locationData: DriverLocation,
+    locationData: AmbulanceLocation,
     h3Index: string,
     previousH3Index?: string,
   ): Promise<void>;
@@ -40,11 +40,11 @@ export class DispatchService implements IDispatchService {
     private maps: IMapsRepository,
   ) {}
 
-  async findNearbyDrivers(
+  async findNearbyAmbulances(
     h3Index: string,
     radius: number = 1,
     pickupLocation?: string,
-  ): Promise<DriverDetails[]> {
+  ): Promise<AmbulanceDetails[]> {
     const neighbors = this.geo.getNeighbors(h3Index, radius);
 
     const drivers = await this.ambulanceRepo.findAvailableAmbulances(neighbors);
@@ -69,7 +69,7 @@ export class DispatchService implements IDispatchService {
 
   async updateDriverStatus(
     driverId: string,
-    locationData: DriverLocation,
+    locationData: AmbulanceLocation,
     h3Index: string,
     previousH3Index?: string,
   ): Promise<void> {

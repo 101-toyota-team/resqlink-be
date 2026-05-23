@@ -18,8 +18,8 @@ export { IRealtimeBroadcaster } from "./realtime";
 import {
   Booking,
   BookingData,
-  DriverDetails,
-  DriverLocation,
+  AmbulanceDetails,
+  AmbulanceLocation,
   Provider,
   Hospital,
   HospitalDetails,
@@ -33,10 +33,10 @@ export interface IPersistenceRepository {
   updateBookingStatus(id: string, status: BookingStatus): Promise<void>;
   getAmbulance(ambulanceId: string): Promise<AmbulanceInfo | null>;
   assignAmbulance(id: string, ambulanceId: string): Promise<Booking>;
-  findAvailableAmbulances(h3Indexes: string[]): Promise<DriverDetails[]>;
+  findAvailableAmbulances(h3Indexes: string[]): Promise<AmbulanceDetails[]>;
   broadcastTripLocation(
     bookingId: string,
-    location: DriverLocation,
+    location: AmbulanceLocation,
   ): Promise<void>;
   getAmbulanceProviderLocation(
     ambulanceId: string,

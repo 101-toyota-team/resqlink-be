@@ -1,12 +1,12 @@
 import { ICacheRepository } from "../repositories/cache";
 import { IMapsRepository } from "../repositories/maps";
-import { DriverLocation } from "../types";
+import { AmbulanceLocation } from "../types";
 import { IGeoService } from "./geo";
 import logger from "../utils/logger";
 import { DISTANCE_SERVICE, GLOBAL_H3_RESOLUTION } from "../utils/constants";
 
 export interface IDistanceService {
-  getEnrichedDrivers<T extends DriverLocation>(
+  getEnrichedDrivers<T extends AmbulanceLocation>(
     drivers: T[],
     pickupLocation: string,
   ): Promise<(T & { eta: string; distance: string })[]>;
@@ -19,7 +19,7 @@ export class DistanceService implements IDistanceService {
     private geo: IGeoService,
   ) {}
 
-  async getEnrichedDrivers<T extends DriverLocation>(
+  async getEnrichedDrivers<T extends AmbulanceLocation>(
     drivers: T[],
     pickupLocation: string,
   ): Promise<(T & { eta: string; distance: string })[]> {

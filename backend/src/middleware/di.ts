@@ -36,8 +36,8 @@ export const diMiddleware: MiddlewareHandler<{
   c.set("getBookingService", () => {
     if (!bookingService) {
       bookingService = new BookingService(
-        c.get("getDb")(),
-        c.get("getDb")(),
+        c.get("getSupabaseRepo")(),
+        c.get("getSupabaseRepo")(),
         c.get("getDispatchService")(),
       );
     }
@@ -51,7 +51,7 @@ export const diMiddleware: MiddlewareHandler<{
 
   c.set("getProviderService", () => {
     if (!providerService) {
-      const repo = c.get("getDb")();
+      const repo = c.get("getSupabaseRepo")();
       providerService = new ProviderService(repo, getGeo());
     }
     return providerService;
@@ -59,7 +59,7 @@ export const diMiddleware: MiddlewareHandler<{
 
   c.set("getHospitalService", () => {
     if (!hospitalService) {
-      const repo = c.get("getDb")();
+      const repo = c.get("getSupabaseRepo")();
       hospitalService = new HospitalService(repo, getGeo());
     }
     return hospitalService;
@@ -68,9 +68,9 @@ export const diMiddleware: MiddlewareHandler<{
   c.set("getDispatchService", () => {
     if (!dispatchService) {
       const cache = c.get("getCache")();
-      const bookingRepo = c.get("getDb")();
-      const ambulanceRepo = c.get("getDb")();
-      const realtime = c.get("getDb")();
+      const bookingRepo = c.get("getSupabaseRepo")();
+      const ambulanceRepo = c.get("getSupabaseRepo")();
+      const realtime = c.get("getSupabaseRepo")();
       const maps = c.get("getMaps")();
       const geo = getGeo();
       const distanceService = new DistanceService(maps, cache, geo);
@@ -88,7 +88,7 @@ export const diMiddleware: MiddlewareHandler<{
     return dispatchService;
   });
 
-  c.set("getDb", () => {
+  c.set("getSupabaseRepo", () => {
     if (!dbRepo) {
       dbRepo = new SupabaseRepository(
         c.env.SUPABASE_URL,

@@ -40,7 +40,6 @@ vi.mock("../src/infrastructure/google-maps", () => ({
     return {
       getDistanceMatrix: vi.fn(),
       getDirections: vi.fn(),
-      searchPlaces: vi.fn(),
     };
   }),
 }));

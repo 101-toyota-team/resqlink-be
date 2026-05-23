@@ -1,8 +1,8 @@
-import { DriverLocation } from "../types";
+import { AmbulanceLocation } from "../types";
 
 export interface IRealtimeBroadcaster {
   broadcastTripLocation(
     bookingId: string,
-    location: DriverLocation,
+    location: AmbulanceLocation,
   ): Promise<void>;
 }

@@ -55,14 +55,14 @@ export interface AmbulanceInfo {
   provider_id: string;
 }
 
-export interface DriverLocation {
+export interface AmbulanceLocation {
   lat: number;
   lng: number;
   heading?: number;
   speed?: number;
 }
 
-export interface DriverDetails extends DriverLocation {
+export interface AmbulanceDetails extends AmbulanceLocation {
   id: string;
   eta?: string;
   distance?: string;
@@ -119,17 +119,6 @@ export interface GoogleDirectionsResponse {
   status: string;
 }
 
-export interface GooglePlacesResponse {
-  results: Array<{
-    formatted_address: string;
-    geometry: Record<string, unknown>;
-    name: string;
-    place_id: string;
-    types: string[];
-  }>;
-  status: string;
-}
-
 export interface ILogger {
   info(...args: unknown[]): void;
   error(...args: unknown[]): void;
@@ -141,7 +130,7 @@ export interface AppVariables {
   getDispatchService: () => IDispatchService;
   getProviderService: () => IProviderService;
   getHospitalService: () => IHospitalService;
-  getDb: () => IPersistenceRepository;
+  getSupabaseRepo: () => IPersistenceRepository;
   getMaps: () => IMapsRepository;
   getCache: () => ICacheRepository;
   getLogger: () => ILogger;
