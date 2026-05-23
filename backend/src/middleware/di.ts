@@ -4,11 +4,12 @@ import { SupabaseRepository } from "../infrastructure/supabase";
 import { UpstashRedisRepository } from "../infrastructure/upstash";
 import { GoogleMapsRepository } from "../infrastructure/google-maps";
 import { Bindings } from "../schemas/env";
-import { AppVariables } from "../types";
+import { AppVariables, ILogger } from "../types";
 import { GeoService } from "../services/geo";
 import { DistanceService } from "../services/distance";
 import { ProviderService, IProviderService } from "../services/providers";
 import { HospitalService, IHospitalService } from "../services/hospitals";
+import { Logger } from "../utils/logger";
 
 export const diMiddleware: MiddlewareHandler<{
   Bindings: Bindings;
@@ -21,6 +22,14 @@ export const diMiddleware: MiddlewareHandler<{
   let mapsRepo: GoogleMapsRepository | undefined;
   let cacheRepo: UpstashRedisRepository | undefined;
   let geoService: GeoService | undefined;
+  let logger: ILogger | undefined;
+
+  const getLogger = () => {
+    if (!logger) logger = new Logger();
+    return logger;
+  };
+
+  c.set("getLogger", getLogger);
 
   const getGeo = () => {
     if (!geoService) geoService = new GeoService();

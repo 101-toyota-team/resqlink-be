@@ -1,3 +1,5 @@
+import type { ILogger } from "../types";
+
 function formatLogArgs(args: unknown[]): unknown[] {
   return args.map((a) => {
     if (typeof a === "object" && a !== null && !(a instanceof Error)) {
@@ -11,16 +13,20 @@ function formatLogArgs(args: unknown[]): unknown[] {
   });
 }
 
-const logger = {
-  info: (...args: unknown[]) => {
+export class Logger implements ILogger {
+  info(...args: unknown[]): void {
     console.log(...formatLogArgs(args));
-  },
-  error: (...args: unknown[]) => {
+  }
+
+  error(...args: unknown[]): void {
     console.error(...formatLogArgs(args));
-  },
-  warn: (...args: unknown[]) => {
+  }
+
+  warn(...args: unknown[]): void {
     console.warn(...formatLogArgs(args));
-  },
-};
+  }
+}
+
+const logger = new Logger();
 
 export default logger;
