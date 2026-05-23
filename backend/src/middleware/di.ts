@@ -1,4 +1,5 @@
 import { MiddlewareHandler } from "hono";
+import { BookingService, IBookingService } from "../services/bookings";
 import { DispatchService, IDispatchService } from "../services/dispatch";
 import { SupabaseRepository } from "../infrastructure/supabase";
 import { UpstashRedisRepository } from "../infrastructure/upstash";
@@ -15,6 +16,7 @@ export const diMiddleware: MiddlewareHandler<{
   Bindings: Bindings;
   Variables: AppVariables;
 }> = async (c, next) => {
+  let bookingService: IBookingService | undefined;
   let dispatchService: IDispatchService | undefined;
   let providerService: IProviderService | undefined;
   let hospitalService: IHospitalService | undefined;
@@ -30,6 +32,17 @@ export const diMiddleware: MiddlewareHandler<{
   };
 
   c.set("getLogger", getLogger);
+
+  c.set("getBookingService", () => {
+    if (!bookingService) {
+      bookingService = new BookingService(
+        c.get("getDb")(),
+        c.get("getDb")(),
+        c.get("getDispatchService")(),
+      );
+    }
+    return bookingService;
+  });
 
   const getGeo = () => {
     if (!geoService) geoService = new GeoService();
