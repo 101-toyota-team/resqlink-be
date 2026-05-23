@@ -8,7 +8,7 @@ import { IPersistenceRepository } from "../src/repositories/db";
 import { IBookingRepository } from "../src/repositories/booking";
 import { IAmbulanceRepository } from "../src/repositories/ambulance";
 import { BookingService } from "../src/services/bookings";
-import { IDispatchService } from "../src/services/dispatch";
+import { ISimulationService } from "../src/services/simulation";
 
 interface MockDb {
   createBooking: ReturnType<typeof vi.fn>;
@@ -31,7 +31,7 @@ interface MockDb {
 const createApp = (
   dbMock: MockDb,
   jwtPayloadMock: JwtPayload,
-  dispatchMock?: { startSimulationForBooking: ReturnType<typeof vi.fn> },
+  simulationMock?: { startSimulationForBooking: ReturnType<typeof vi.fn> },
 ) => {
   const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
 
@@ -40,26 +40,24 @@ const createApp = (
     c.set("getSupabaseRepo", () => dbMock as IPersistenceRepository);
     c.set("jwtPayload", jwtPayloadMock);
 
-    const buildDispatchService = () => {
+    const buildSimulationService = () => {
       const baseMock = {
-        findNearbyAmbulances: vi.fn(),
-        updateDriverStatus: vi.fn(),
         startSimulation: vi.fn(),
         advanceSimulation: vi.fn(),
         startSimulationForBooking: vi.fn(),
       };
       return (
-        dispatchMock ? { ...baseMock, ...dispatchMock } : baseMock
-      ) as IDispatchService;
+        simulationMock ? { ...baseMock, ...simulationMock } : baseMock
+      ) as ISimulationService;
     };
 
-    c.set("getDispatchService", buildDispatchService);
+    c.set("getSimulationService", buildSimulationService);
 
     c.set("getBookingService", () => {
       return new BookingService(
         dbMock as IBookingRepository,
         dbMock as IAmbulanceRepository,
-        buildDispatchService(),
+        buildSimulationService(),
       );
     });
 

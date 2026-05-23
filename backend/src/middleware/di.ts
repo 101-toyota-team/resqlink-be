@@ -1,6 +1,7 @@
 import { MiddlewareHandler } from "hono";
 import { BookingService, IBookingService } from "../services/bookings";
 import { DispatchService, IDispatchService } from "../services/dispatch";
+import { SimulationService, ISimulationService } from "../services/simulation";
 import { SupabaseRepository } from "../infrastructure/supabase";
 import { UpstashRedisRepository } from "../infrastructure/upstash";
 import { GoogleMapsRepository } from "../infrastructure/google-maps";
@@ -17,6 +18,7 @@ export const diMiddleware: MiddlewareHandler<{
   Variables: AppVariables;
 }> = async (c, next) => {
   let bookingService: IBookingService | undefined;
+  let simulationService: ISimulationService | undefined;
   let dispatchService: IDispatchService | undefined;
   let providerService: IProviderService | undefined;
   let hospitalService: IHospitalService | undefined;
@@ -33,12 +35,25 @@ export const diMiddleware: MiddlewareHandler<{
 
   c.set("getLogger", getLogger);
 
+  c.set("getSimulationService", () => {
+    if (!simulationService) {
+      simulationService = new SimulationService(
+        c.get("getCache")(),
+        c.get("getSupabaseRepo")(),
+        c.get("getSupabaseRepo")(),
+        c.get("getSupabaseRepo")(),
+        c.get("getMaps")(),
+      );
+    }
+    return simulationService;
+  });
+
   c.set("getBookingService", () => {
     if (!bookingService) {
       bookingService = new BookingService(
         c.get("getSupabaseRepo")(),
         c.get("getSupabaseRepo")(),
-        c.get("getDispatchService")(),
+        c.get("getSimulationService")(),
       );
     }
     return bookingService;
@@ -68,21 +83,17 @@ export const diMiddleware: MiddlewareHandler<{
   c.set("getDispatchService", () => {
     if (!dispatchService) {
       const cache = c.get("getCache")();
-      const bookingRepo = c.get("getSupabaseRepo")();
       const ambulanceRepo = c.get("getSupabaseRepo")();
-      const realtime = c.get("getSupabaseRepo")();
       const maps = c.get("getMaps")();
       const geo = getGeo();
       const distanceService = new DistanceService(maps, cache, geo);
 
       dispatchService = new DispatchService(
         cache,
-        bookingRepo,
         ambulanceRepo,
-        realtime,
         geo,
         distanceService,
-        maps,
+        c.get("getSimulationService")(),
       );
     }
     return dispatchService;

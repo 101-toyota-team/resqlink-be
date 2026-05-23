@@ -1,5 +1,6 @@
 import { IDispatchService } from "./services/dispatch";
 import { IBookingService } from "./services/bookings";
+import { ISimulationService } from "./services/simulation";
 import { IProviderService } from "./services/providers";
 import { IHospitalService } from "./services/hospitals";
 import { IPersistenceRepository } from "./repositories/db";
@@ -127,6 +128,7 @@ export interface ILogger {
 
 export interface AppVariables {
   getBookingService: () => IBookingService;
+  getSimulationService: () => ISimulationService;
   getDispatchService: () => IDispatchService;
   getProviderService: () => IProviderService;
   getHospitalService: () => IHospitalService;

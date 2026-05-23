@@ -1,6 +1,6 @@
 import { IBookingRepository } from "../repositories/booking";
 import { IAmbulanceRepository } from "../repositories/ambulance";
-import { IDispatchService } from "./dispatch";
+import { ISimulationService } from "./simulation";
 import { Booking, BookingData, JwtPayload } from "../types";
 import type { BookingStatus } from "../utils/constants";
 import { ERROR_MESSAGES } from "../utils/constants";
@@ -40,7 +40,7 @@ export class BookingService implements IBookingService {
   constructor(
     private bookingRepo: IBookingRepository,
     private ambulanceRepo: IAmbulanceRepository,
-    private dispatchService: IDispatchService,
+    private simulation: ISimulationService,
   ) {}
 
   async createBooking(data: BookingData, userId: string): Promise<Booking> {
@@ -126,7 +126,7 @@ export class BookingService implements IBookingService {
     }
 
     if (newStatus === "en_route") {
-      const started = await this.dispatchService.startSimulationForBooking(
+      const started = await this.simulation.startSimulationForBooking(
         booking,
         payload.sub,
       );
