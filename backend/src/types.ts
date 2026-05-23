@@ -129,6 +129,12 @@ export interface GooglePlacesResponse {
   status: string;
 }
 
+export interface ILogger {
+  info(...args: unknown[]): void;
+  error(...args: unknown[]): void;
+  warn(...args: unknown[]): void;
+}
+
 export interface AppVariables {
   getDispatchService: () => IDispatchService;
   getProviderService: () => IProviderService;
@@ -136,5 +142,6 @@ export interface AppVariables {
   getDb: () => IPersistenceRepository;
   getMaps: () => IMapsRepository;
   getCache: () => ICacheRepository;
+  getLogger: () => ILogger;
   jwtPayload: JwtPayload;
 }

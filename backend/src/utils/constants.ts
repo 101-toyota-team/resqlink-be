@@ -60,6 +60,18 @@ export const BOOKING_STATUSES = [
 
 export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 
+/**
+ * Thrown when a Supabase response fails Zod schema validation,
+ * indicating the database schema has drifted from the expected shape.
+ */
+export class DatabaseSchemaDriftError extends Error {
+  constructor(entity: string, cause: unknown) {
+    super(`Database schema drift detected for ${entity}`);
+    this.name = "DatabaseSchemaDriftError";
+    this.cause = cause;
+  }
+}
+
 // Error messages
 export const ERROR_MESSAGES = {
   INVALID_COORDINATES: "Invalid coordinates provided",
