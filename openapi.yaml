@@ -66,7 +66,7 @@ paths:
                   found_drivers:
                     type: array
                     items:
-                      $ref: '#/components/schemas/DriverDetails'
+                      $ref: '#/components/schemas/AmbulanceDetails'
         '400':
           $ref: '#/components/responses/ValidationError'
         '500':
@@ -356,15 +356,11 @@ paths:
                 - status
       responses:
         '200':
-          description: Status updated
+          description: Booking status updated
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: ok
+                $ref: '#/components/schemas/Booking'
         '400':
           $ref: '#/components/responses/ValidationError'
         '403':
@@ -447,9 +443,18 @@ paths:
               schema:
                 type: object
                 properties:
-                  status:
+                  driver_id:
                     type: string
-                    example: ok
+                    format: uuid
+                  lat:
+                    $ref: '#/components/schemas/Latitude'
+                  lng:
+                    $ref: '#/components/schemas/Longitude'
+                  h3_index:
+                    type: string
+                  previous_h3_index:
+                    type: string
+                    nullable: true
         '400':
           $ref: '#/components/responses/ValidationError'
         '403':
@@ -710,7 +715,7 @@ components:
         - user_id
         - status
         - created_at
-    DriverLocation:
+    AmbulanceLocation:
       type: object
       properties:
         lat:
@@ -726,9 +731,9 @@ components:
       required:
         - lat
         - lng
-    DriverDetails:
+    AmbulanceDetails:
       allOf:
-        - $ref: '#/components/schemas/DriverLocation'
+        - $ref: '#/components/schemas/AmbulanceLocation'
         - type: object
           properties:
             id:
