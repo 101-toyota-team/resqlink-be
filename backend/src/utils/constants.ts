@@ -30,6 +30,7 @@ export const DISPATCH = {
 export const DISCOVERY = {
   DEFAULT_PAGE_SIZE: 20,
   MAX_PAGE_SIZE: 100,
+  H3_RING_RADIUS: 1,
 };
 
 // Provider Search
@@ -43,6 +44,18 @@ export const PROVIDER_SEARCH = {
 export function errorResponse(message: string) {
   return { error: message, details: {} as Record<string, unknown> };
 }
+
+export const BOOKING_STATUSES = [
+  "draft",
+  "confirmed",
+  "en_route",
+  "arrived",
+  "to_hospital",
+  "completed",
+  "cancelled",
+] as const;
+
+export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 
 // Error messages
 export const ERROR_MESSAGES = {
@@ -72,7 +85,7 @@ export const validatorHook = (
     | { success: true; data: unknown }
     | { success: false; error: ZodError },
   c: Context,
-) => {
+): Response | void => {
   if (!result.success) {
     return c.json(
       {

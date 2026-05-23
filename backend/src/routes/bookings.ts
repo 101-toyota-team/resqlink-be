@@ -15,7 +15,23 @@ import {
   errorResponse,
   validatorHook,
 } from "../utils/constants";
-import { canAccessBooking, unauthorizedResponse } from "../utils/auth";
+import {
+  canAccessBooking,
+  isDriverRole,
+  unauthorizedResponse,
+} from "../utils/auth";
+
+import type { BookingStatus } from "../utils/constants";
+
+const VALID_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
+  draft: ["cancelled"],
+  confirmed: ["en_route", "cancelled"],
+  en_route: ["arrived", "cancelled"],
+  arrived: ["to_hospital", "completed", "cancelled"],
+  to_hospital: ["completed", "cancelled"],
+  completed: [],
+  cancelled: [],
+};
 
 const bookingsApp = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
 
@@ -105,13 +121,32 @@ bookingsApp.put(
         return c.json(unauthorizedResponse(), 403);
       }
 
-      await db.updateBookingStatus(id, status);
+      if (status === "en_route" && !isDriverRole(payload)) {
+        return c.json(unauthorizedResponse(), 403);
+      }
 
-      // If status is changed to en_route, start simulation
+      const allowedTransitions = VALID_TRANSITIONS[booking.status];
+      if (!allowedTransitions || !allowedTransitions.includes(status)) {
+        return c.json(
+          errorResponse(
+            `Cannot transition from ${booking.status} to ${status}`,
+          ),
+          400,
+        );
+      }
+
       if (status === "en_route") {
         const dispatchService = c.get("getDispatchService")();
-        await dispatchService.startSimulationForBooking(booking, payload.sub);
+        const started = await dispatchService.startSimulationForBooking(
+          booking,
+          payload.sub,
+        );
+        if (!started) {
+          return c.json(errorResponse("Failed to start route simulation"), 500);
+        }
       }
+
+      await db.updateBookingStatus(id, status);
 
       return c.json({ status: "ok" }, 200);
     } catch (error) {
@@ -150,6 +185,12 @@ bookingsApp.put(
 
       return c.json(updatedBooking, 200);
     } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "Booking is no longer in draft status"
+      ) {
+        return c.json(errorResponse("Booking is not in draft status"), 400);
+      }
       logger.error(error, "Bookings PUT /:id/assign error");
       return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);
     }

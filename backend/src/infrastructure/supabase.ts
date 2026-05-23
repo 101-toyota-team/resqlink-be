@@ -10,6 +10,7 @@ import {
   Hospital,
   HospitalDetails,
 } from "../types";
+import type { BookingStatus } from "../utils/constants";
 import { fetchWithTimeout } from "./util";
 import logger from "../utils/logger";
 
@@ -108,10 +109,16 @@ export class SupabaseRepository implements IPersistenceRepository {
       .from("bookings")
       .update({ ambulance_id: ambulanceId, status: "confirmed" })
       .eq("id", id)
+      .eq("status", "draft")
       .select()
       .single<Booking>();
 
     if (error) {
+      if (error.code === "PGRST116") {
+        throw new Error("Booking is no longer in draft status", {
+          cause: error,
+        });
+      }
       logger.error("Supabase assignAmbulance error: %O", error);
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
@@ -124,7 +131,7 @@ export class SupabaseRepository implements IPersistenceRepository {
     }
   }
 
-  async updateBookingStatus(id: string, status: string): Promise<void> {
+  async updateBookingStatus(id: string, status: BookingStatus): Promise<void> {
     const { error } = await this.client
       .from("bookings")
       .update({ status })
@@ -164,8 +171,8 @@ export class SupabaseRepository implements IPersistenceRepository {
           : item.providers;
         return {
           id: item.id,
-          lat: provider?.latitude || 0,
-          lng: provider?.longitude || 0,
+          lat: provider?.latitude ?? 0,
+          lng: provider?.longitude ?? 0,
         };
       });
     } catch (err) {
@@ -182,12 +189,15 @@ export class SupabaseRepository implements IPersistenceRepository {
     location: DriverLocation,
   ): Promise<void> {
     const channel = this.client.channel(`trip:${bookingId}`);
-    await channel.send({
-      type: "broadcast",
-      event: "location_update",
-      payload: location,
-    });
-    await this.client.removeChannel(channel);
+    try {
+      await channel.send({
+        type: "broadcast",
+        event: "location_update",
+        payload: location,
+      });
+    } finally {
+      await this.client.removeChannel(channel);
+    }
   }
 
   async getAmbulanceProviderLocation(
@@ -354,6 +364,7 @@ export class SupabaseRepository implements IPersistenceRepository {
   }
 
   async findProvidersByH3Indexes(h3Indexes: string[]): Promise<Provider[]> {
+    if (h3Indexes.length === 0) return [];
     const { data, error } = await this.client
       .from("providers")
       .select("*")
@@ -376,7 +387,10 @@ export class SupabaseRepository implements IPersistenceRepository {
   }
 
   async searchHospitals(query: string): Promise<Hospital[]> {
-    const sanitized = query.replace(/%/g, "\\%").replace(/_/g, "\\_");
+    const sanitized = query
+      .replace(/%/g, "\\%")
+      .replace(/_/g, "\\_")
+      .replace(/[(),;|=]/g, "");
     const { data, error } = await this.client
       .from("hospitals")
       .select(
@@ -429,6 +443,7 @@ export class SupabaseRepository implements IPersistenceRepository {
   async findHospitalsByH3Indexes(
     h3Indexes: string[],
   ): Promise<HospitalDetails[]> {
+    if (h3Indexes.length === 0) return [];
     const { data, error } = await this.client
       .from("hospitals")
       .select(

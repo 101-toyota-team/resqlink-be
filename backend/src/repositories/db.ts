@@ -7,11 +7,12 @@ import {
   Hospital,
   HospitalDetails,
 } from "../types";
+import type { BookingStatus } from "../utils/constants";
 
 export interface IPersistenceRepository {
   createBooking(data: BookingData): Promise<Booking>;
   getBooking(id: string): Promise<Booking | null>;
-  updateBookingStatus(id: string, status: string): Promise<void>;
+  updateBookingStatus(id: string, status: BookingStatus): Promise<void>;
   assignAmbulance(id: string, ambulanceId: string): Promise<Booking>;
   findAvailableAmbulances(h3Indexes: string[]): Promise<DriverDetails[]>;
   broadcastTripLocation(
