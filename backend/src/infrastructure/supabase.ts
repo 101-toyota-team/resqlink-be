@@ -482,7 +482,8 @@ export class SupabaseRepository
         .filter((h): h is Hospital => h !== null)
         .sort(
           (a, b) =>
-            (orderMap.get(a.id) as number) - (orderMap.get(b.id) as number),
+            ((orderMap.get(a.id) ?? Infinity) as number) -
+            ((orderMap.get(b.id) ?? Infinity) as number),
         );
     } catch (err) {
       logger.error(err, "Database schema drift detected in searchHospitals");
