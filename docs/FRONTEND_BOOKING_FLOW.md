@@ -9,6 +9,8 @@ The Booking API uses a **provider-directed dispatch model**:
 
 This ensures the user has full control over which provider they contact, and providers manage their own fleet assignments in a directed manner rather than competing for requests.
 
+> **Note on Discovery**: The endpoint `GET /ambulances/nearby` is deprecated for direct frontend use. Frontends should exclusively use `GET /providers/nearby`.
+
 ### 1. Local State Accumulation (UI Flow)
 The frontend should implement a state machine or multi-step wizard. The backend endpoints are called at the appropriate steps rather than in a single final submission.
 
@@ -91,7 +93,7 @@ sequenceDiagram
 
 Values for `booking_type`: `"medis"`, `"sosial"`, `"jenazah"`, `"darurat"`.
 
-Validation bounds: latitude ∈ `[-90, 90]`, longitude ∈ `[-180, 180]`. Invalid values return 400.
+Validation bounds: latitude ∈ `[-90, 90]`, longitude ∈ `[-180, 180]`. H3 indices must be at **Resolution 7** (15-character hex string). Invalid values return 400.
 
 ```json
 {

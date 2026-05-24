@@ -69,6 +69,8 @@ paths:
                       $ref: '#/components/schemas/AmbulanceDetails'
         '400':
           $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsError'
         '500':
           $ref: '#/components/responses/InternalError'
   /hospitals/search:
@@ -96,6 +98,8 @@ paths:
                   $ref: '#/components/schemas/Hospital'
         '400':
           $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsError'
         '500':
           $ref: '#/components/responses/InternalError'
   /hospitals/nearby:
@@ -125,6 +129,8 @@ paths:
                   $ref: '#/components/schemas/HospitalDetails'
         '400':
           $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsError'
         '500':
           $ref: '#/components/responses/InternalError'
   /bookings:
@@ -204,6 +210,8 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsError'
         '500':
           $ref: '#/components/responses/InternalError'
     get:
@@ -242,6 +250,8 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsError'
         '500':
           $ref: '#/components/responses/InternalError'
   /bookings/{id}:
@@ -272,6 +282,8 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsError'
         '500':
           $ref: '#/components/responses/InternalError'
   /bookings/{id}/assign:
@@ -322,6 +334,8 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsError'
         '500':
           $ref: '#/components/responses/InternalError'
   /bookings/{id}/status:
@@ -367,6 +381,8 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsError'
         '500':
           $ref: '#/components/responses/InternalError'
   /driver/bookings:
@@ -389,6 +405,8 @@ paths:
                   $ref: '#/components/schemas/Booking'
         '403':
           $ref: '#/components/responses/ForbiddenError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsError'
         '500':
           $ref: '#/components/responses/InternalError'
   /driver/ping:
@@ -459,6 +477,8 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsError'
         '500':
           $ref: '#/components/responses/InternalError'
   /providers/search:
@@ -490,6 +510,8 @@ paths:
                   $ref: '#/components/schemas/Provider'
         '400':
           $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsError'
         '500':
           $ref: '#/components/responses/InternalError'
   /providers/nearby:
@@ -543,6 +565,8 @@ paths:
                   $ref: '#/components/schemas/ProviderDetails'
         '400':
           $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsError'
         '500':
           $ref: '#/components/responses/InternalError'
 components:
@@ -613,6 +637,9 @@ components:
             distance:
               type: string
               example: 1.2 km
+            distance_value:
+              type: number
+              description: Distance in meters
     Hospital:
       allOf:
         - $ref: '#/components/schemas/Provider'
@@ -653,6 +680,9 @@ components:
             distance:
               type: string
               example: 0.8 km
+            distance_value:
+              type: number
+              description: Distance in meters
     Booking:
       type: object
       properties:
@@ -743,12 +773,33 @@ components:
               type: string
               example: 5 mins
               nullable: true
+            eta_value:
+              type: number
+              description: ETA in seconds
+              nullable: true
             distance:
               type: string
               example: 2.5 km
               nullable: true
+            distance_value:
+              type: number
+              description: Distance in meters
+              nullable: true
           required:
             - id
+  headers:
+    X-RateLimit-Limit:
+      description: The maximum number of requests allowed in the window.
+      schema:
+        type: integer
+    X-RateLimit-Remaining:
+      description: The number of requests remaining in the current window.
+      schema:
+        type: integer
+    X-RateLimit-Reset:
+      description: The Unix timestamp when the rate limit window resets.
+      schema:
+        type: integer
   responses:
     ValidationError:
       description: Invalid payload or parameters
@@ -809,6 +860,24 @@ components:
               summary: Success
               value:
                 error: Internal server error
+                details: {}
+    TooManyRequestsError:
+      description: Too many requests
+      headers:
+        X-RateLimit-Limit:
+          $ref: '#/components/headers/X-RateLimit-Limit'
+        X-RateLimit-Remaining:
+          $ref: '#/components/headers/X-RateLimit-Remaining'
+        X-RateLimit-Reset:
+          $ref: '#/components/headers/X-RateLimit-Reset'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            Default:
+              value:
+                error: Too many requests
                 details: {}
   securitySchemes:
     BearerAuth:
