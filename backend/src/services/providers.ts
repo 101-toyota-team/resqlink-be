@@ -36,15 +36,13 @@ export class ProviderService implements IProviderService {
 
     const providers: ProviderDetails[] = [];
     const RING_STEP = 3;
-    let foundEnough = false;
+    let lookaheadDone = false;
 
     for (
       let ringStart = 0;
       ringStart <= PROVIDER_SEARCH.MAX_RING_DISTANCE;
       ringStart += RING_STEP
     ) {
-      if (foundEnough) break;
-
       const ringEnd = Math.min(
         ringStart + RING_STEP - 1,
         PROVIDER_SEARCH.MAX_RING_DISTANCE,
@@ -65,8 +63,10 @@ export class ProviderService implements IProviderService {
         providers.push(...result);
       }
 
+      if (lookaheadDone) break;
+
       if (providers.length >= PROVIDER_SEARCH.MAX_RESULTS) {
-        foundEnough = true;
+        lookaheadDone = true;
       }
     }
 
