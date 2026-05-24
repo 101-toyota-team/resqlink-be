@@ -49,6 +49,6 @@ export interface IPersistenceRepository {
   getConfirmedBookings(limit?: number, offset?: number): Promise<Booking[]>;
   searchProviders(raw: string, expanded: string): Promise<Provider[]>;
   findProvidersByH3Indexes(h3Indexes: string[]): Promise<Provider[]>;
-  searchHospitals(query: string): Promise<Hospital[]>;
+  searchHospitals(raw: string, expanded: string): Promise<Hospital[]>;
   findHospitalsByH3Indexes(h3Indexes: string[]): Promise<HospitalDetails[]>;
 }

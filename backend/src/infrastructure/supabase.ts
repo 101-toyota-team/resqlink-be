@@ -423,11 +423,23 @@ export class SupabaseRepository
     }
   }
 
-  async searchHospitals(query: string): Promise<Hospital[]> {
-    const sanitized = query
-      .replace(/%/g, "\\%")
-      .replace(/_/g, "\\_")
-      .replace(/[(),;|=]/g, "");
+  async searchHospitals(raw: string, expanded: string): Promise<Hospital[]> {
+    const { data: ids, error: rpcError } = await this.client.rpc(
+      "search_hospitals_optimized",
+      { search_term: expanded, raw_term: raw },
+    );
+
+    if (rpcError) {
+      logger.error(rpcError, "Supabase searchHospitals RPC error");
+      throw new Error(`Supabase error: ${rpcError.message}`, {
+        cause: rpcError,
+      });
+    }
+
+    if (!ids || ids.length === 0) return [];
+
+    const idList = ids.map((r: { id: string }) => r.id);
+
     const { data, error } = await this.client
       .from("hospitals")
       .select(
@@ -455,11 +467,7 @@ export class SupabaseRepository
         )
       `,
       )
-      .eq("providers.provider_type", "rumah_sakit")
-      .or(
-        `providers.name.ilike.%${sanitized}%,` +
-          `hospitals.igd_email.ilike.%${sanitized}%`,
-      );
+      .in("id", idList);
 
     if (error) {
       logger.error(error, "Supabase searchHospitals error");
@@ -468,9 +476,14 @@ export class SupabaseRepository
 
     try {
       const rawResults = dbHospitalSchema.array().parse(data || []);
+      const orderMap = new Map(idList.map((id: string, i: number) => [id, i]));
       return rawResults
         .map((item): Hospital | null => this.mapHospitalItem(item))
-        .filter((h): h is Hospital => h !== null);
+        .filter((h): h is Hospital => h !== null)
+        .sort(
+          (a, b) =>
+            (orderMap.get(a.id) as number) - (orderMap.get(b.id) as number),
+        );
     } catch (err) {
       logger.error(err, "Database schema drift detected in searchHospitals");
       throw new DatabaseSchemaDriftError("Hospital", err);
