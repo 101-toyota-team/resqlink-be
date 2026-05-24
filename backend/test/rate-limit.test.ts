@@ -3,20 +3,24 @@ import { Hono } from "hono";
 import { rateLimiter } from "../src/middleware/rate-limit";
 import type { AppVariables } from "../src/types";
 
+interface RateLimiterBinding {
+  limit: (opts: { key: string }) => Promise<{ success: boolean }>;
+}
+
 function createMockLimiter(limit: number) {
   let count = 0;
-  const limitFn = vi.fn(async ({ key }: { key: string }) => {
+  const limitFn = vi.fn(async ({ key: _key }: { key: string }) => {
     count++;
     return { success: count <= limit };
   });
 
-  return { limit: limitFn };
+  return { limit: limitFn } as RateLimiterBinding;
 }
 
 function createApp(limit: number = 2) {
   const mockLimiter = createMockLimiter(limit);
   const app = new Hono<{
-    Bindings: { RL_DEFAULT: any };
+    Bindings: { RL_DEFAULT: RateLimiterBinding };
     Variables: AppVariables;
   }>();
 
@@ -24,7 +28,7 @@ function createApp(limit: number = 2) {
   app.get("/test", (c) => c.json({ ok: true }));
 
   // Helper to make requests with the mock environment
-  const request = (path: string, headers?: Record<string, string>) => 
+  const request = (path: string, headers?: Record<string, string>) =>
     app.request(path, { headers }, { RL_DEFAULT: mockLimiter });
 
   return { app, mockLimiter, request };
@@ -81,9 +85,9 @@ describe("Rate Limiter Middleware (Native)", () => {
   it("should fail-open if the limiter throws an error", async () => {
     const mockLimiter = {
       limit: vi.fn().mockRejectedValue(new Error("Redis Down")),
-    };
+    } as RateLimiterBinding;
     const app = new Hono<{
-      Bindings: { RL_DEFAULT: any };
+      Bindings: { RL_DEFAULT: RateLimiterBinding };
       Variables: AppVariables;
     }>();
 
@@ -97,7 +101,7 @@ describe("Rate Limiter Middleware (Native)", () => {
 
   it("should skip if the binding is missing (e.g. local dev without config)", async () => {
     const app = new Hono<{
-      Bindings: { RL_DEFAULT: any };
+      Bindings: { RL_DEFAULT: RateLimiterBinding };
       Variables: AppVariables;
     }>();
 

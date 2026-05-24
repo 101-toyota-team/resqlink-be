@@ -1,18 +1,19 @@
 import type { MiddlewareHandler } from "hono";
 import type { AppVariables } from "../types";
+import type { Bindings } from "../schemas/env";
 import { errorResponse } from "../utils/constants";
 import logger from "../utils/logger";
 
 export function rateLimiter(
   bindingName: "RL_DEFAULT" | "RL_DRIVER" = "RL_DEFAULT",
-): MiddlewareHandler<{ Variables: AppVariables }> {
+): MiddlewareHandler<{ Bindings: Bindings; Variables: AppVariables }> {
   return async (c, next) => {
     const ip =
       c.req.raw.headers.get("cf-connecting-ip") ||
       c.req.raw.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       "unknown";
 
-    const limiter = c.env ? (c.env as any)[bindingName] : undefined;
+    const limiter = c.env ? c.env[bindingName] : undefined;
 
     // If the binding is missing (e.g., local tests), skip rate limiting
     if (!limiter || typeof limiter.limit !== "function") {
