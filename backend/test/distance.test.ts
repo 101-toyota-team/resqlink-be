@@ -57,6 +57,7 @@ describe("DistanceService", () => {
       addDriverToBucket: vi.fn(),
       removeDriverFromBucket: vi.fn(),
       expire: vi.fn(),
+      ttl: vi.fn(),
       incr: vi.fn(),
       del: vi.fn(),
     } as unknown as Mocked<ICacheRepository>;

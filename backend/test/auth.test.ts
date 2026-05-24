@@ -29,6 +29,7 @@ vi.mock("../src/infrastructure/upstash", () => ({
       set: vi.fn(),
       incr: vi.fn(),
       expire: vi.fn(),
+      ttl: vi.fn().mockResolvedValue(60),
       del: vi.fn(),
       mget: vi.fn(),
     };
