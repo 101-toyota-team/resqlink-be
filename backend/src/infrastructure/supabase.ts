@@ -438,7 +438,10 @@ export class SupabaseRepository
 
     if (!ids || ids.length === 0) return [];
 
-    const idList = ids.map((r: { id: string }) => r.id);
+    const hospitalIds = ids.map((r: { hospital_id: string }) => r.hospital_id);
+    const providerOrderMap = new Map(
+      ids.map((r: { provider_id: string }, i: number) => [r.provider_id, i]),
+    );
 
     const { data, error } = await this.client
       .from("hospitals")
@@ -467,7 +470,7 @@ export class SupabaseRepository
         )
       `,
       )
-      .in("id", idList);
+      .in("id", hospitalIds);
 
     if (error) {
       logger.error(error, "Supabase searchHospitals error");
@@ -476,14 +479,13 @@ export class SupabaseRepository
 
     try {
       const rawResults = dbHospitalSchema.array().parse(data || []);
-      const orderMap = new Map(idList.map((id: string, i: number) => [id, i]));
       return rawResults
         .map((item): Hospital | null => this.mapHospitalItem(item))
         .filter((h): h is Hospital => h !== null)
         .sort(
           (a, b) =>
-            ((orderMap.get(a.id) ?? Infinity) as number) -
-            ((orderMap.get(b.id) ?? Infinity) as number),
+            ((providerOrderMap.get(a.id) ?? Infinity) as number) -
+            ((providerOrderMap.get(b.id) ?? Infinity) as number),
         );
     } catch (err) {
       logger.error(err, "Database schema drift detected in searchHospitals");
