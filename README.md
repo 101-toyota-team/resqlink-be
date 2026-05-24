@@ -38,7 +38,7 @@ GOOGLE_MAPS_API_KEY=your-api-key
 
 ## 🛠 Project Standards
 *   **H3 Resolution**: Level **7** is the project standard (15-character hex).
-*   **Matchmaking**: Static discovery (Providers/Hospitals) queries Supabase. The Backend is responsible for `gridDisk(1)` neighbor expansion. Real-time simulation state and driver presence pings are managed in Upstash Redis.
+*   **Matchmaking**: Static discovery (Providers/Hospitals) queries Supabase. The Backend is responsible for `gridDisk(1)` neighbor expansion (hospitals) and multi-ring progressive search via `gridRingUnsafe` up to radius 30 (providers). Real-time simulation state and driver presence pings are managed in Upstash Redis.
 *   **Real-time**: High-frequency GPS updates use Supabase Broadcast Channels (bypassing DB disk).
 *   **Google Maps API Keys**: Ensure you have created a restricted key for the backend (Cloudflare Worker). No special scopes are needed for Matrix, Directions, or Places APIs beyond enabling them in the Google Cloud Console.
 
