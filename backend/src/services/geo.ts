@@ -2,6 +2,7 @@ import * as h3 from "h3-js";
 
 export interface IGeoService {
   getNeighbors(h3Index: string, radius: number): string[];
+  getRing(h3Index: string, radius: number): string[];
   latLngToCell(lat: number, lng: number, resolution: number): string;
   parseLatLng(location: string): { lat: number; lng: number };
   cellToLatLng(h3Index: string): { lat: number; lng: number };
@@ -16,6 +17,17 @@ export interface IGeoService {
 export class GeoService implements IGeoService {
   getNeighbors(h3Index: string, radius: number): string[] {
     return h3.gridDisk(h3Index, radius);
+  }
+
+  getRing(h3Index: string, radius: number): string[] {
+    if (radius === 0) return [h3Index];
+    try {
+      return h3.gridRingUnsafe(h3Index, radius);
+    } catch {
+      const disk = h3.gridDisk(h3Index, radius);
+      const inner = h3.gridDisk(h3Index, radius - 1);
+      return disk.filter((c) => !inner.includes(c));
+    }
   }
 
   latLngToCell(lat: number, lng: number, resolution: number): string {

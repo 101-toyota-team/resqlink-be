@@ -37,6 +37,7 @@ describe("ProviderService", () => {
     } as IProviderRepository;
     mockGeo = {
       getNeighbors: vi.fn(),
+      getRing: vi.fn(),
       latLngToCell: vi.fn(),
       parseLatLng: vi.fn(),
       cellToLatLng: vi.fn(),
