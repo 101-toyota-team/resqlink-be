@@ -34,25 +34,55 @@ export class ProviderService implements IProviderService {
         ? { lat, lng }
         : this.geo.cellToLatLng(h3Index);
 
-    const allCells = this.geo.getNeighbors(
-      h3Index,
-      PROVIDER_SEARCH.MAX_RING_DISTANCE,
-    );
-
     const providers: ProviderDetails[] = [];
-    for (let i = 0; i < allCells.length; i += PROVIDER_SEARCH.H3_BATCH_SIZE) {
-      const batch = allCells.slice(i, i + PROVIDER_SEARCH.H3_BATCH_SIZE);
-      const result = await this.providerRepo.findProvidersByH3Indexes(batch);
-      providers.push(...result);
+    const RING_STEP = 3;
+
+    for (
+      let ringStart = 0;
+      ringStart <= PROVIDER_SEARCH.MAX_RING_DISTANCE;
+      ringStart += RING_STEP
+    ) {
+      const ringEnd = Math.min(
+        ringStart + RING_STEP,
+        PROVIDER_SEARCH.MAX_RING_DISTANCE,
+      );
+      const cells: string[] = [];
+
+      for (let r = ringStart; r <= ringEnd; r++) {
+        if (r === 0) {
+          cells.push(h3Index);
+        } else {
+          cells.push(...this.geo.getRing(h3Index, r));
+        }
+      }
+
+      for (let i = 0; i < cells.length; i += PROVIDER_SEARCH.H3_BATCH_SIZE) {
+        const batch = cells.slice(i, i + PROVIDER_SEARCH.H3_BATCH_SIZE);
+        const result = await this.providerRepo.findProvidersByH3Indexes(batch);
+        providers.push(...result);
+      }
+
+      if (providers.length >= PROVIDER_SEARCH.MAX_RESULTS) {
+        break;
+      }
     }
 
-    const withDistance = providers.map((p) => ({
-      ...p,
-      distance: `${this.geo.haversineDistance(center.lat, center.lng, p.latitude, p.longitude).toFixed(2)} km`,
-    }));
+    const withDistance = providers.map((p) => {
+      const dist = this.geo.haversineDistance(
+        center.lat,
+        center.lng,
+        p.latitude,
+        p.longitude,
+      );
+      return {
+        ...p,
+        distance: `${dist.toFixed(2)} km`,
+        distance_value: dist,
+      };
+    });
 
     withDistance.sort(
-      (a, b) => parseFloat(a.distance!) - parseFloat(b.distance!),
+      (a, b) => (a.distance_value ?? 0) - (b.distance_value ?? 0),
     );
 
     return withDistance.slice(0, PROVIDER_SEARCH.MAX_RESULTS);
