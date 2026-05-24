@@ -7,7 +7,7 @@ This project consists of:
 *   **Backend**: Cloudflare Workers (TypeScript) powered by Hono.
 *   **Database**: Supabase (PostgreSQL) for persistence and Auth.
 *   **Real-time State**: Upstash Serverless Redis for O(1) H3 spatial matchmaking.
-*   **Spatial Indexing**: Uber H3 (Resolution 8) calculated client-side (by the mobile app).
+*   **Spatial Indexing**: Uber H3 (Resolution 7) calculated client-side (by the mobile app).
 *   **Maps**: Google Maps Platform API.
 
 ## 🚀 Getting Started
@@ -25,6 +25,10 @@ Create the following secret file (it is gitignored):
 **Backend (`backend/.dev.vars`):**
 ```env
 SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SECRET_KEY=your-service-role-key
+UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your-token
+GOOGLE_MAPS_API_KEY=your-api-key
 ```
 
 ### 3. Running Locally
@@ -33,8 +37,8 @@ SUPABASE_URL=https://your-project.supabase.co
     *   `cd backend && npx wrangler dev`
 
 ## 🛠 Project Standards
-*   **H3 Resolution**: Level **8** is the project standard.
-*   **Matchmaking**: The Backend is responsible for `kRing(1)` neighbor expansion.
+*   **H3 Resolution**: Level **7** is the project standard (15-character hex).
+*   **Matchmaking**: Static discovery (Providers/Hospitals) queries Supabase. The Backend is responsible for `gridDisk(1)` neighbor expansion. Real-time simulation state and driver presence pings are managed in Upstash Redis.
 *   **Real-time**: High-frequency GPS updates use Supabase Broadcast Channels (bypassing DB disk).
 *   **Google Maps API Keys**: Ensure you have created a restricted key for the backend (Cloudflare Worker). No special scopes are needed for Matrix, Directions, or Places APIs beyond enabling them in the Google Cloud Console.
 

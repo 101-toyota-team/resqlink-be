@@ -65,7 +65,7 @@ export const bookingSchema = z.object({
 export const driverPingSchema = z.object({
   driver_id: z.string().uuid(),
   h3_index: h3IndexSchema,
-  previous_h3_index: z.string().optional(),
+  previous_h3_index: h3IndexSchema.optional(),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
   heading: z.number().optional(),
