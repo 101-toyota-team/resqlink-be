@@ -4,42 +4,36 @@ import { errorResponse } from "../utils/constants";
 import logger from "../utils/logger";
 
 export function rateLimiter(
-  maxRequests: number = 30,
-  windowSeconds: number = 60,
+  bindingName: "RL_DEFAULT" | "RL_DRIVER" = "RL_DEFAULT",
 ): MiddlewareHandler<{ Variables: AppVariables }> {
   return async (c, next) => {
     const ip =
       c.req.raw.headers.get("cf-connecting-ip") ||
       c.req.raw.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       "unknown";
-    const key = `ratelimit:${ip}`;
-    const cache = c.get("getCache")();
-    let count: number;
-    try {
-      count = await cache.incr(key);
-    } catch {
-      logger.error("Rate limiter cache error — allowing request");
+
+    const limiter = c.env ? (c.env as any)[bindingName] : undefined;
+
+    // If the binding is missing (e.g., local tests), skip rate limiting
+    if (!limiter || typeof limiter.limit !== "function") {
       await next();
       return;
     }
 
-    if (count === 1) {
-      await cache.expire(key, windowSeconds);
+    try {
+      const { success } = await limiter.limit({ key: ip });
+      if (!success) {
+        return c.json(errorResponse("Too many requests"), 429);
+      }
+    } catch (err) {
+      logger.error(
+        { err },
+        `Native rate limiter error for ${bindingName} — allowing request`,
+      );
+      await next();
+      return;
     }
 
-    const ttl = await cache.ttl(key);
-    const reset = Math.floor(Date.now() / 1000) + (ttl > 0 ? ttl : 0);
-
-    c.header("X-RateLimit-Limit", maxRequests.toString());
-    c.header(
-      "X-RateLimit-Remaining",
-      Math.max(0, maxRequests - count).toString(),
-    );
-    c.header("X-RateLimit-Reset", reset.toString());
-
-    if (count > maxRequests) {
-      return c.json(errorResponse("Too many requests"), 429);
-    }
     await next();
   };
 }
