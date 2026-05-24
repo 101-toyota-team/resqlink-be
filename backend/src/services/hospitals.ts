@@ -34,7 +34,7 @@ export class HospitalService implements IHospitalService {
       return {
         ...h,
         distance: `${dist.toFixed(2)} km`,
-        distance_value: dist,
+        distance_value: dist * 1000,
       };
     });
   }
