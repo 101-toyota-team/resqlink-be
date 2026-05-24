@@ -30,12 +30,12 @@ app.use("*", async (c, next) => {
 app.use("*", diMiddleware);
 
 // 2. Rate Limiting Middleware (after DI, before auth)
-app.use("/ambulances/*", rateLimiter(30, 60));
-app.use("/bookings/*", rateLimiter(30, 60));
-app.use("/bookings", rateLimiter(30, 60));
-app.use("/driver/*", rateLimiter(60, 60));
-app.use("/providers/*", rateLimiter(30, 60));
-app.use("/hospitals/*", rateLimiter(30, 60));
+app.use("/ambulances/*", rateLimiter("RL_DEFAULT"));
+app.use("/bookings/*", rateLimiter("RL_DEFAULT"));
+app.use("/bookings", rateLimiter("RL_DEFAULT"));
+app.use("/driver/*", rateLimiter("RL_DRIVER"));
+app.use("/providers/*", rateLimiter("RL_DEFAULT"));
+app.use("/hospitals/*", rateLimiter("RL_DEFAULT"));
 
 // 3. Auth Middleware
 app.use("/bookings", supabaseAuth);
