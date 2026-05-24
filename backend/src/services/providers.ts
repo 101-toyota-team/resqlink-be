@@ -43,7 +43,7 @@ export class ProviderService implements IProviderService {
       ringStart += RING_STEP
     ) {
       const ringEnd = Math.min(
-        ringStart + RING_STEP,
+        ringStart + RING_STEP - 1,
         PROVIDER_SEARCH.MAX_RING_DISTANCE,
       );
       const cells: string[] = [];
@@ -81,9 +81,7 @@ export class ProviderService implements IProviderService {
       };
     });
 
-    withDistance.sort(
-      (a, b) => (a.distance_value ?? 0) - (b.distance_value ?? 0),
-    );
+    withDistance.sort((a, b) => a.distance_value! - b.distance_value!);
 
     return withDistance.slice(0, PROVIDER_SEARCH.MAX_RESULTS);
   }
