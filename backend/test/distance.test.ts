@@ -65,6 +65,7 @@ describe("DistanceService", () => {
       parseLatLng: vi.fn().mockReturnValue({ lat: -6.2, lng: 106.8 }),
       latLngToCell: vi.fn().mockReturnValue("878c10702ffffff"),
       getNeighbors: vi.fn(),
+      getRing: vi.fn(),
       cellToLatLng: vi.fn(),
       haversineDistance: vi.fn(),
     } as Mocked<IGeoService>;

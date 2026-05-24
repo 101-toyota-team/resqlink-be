@@ -34,6 +34,7 @@ export interface Provider {
 
 export interface ProviderDetails extends Provider {
   distance?: string;
+  distance_value?: number;
 }
 
 export interface Hospital extends Provider {
@@ -49,6 +50,7 @@ export interface Hospital extends Provider {
 
 export interface HospitalDetails extends Hospital {
   distance?: string;
+  distance_value?: number;
 }
 
 export interface AmbulanceInfo {
@@ -67,6 +69,8 @@ export interface AmbulanceDetails extends AmbulanceLocation {
   id: string;
   eta?: string;
   distance?: string;
+  eta_value?: number;
+  distance_value?: number;
 }
 
 export interface BookingData {
