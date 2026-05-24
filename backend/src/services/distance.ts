@@ -9,7 +9,14 @@ export interface IDistanceService {
   getEnrichedDrivers<T extends AmbulanceLocation>(
     drivers: T[],
     pickupLocation: string,
-  ): Promise<(T & { eta: string; distance: string })[]>;
+  ): Promise<
+    (T & {
+      eta: string;
+      distance: string;
+      eta_value: number | undefined;
+      distance_value: number | undefined;
+    })[]
+  >;
 }
 
 export class DistanceService implements IDistanceService {
@@ -22,7 +29,14 @@ export class DistanceService implements IDistanceService {
   async getEnrichedDrivers<T extends AmbulanceLocation>(
     drivers: T[],
     pickupLocation: string,
-  ): Promise<(T & { eta: string; distance: string })[]> {
+  ): Promise<
+    (T & {
+      eta: string;
+      distance: string;
+      eta_value: number | undefined;
+      distance_value: number | undefined;
+    })[]
+  > {
     if (drivers.length === 0) return [];
 
     const pickupLatLng = this.geo.parseLatLng(pickupLocation);
@@ -40,6 +54,8 @@ export class DistanceService implements IDistanceService {
     const cachedResults = await this.cache.mget<{
       eta: string;
       distance: string;
+      eta_value: number;
+      distance_value: number;
     }>(keys);
 
     const resultsWithCache = drivers.map((d, i) => ({
@@ -64,6 +80,8 @@ export class DistanceService implements IDistanceService {
           ...r.driver,
           eta: r.cached?.eta || "Unknown",
           distance: r.cached?.distance || "Unknown",
+          eta_value: r.cached?.eta_value ?? undefined,
+          distance_value: r.cached?.distance_value ?? undefined,
         }));
       }
 
@@ -74,6 +92,8 @@ export class DistanceService implements IDistanceService {
             const cacheData = {
               eta: element.duration.text,
               distance: element.distance.text,
+              eta_value: element.duration.value,
+              distance_value: element.distance.value,
             };
             const dIdx = this.geo.latLngToCell(
               r.driver.lat,
@@ -101,6 +121,8 @@ export class DistanceService implements IDistanceService {
       ...r.driver,
       eta: r.cached?.eta || "Unknown",
       distance: r.cached?.distance || "Unknown",
+      eta_value: r.cached?.eta_value ?? undefined,
+      distance_value: r.cached?.distance_value ?? undefined,
     }));
   }
 }
