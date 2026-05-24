@@ -80,6 +80,10 @@ export class UpstashRedisRepository implements ICacheRepository {
     await this.client.expire(key, ttl);
   }
 
+  async ttl(key: string): Promise<number> {
+    return await this.client.ttl(key);
+  }
+
   async set(key: string, value: unknown, ttl?: number): Promise<void> {
     if (ttl) {
       await this.client.set(key, value, { ex: ttl });

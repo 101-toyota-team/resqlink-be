@@ -27,6 +27,16 @@ export function rateLimiter(
       await cache.expire(key, windowSeconds);
     }
 
+    const ttl = await cache.ttl(key);
+    const reset = Math.floor(Date.now() / 1000) + (ttl > 0 ? ttl : 0);
+
+    c.header("X-RateLimit-Limit", maxRequests.toString());
+    c.header(
+      "X-RateLimit-Remaining",
+      Math.max(0, maxRequests - count).toString(),
+    );
+    c.header("X-RateLimit-Reset", reset.toString());
+
     if (count > maxRequests) {
       return c.json(errorResponse("Too many requests"), 429);
     }
