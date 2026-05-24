@@ -25,6 +25,7 @@ function createMockCache() {
     set: vi.fn(),
     incr,
     expire,
+    ttl: vi.fn(() => 60),
     del: vi.fn(),
   } as unknown as ICacheRepository;
 
@@ -122,5 +123,14 @@ describe("Rate Limiter Middleware", () => {
     // expire only called on the first incr (count === 1)
     expect(expireMock).toHaveBeenCalledTimes(1);
     expect(expireMock).toHaveBeenCalledWith("ratelimit:unknown", 60);
+  });
+
+  it("should set X-RateLimit status headers", async () => {
+    const { app } = createApp(10);
+
+    const res = await app.request("/test");
+    expect(res.headers.get("X-RateLimit-Limit")).toBe("10");
+    expect(res.headers.get("X-RateLimit-Remaining")).toBe("9");
+    expect(res.headers.get("X-RateLimit-Reset")).toBeDefined();
   });
 });

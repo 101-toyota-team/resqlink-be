@@ -27,6 +27,7 @@ describe("DispatchService", () => {
       addDriverToBucket: vi.fn(),
       removeDriverFromBucket: vi.fn(),
       expire: vi.fn(),
+      ttl: vi.fn(),
       incr: vi.fn(),
       del: vi.fn(),
     } as Mocked<ICacheRepository>;
