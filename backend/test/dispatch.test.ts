@@ -39,6 +39,7 @@ describe("DispatchService", () => {
       parseLatLng: vi.fn(),
       latLngToCell: vi.fn(),
       getNeighbors: vi.fn(),
+      getRing: vi.fn(),
       cellToLatLng: vi.fn(),
       haversineDistance: vi.fn(),
     } as Mocked<IGeoService>;
@@ -71,7 +72,15 @@ describe("DispatchService", () => {
         lng: 106.8,
         eta: "5 mins",
         distance: "1.2 km",
-      } as AmbulanceLocation & { id: string; eta: string; distance: string },
+        eta_value: 300,
+        distance_value: 1200,
+      } as AmbulanceLocation & {
+        id: string;
+        eta: string;
+        distance: string;
+        eta_value: number;
+        distance_value: number;
+      },
     ]);
 
     const results = await service.findNearbyAmbulances(

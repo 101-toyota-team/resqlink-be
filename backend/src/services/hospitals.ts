@@ -15,12 +15,27 @@ export class HospitalService implements IHospitalService {
   ) {}
 
   async searchHospitals(query: string): Promise<Hospital[]> {
-    const { raw } = preprocessQuery(query);
-    return this.hospitalRepo.searchHospitals(raw);
+    const { raw, expanded } = preprocessQuery(query);
+    return this.hospitalRepo.searchHospitals(raw, expanded);
   }
 
   async findNearbyHospitals(h3Index: string): Promise<HospitalDetails[]> {
     const neighboringCells = this.geo.getNeighbors(h3Index, 1);
-    return this.hospitalRepo.findHospitalsByH3Indexes(neighboringCells);
+    const center = this.geo.cellToLatLng(h3Index);
+    const results =
+      await this.hospitalRepo.findHospitalsByH3Indexes(neighboringCells);
+    return results.map((h) => {
+      const dist = this.geo.haversineDistance(
+        center.lat,
+        center.lng,
+        h.latitude,
+        h.longitude,
+      );
+      return {
+        ...h,
+        distance: `${dist.toFixed(2)} km`,
+        distance_value: dist,
+      };
+    });
   }
 }
