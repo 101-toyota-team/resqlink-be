@@ -18,6 +18,7 @@ export interface ICacheRepository {
   set(key: string, value: unknown, ttl?: number): Promise<void>;
   incr(key: string): Promise<number>;
   expire(key: string, ttl: number): Promise<void>;
+  ttl(key: string): Promise<number>;
   del(key: string): Promise<void>;
   get<T>(key: string): Promise<T | null>;
   mget<T>(keys: string[]): Promise<(T | null)[]>;
