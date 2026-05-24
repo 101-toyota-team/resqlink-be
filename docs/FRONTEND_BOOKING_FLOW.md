@@ -109,7 +109,7 @@ Validation bounds: latitude ∈ `[-90, 90]`, longitude ∈ `[-180, 180]`. H3 ind
   "destination_lng": 106.820000
 }
 ```
-*(Note: Pass `provider_id` to lock the draft booking to a specific healthcare facility. Omit `ambulance_id` to create a `draft` booking. If `ambulance_id` is also provided, the booking is created in `confirmed` status. Do not send `user_id`; it is resolved from the JWT payload).*
+*(Note: Pass `provider_id` to lock the draft booking to a specific healthcare facility. `provider_id` is technically optional in the schema but strongly recommended for provider-directed dispatch. Omit `ambulance_id` to create a `draft` booking. If `ambulance_id` is also provided, the booking is created in `confirmed` status. Do not send `user_id`; it is resolved from the JWT payload).*
 
 **Step 2 — Assign Ambulance (Provider-only, `PUT /bookings/{id}/assign`):**
 
@@ -154,7 +154,7 @@ Validation bounds: latitude ∈ `[-90, 90]`, longitude ∈ `[-180, 180]`. H3 ind
 | `completed` | Trip finished |
 | `cancelled` | Booking cancelled |
 
-**Expected transition flow:** `draft` → `confirmed` → `en_route` → `arrived` → `to_hospital` → `completed`. The backend does not enforce strict ordering, but deviating from this flow may produce unexpected behaviour.
+**Valid transitions:** `draft` → `cancelled`; `confirmed` → `en_route` | `cancelled`; `en_route` → `arrived` | `cancelled`; `arrived` → `to_hospital` | `completed` | `cancelled`; `to_hospital` → `completed` | `cancelled`. The backend enforces this ordering — invalid transitions return a `BookingStateError`.
 
 ### 5. Error Responses
 
