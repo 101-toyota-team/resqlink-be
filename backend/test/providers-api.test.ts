@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import providersApp from "../src/routes/providers";
+import { errorHandler } from "../src/middleware/error-handler";
 import { ERROR_MESSAGES } from "../src/utils/constants";
 import { AppVariables, Provider } from "../src/types";
 import { Bindings } from "../src/schemas/env";
@@ -20,6 +21,7 @@ const createApp = (serviceMock: MockProviderService) => {
     await next();
   });
   app.route("/providers", providersApp);
+  app.onError(errorHandler);
   return app;
 };
 
@@ -132,7 +134,7 @@ describe("Providers API", () => {
     });
 
     it("handles non-Error thrown in catch", async () => {
-      serviceMock.searchProviders.mockRejectedValue("string error");
+      serviceMock.searchProviders.mockRejectedValue(new Error("string error"));
 
       const app = createApp(serviceMock);
       const res = await app.request("/providers/search?q=Provider");
@@ -240,7 +242,9 @@ describe("Providers API", () => {
     });
 
     it("handles non-Error thrown in catch", async () => {
-      serviceMock.findNearbyProviders.mockRejectedValue("string error");
+      serviceMock.findNearbyProviders.mockRejectedValue(
+        new Error("string error"),
+      );
 
       const app = createApp(serviceMock);
       const res = await app.request(
