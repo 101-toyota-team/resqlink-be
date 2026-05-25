@@ -13,14 +13,12 @@ interface MockProviderService {
   findNearbyProviders: ReturnType<typeof vi.fn>;
 }
 
-const createApp = (serviceMock: IProviderService) => {
+const createApp = (serviceMock: MockProviderService) => {
   const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
-
   app.use("*", async (c, next) => {
-    c.set("getProviderService", () => serviceMock);
+    c.set("getProviderService", () => serviceMock as IProviderService);
     await next();
   });
-
   app.route("/providers", providersApp);
   return app;
 };
@@ -74,7 +72,7 @@ describe("Providers API", () => {
   });
 
   describe("GET /providers/search", () => {
-    it("should return 200 and search results on success", async () => {
+    it("returns 200 and search results on success", async () => {
       const mockResults: Provider[] = [
         {
           id: "1",
@@ -88,7 +86,7 @@ describe("Providers API", () => {
       ];
       serviceMock.searchProviders.mockResolvedValue(mockResults);
 
-      const app = createApp(serviceMock as IProviderService);
+      const app = createApp(serviceMock);
       const res = await app.request("/providers/search?q=Provider");
 
       expect(res.status).toBe(200);
@@ -96,20 +94,47 @@ describe("Providers API", () => {
       expect(serviceMock.searchProviders).toHaveBeenCalledWith("Provider");
     });
 
-    it("should return 400 for validation errors (e.g. query too short)", async () => {
-      const app = createApp(serviceMock as IProviderService);
+    it("returns 400 for query too short", async () => {
+      const app = createApp(serviceMock);
       const res = await app.request("/providers/search?q=P");
+
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as { error: string };
+      expect(json.error).toBe(ERROR_MESSAGES.VALIDATION_FAILED);
+      expect(serviceMock.searchProviders).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 for empty query", async () => {
+      const app = createApp(serviceMock);
+      const res = await app.request("/providers/search?q=");
 
       expect(res.status).toBe(400);
       expect(serviceMock.searchProviders).not.toHaveBeenCalled();
     });
 
-    it("should return 500 on service error", async () => {
-      serviceMock.searchProviders.mockRejectedValue(
-        new Error("Database error"),
-      );
+    it("returns 400 when q param missing", async () => {
+      const app = createApp(serviceMock);
+      const res = await app.request("/providers/search");
 
-      const app = createApp(serviceMock as IProviderService);
+      expect(res.status).toBe(400);
+      expect(serviceMock.searchProviders).not.toHaveBeenCalled();
+    });
+
+    it("returns 500 on service error", async () => {
+      serviceMock.searchProviders.mockRejectedValue(new Error("Service Error"));
+
+      const app = createApp(serviceMock);
+      const res = await app.request("/providers/search?q=Provider");
+
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as { error: string };
+      expect(json.error).toBe(ERROR_MESSAGES.INTERNAL_ERROR);
+    });
+
+    it("handles non-Error thrown in catch", async () => {
+      serviceMock.searchProviders.mockRejectedValue("string error");
+
+      const app = createApp(serviceMock);
       const res = await app.request("/providers/search?q=Provider");
 
       expect(res.status).toBe(500);
@@ -119,7 +144,7 @@ describe("Providers API", () => {
   });
 
   describe("GET /providers/nearby", () => {
-    it("should return 200 and nearby providers sorted by distance", async () => {
+    it("returns 200 and nearby providers", async () => {
       const h3Index = "878c106a4ffffff";
       const mockResults: Provider[] = [
         {
@@ -134,7 +159,7 @@ describe("Providers API", () => {
       ];
       serviceMock.findNearbyProviders.mockResolvedValue(mockResults);
 
-      const app = createApp(serviceMock as IProviderService);
+      const app = createApp(serviceMock);
       const res = await app.request(`/providers/nearby?h3_index=${h3Index}`);
 
       expect(res.status).toBe(200);
@@ -146,12 +171,11 @@ describe("Providers API", () => {
       );
     });
 
-    it("should pass optional lat/lng to service", async () => {
+    it("passes optional lat/lng to service", async () => {
       const h3Index = "878c10702ffffff";
-      const mockResults: Provider[] = [];
-      serviceMock.findNearbyProviders.mockResolvedValue(mockResults);
+      serviceMock.findNearbyProviders.mockResolvedValue([]);
 
-      const app = createApp(serviceMock as IProviderService);
+      const app = createApp(serviceMock);
       const res = await app.request(
         `/providers/nearby?h3_index=${h3Index}&lat=-6.2&lng=106.8`,
       );
@@ -164,22 +188,68 @@ describe("Providers API", () => {
       );
     });
 
-    it("should return 400 for invalid H3 index", async () => {
-      const app = createApp(serviceMock as IProviderService);
+    it("returns 400 for invalid H3 index", async () => {
+      const app = createApp(serviceMock);
       const res = await app.request("/providers/nearby?h3_index=invalid");
 
       expect(res.status).toBe(400);
       expect(serviceMock.findNearbyProviders).not.toHaveBeenCalled();
     });
 
-    it("should return 400 for out-of-range lat", async () => {
-      const app = createApp(serviceMock as IProviderService);
+    it("returns 400 for invalid lat", async () => {
+      const app = createApp(serviceMock);
       const res = await app.request(
         "/providers/nearby?h3_index=878c10702ffffff&lat=999",
       );
 
       expect(res.status).toBe(400);
       expect(serviceMock.findNearbyProviders).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 for invalid lng", async () => {
+      const app = createApp(serviceMock);
+      const res = await app.request(
+        "/providers/nearby?h3_index=878c10702ffffff&lng=999",
+      );
+
+      expect(res.status).toBe(400);
+      expect(serviceMock.findNearbyProviders).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 when h3_index missing", async () => {
+      const app = createApp(serviceMock);
+      const res = await app.request("/providers/nearby");
+
+      expect(res.status).toBe(400);
+      expect(serviceMock.findNearbyProviders).not.toHaveBeenCalled();
+    });
+
+    it("returns 500 on service error", async () => {
+      serviceMock.findNearbyProviders.mockRejectedValue(
+        new Error("Service Error"),
+      );
+
+      const app = createApp(serviceMock);
+      const res = await app.request(
+        "/providers/nearby?h3_index=878c106a4ffffff",
+      );
+
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as { error: string };
+      expect(json.error).toBe(ERROR_MESSAGES.INTERNAL_ERROR);
+    });
+
+    it("handles non-Error thrown in catch", async () => {
+      serviceMock.findNearbyProviders.mockRejectedValue("string error");
+
+      const app = createApp(serviceMock);
+      const res = await app.request(
+        "/providers/nearby?h3_index=878c106a4ffffff",
+      );
+
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as { error: string };
+      expect(json.error).toBe(ERROR_MESSAGES.INTERNAL_ERROR);
     });
   });
 });
