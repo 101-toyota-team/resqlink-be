@@ -45,15 +45,36 @@ vi.mock("../src/infrastructure/google-maps", () => ({
   }),
 }));
 
-vi.mock("../src/infrastructure/supabase", () => ({
-  SupabaseRepository: vi.fn().mockImplementation(function () {
+vi.mock("../src/infrastructure/supabase", () => {
+  const makeRepo = function () {
     return {
       createBooking: vi
         .fn()
         .mockResolvedValue({ id: "booking_123", status: "confirmed" }),
+      getBooking: vi.fn(),
+      assignAmbulance: vi.fn(),
+      updateBookingStatus: vi.fn(),
+      getUserBookings: vi.fn(),
+      getConfirmedBookings: vi.fn(),
+      getAmbulance: vi.fn(),
+      findAvailableAmbulances: vi.fn(),
+      getAmbulanceProviderLocation: vi.fn(),
+      searchProviders: vi.fn(),
+      findProvidersByH3Indexes: vi.fn(),
+      searchHospitals: vi.fn(),
+      findHospitalsByH3Indexes: vi.fn(),
+      broadcastTripLocation: vi.fn(),
     };
-  }),
-}));
+  };
+  return {
+    SupabaseRepository: vi.fn().mockImplementation(makeRepo),
+    BookingRepository: vi.fn().mockImplementation(makeRepo),
+    AmbulanceRepository: vi.fn().mockImplementation(makeRepo),
+    ProviderRepository: vi.fn().mockImplementation(makeRepo),
+    HospitalRepository: vi.fn().mockImplementation(makeRepo),
+    RealtimeBroadcaster: vi.fn().mockImplementation(makeRepo),
+  };
+});
 
 import app from "../src/index";
 import { verifyWithJwks } from "hono/jwt";

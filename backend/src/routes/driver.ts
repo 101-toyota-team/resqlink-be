@@ -18,8 +18,8 @@ driverApp.get("/bookings", async (c) => {
     return c.json(errorResponse(ERROR_MESSAGES.FORBIDDEN_ACCESS), 403);
   }
 
-  const db = c.get("getSupabaseRepo")();
-  const bookings = await db.getConfirmedBookings();
+  const bookingRepo = c.get("getBookingRepo")();
+  const bookings = await bookingRepo.getConfirmedBookings();
 
   return c.json(bookings);
 });
