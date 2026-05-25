@@ -2,12 +2,13 @@ import { describe, it, expect, vi, beforeEach, Mocked } from "vitest";
 import { DistanceService } from "../src/services/distance";
 import { IMapsRepository } from "../src/repositories/maps";
 import { ICacheRepository } from "../src/repositories/cache";
+import { IGenericCache } from "../src/repositories/generic-cache";
 import { IGeoService } from "../src/services/geo";
 import { GoogleDistanceMatrixResponse } from "../src/types";
 
 describe("DistanceService", () => {
   let mockMaps: Mocked<IMapsRepository>;
-  let mockCache: Mocked<ICacheRepository>;
+  let mockCache: Mocked<IGenericCache & ICacheRepository>;
   let mockGeo: Mocked<IGeoService>;
   let service: DistanceService;
 
@@ -60,7 +61,7 @@ describe("DistanceService", () => {
       ttl: vi.fn(),
       incr: vi.fn(),
       del: vi.fn(),
-    } as unknown as Mocked<ICacheRepository>;
+    } as unknown as Mocked<IGenericCache & ICacheRepository>;
 
     mockGeo = {
       parseLatLng: vi.fn().mockReturnValue({ lat: -6.2, lng: 106.8 }),

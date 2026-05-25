@@ -4,9 +4,13 @@ import bookingsApp from "../src/routes/bookings";
 import { ERROR_MESSAGES } from "../src/utils/constants";
 import { AppVariables, JwtPayload } from "../src/types";
 import { Bindings } from "../src/schemas/env";
-import { IPersistenceRepository } from "../src/repositories/db";
-import { IBookingRepository } from "../src/repositories/booking";
-import { IAmbulanceRepository } from "../src/repositories/ambulance";
+import {
+  IBookingRepository,
+  IAmbulanceRepository,
+  IProviderRepository,
+  IHospitalRepository,
+  IRealtimeBroadcaster,
+} from "../src/repositories/db";
 import { BookingService } from "../src/services/bookings";
 import { ISimulationService } from "../src/services/simulation";
 
@@ -37,7 +41,15 @@ const createApp = (
 
   // Inject mocks
   app.use("*", async (c, next) => {
-    c.set("getSupabaseRepo", () => dbMock as IPersistenceRepository);
+    c.set(
+      "getSupabaseRepo",
+      () =>
+        dbMock as IBookingRepository &
+          IAmbulanceRepository &
+          IProviderRepository &
+          IHospitalRepository &
+          IRealtimeBroadcaster,
+    );
     c.set("jwtPayload", jwtPayloadMock);
 
     const buildSimulationService = () => {

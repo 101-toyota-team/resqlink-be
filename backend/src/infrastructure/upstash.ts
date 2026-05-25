@@ -1,8 +1,9 @@
 import { Redis } from "@upstash/redis/cloudflare";
+import { IGenericCache } from "../repositories/generic-cache";
 import { ICacheRepository } from "../repositories/cache";
 import { AmbulanceLocation } from "../types";
 
-export class UpstashRedisRepository implements ICacheRepository {
+export class UpstashRedisRepository implements IGenericCache, ICacheRepository {
   private client: Redis;
 
   constructor(url: string, token: string) {

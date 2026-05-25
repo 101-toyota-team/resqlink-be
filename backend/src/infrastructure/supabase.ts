@@ -1,14 +1,28 @@
-import { z } from "zod";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { IBookingRepository } from "../repositories/booking";
-import { IAmbulanceRepository } from "../repositories/ambulance";
-import { IProviderRepository } from "../repositories/provider";
-import { IHospitalRepository } from "../repositories/hospital";
-import { IRealtimeBroadcaster } from "../repositories/realtime";
-import {
-  AmbulanceInfo,
+/**
+ * @deprecated This file is kept for backward compatibility.
+ * Import focused classes from "./supabase/index" instead.
+ * Each repository now lives in its own file under src/infrastructure/supabase/.
+ *
+ * Import replacements:
+ *   BookingRepository       → import { BookingRepository }        from "./supabase/booking"
+ *   AmbulanceRepository     → import { AmbulanceRepository }      from "./supabase/ambulance"
+ *   ProviderRepository      → import { ProviderRepository }       from "./supabase/provider"
+ *   HospitalRepository      → import { HospitalRepository }       from "./supabase/hospital"
+ *   RealtimeBroadcaster     → import { RealtimeBroadcaster }      from "./supabase/realtime"
+ *
+ * This backward-compatible wrapper will be removed once all consumers
+ * have been migrated to the focused imports (tasks T10, T13).
+ */
+
+import type { IBookingRepository } from "../repositories/booking";
+import type { IAmbulanceRepository } from "../repositories/ambulance";
+import type { IProviderRepository } from "../repositories/provider";
+import type { IHospitalRepository } from "../repositories/hospital";
+import type { IRealtimeBroadcaster } from "../repositories/realtime";
+import type {
   Booking,
   BookingData,
+  AmbulanceInfo,
   AmbulanceDetails,
   AmbulanceLocation,
   Provider,
@@ -16,23 +30,26 @@ import {
   HospitalDetails,
 } from "../types";
 import type { BookingStatus } from "../utils/constants";
-import { DatabaseSchemaDriftError } from "../utils/constants";
-import { fetchWithTimeout } from "./util";
-import logger from "../utils/logger";
+import { BookingRepository } from "./supabase/booking";
+import { AmbulanceRepository } from "./supabase/ambulance";
+import { ProviderRepository } from "./supabase/provider";
+import { HospitalRepository } from "./supabase/hospital";
+import { RealtimeBroadcaster } from "./supabase/realtime";
 
-import {
-  dbBookingSchema,
-  dbProviderSchema,
-  dbHospitalSchema,
-  dbAmbulanceDiscoverySchema,
-  dbAmbulanceProviderSchema,
-  dbAmbulanceSchema,
-} from "../schemas/db";
+// Re-export focused classes for convenience
+export {
+  BookingRepository,
+  AmbulanceRepository,
+  ProviderRepository,
+  HospitalRepository,
+  RealtimeBroadcaster,
+};
 
-function isStringUrl(url: unknown): url is string {
-  return typeof url === "string";
-}
-
+/**
+ * Backward-compatible combined repository that delegates to the 5 focused
+ * implementations. Each sub-repository manages its own Supabase client
+ * (separate connections, but functionally identical under the hood).
+ */
 export class SupabaseRepository
   implements
     IBookingRepository,
@@ -41,509 +58,92 @@ export class SupabaseRepository
     IHospitalRepository,
     IRealtimeBroadcaster
 {
-  private client: SupabaseClient;
+  private bookingRepo: BookingRepository;
+  private ambulanceRepo: AmbulanceRepository;
+  private providerRepo: ProviderRepository;
+  private hospitalRepo: HospitalRepository;
+  private realtimeRepo: RealtimeBroadcaster;
 
   constructor(url: string, key: string) {
-    this.client = createClient(url, key, {
-      global: {
-        fetch: (url, options) => {
-          if (!isStringUrl(url)) {
-            throw new Error("Fetch URL must be a string");
-          }
-          return fetchWithTimeout(url, options);
-        },
-      },
-    });
+    this.bookingRepo = new BookingRepository(url, key);
+    this.ambulanceRepo = new AmbulanceRepository(url, key);
+    this.providerRepo = new ProviderRepository(url, key);
+    this.hospitalRepo = new HospitalRepository(url, key);
+    this.realtimeRepo = new RealtimeBroadcaster(url, key);
   }
 
-  private parseBooking(data: unknown): Booking {
-    const parsed = dbBookingSchema.parse(data);
-    return {
-      ...parsed,
-      user_id: parsed.user_id || "",
-    };
+  // --- IBookingRepository ---
+
+  createBooking(data: BookingData): Promise<Booking> {
+    return this.bookingRepo.createBooking(data);
   }
 
-  private parseBookingList(data: unknown): Booking[] {
-    const parsed = dbBookingSchema.array().parse(data || []);
-    return parsed.map((b) => ({
-      ...b,
-      user_id: b.user_id || "",
-    }));
+  getBooking(id: string): Promise<Booking | null> {
+    return this.bookingRepo.getBooking(id);
   }
 
-  async createBooking(data: BookingData): Promise<Booking> {
-    const insertData = {
-      ...data,
-      status: data.ambulance_id ? "confirmed" : "draft",
-    };
-
-    const { data: booking, error } = await this.client
-      .from("bookings")
-      .insert(insertData)
-      .select()
-      .single();
-
-    if (error) {
-      logger.error(error, "Supabase createBooking error");
-      throw new Error(`Supabase error: ${error.message}`, { cause: error });
-    }
-
-    try {
-      return this.parseBooking(booking);
-    } catch (err) {
-      logger.error(err, "Database schema drift detected in createBooking");
-      throw new Error("Data integrity error occurred");
-    }
+  assignAmbulance(id: string, ambulanceId: string): Promise<Booking> {
+    return this.bookingRepo.assignAmbulance(id, ambulanceId);
   }
 
-  async getBooking(id: string): Promise<Booking | null> {
-    const { data: booking, error } = await this.client
-      .from("bookings")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    if (error) {
-      if (error.code === "PGRST116") return null;
-      logger.error(error, "Supabase getBooking error");
-      return null;
-    }
-
-    try {
-      return this.parseBooking(booking);
-    } catch (err) {
-      logger.error(err, "Database schema drift detected in getBooking");
-      throw new DatabaseSchemaDriftError("Booking", err);
-    }
+  updateBookingStatus(id: string, status: BookingStatus): Promise<void> {
+    return this.bookingRepo.updateBookingStatus(id, status);
   }
 
-  async getAmbulance(ambulanceId: string): Promise<AmbulanceInfo | null> {
-    const { data, error } = await this.client
-      .from("ambulances")
-      .select("id, provider_id")
-      .eq("id", ambulanceId)
-      .single();
-
-    if (error) {
-      if (error.code === "PGRST116") return null;
-      logger.error(error, "Supabase getAmbulance error");
-      throw new Error(`Supabase error: ${error.message}`, { cause: error });
-    }
-
-    try {
-      return dbAmbulanceSchema.parse(data);
-    } catch (err) {
-      logger.error(err, "Database schema drift detected in getAmbulance");
-      throw new DatabaseSchemaDriftError("Ambulance", err);
-    }
-  }
-
-  async assignAmbulance(id: string, ambulanceId: string): Promise<Booking> {
-    const { data, error } = await this.client
-      .from("bookings")
-      .update({ ambulance_id: ambulanceId, status: "confirmed" })
-      .eq("id", id)
-      .eq("status", "draft")
-      .select()
-      .single<Booking>();
-
-    if (error) {
-      if (error.code === "PGRST116") {
-        throw new Error("Booking is no longer in draft status", {
-          cause: error,
-        });
-      }
-      logger.error(error, "Supabase assignAmbulance error");
-      throw new Error(`Supabase error: ${error.message}`, { cause: error });
-    }
-
-    try {
-      return this.parseBooking(data);
-    } catch (err) {
-      logger.error(err, "Database schema drift detected in assignAmbulance");
-      throw new Error("Data integrity error occurred");
-    }
-  }
-
-  async updateBookingStatus(id: string, status: BookingStatus): Promise<void> {
-    const { error } = await this.client
-      .from("bookings")
-      .update({ status })
-      .eq("id", id);
-
-    if (error) {
-      logger.error(error, "Supabase updateBookingStatus error");
-      throw new Error(`Supabase error: ${error.message}`, { cause: error });
-    }
-  }
-
-  async findAvailableAmbulances(
-    h3Indexes: string[],
-  ): Promise<AmbulanceDetails[]> {
-    const { data, error } = await this.client
-      .from("ambulances")
-      .select(
-        `
-        id,
-        providers!inner (
-          latitude,
-          longitude
-        )
-      `,
-      )
-      .eq("status", "available")
-      .in("providers.h3_index", h3Indexes);
-
-    if (error) {
-      logger.error(error, "Supabase findAvailableAmbulances error");
-      throw new Error(`Supabase error: ${error.message}`, { cause: error });
-    }
-
-    try {
-      const results = dbAmbulanceDiscoverySchema.array().parse(data || []);
-      return results.map((item) => {
-        const provider = Array.isArray(item.providers)
-          ? item.providers[0]
-          : item.providers;
-        return {
-          id: item.id,
-          lat: provider?.latitude ?? 0,
-          lng: provider?.longitude ?? 0,
-        };
-      });
-    } catch (err) {
-      logger.error(
-        err,
-        "Database schema drift detected in findAvailableAmbulances",
-      );
-      throw new DatabaseSchemaDriftError("Ambulance", err);
-    }
-  }
-
-  async broadcastTripLocation(
-    bookingId: string,
-    location: AmbulanceLocation,
-  ): Promise<void> {
-    const channel = this.client.channel(`trip:${bookingId}`);
-    try {
-      await channel.send({
-        type: "broadcast",
-        event: "location_update",
-        payload: location,
-      });
-    } finally {
-      await this.client.removeChannel(channel);
-    }
-  }
-
-  async getAmbulanceProviderLocation(
-    ambulanceId: string,
-  ): Promise<{ lat: number; lng: number } | null> {
-    const { data, error } = await this.client
-      .from("ambulances")
-      .select(
-        `
-        providers (
-          latitude,
-          longitude
-        )
-      `,
-      )
-      .eq("id", ambulanceId)
-      .single();
-
-    if (error || !data) {
-      logger.error(error, "Supabase getAmbulanceProviderLocation error");
-      throw new Error(`Supabase error: ${error?.message}`, { cause: error });
-    }
-
-    try {
-      const parsed = dbAmbulanceProviderSchema.parse(data);
-      const providerData = parsed.providers;
-      if (!providerData) return null;
-
-      const provider = Array.isArray(providerData)
-        ? providerData[0]
-        : providerData;
-
-      if (!provider) return null;
-
-      return {
-        lat: provider.latitude,
-        lng: provider.longitude,
-      };
-    } catch (err) {
-      logger.error(
-        err,
-        "Database schema drift detected in getAmbulanceProviderLocation",
-      );
-      throw new DatabaseSchemaDriftError("AmbulanceProvider", err);
-    }
-  }
-
-  async getUserBookings(
+  getUserBookings(
     userId: string,
     limit?: number,
     offset?: number,
   ): Promise<Booking[]> {
-    let query = this.client
-      .from("bookings")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
-
-    if (limit !== undefined) {
-      query = query.limit(limit);
-      if (offset !== undefined) {
-        query = query.range(offset, offset + limit - 1);
-      }
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      logger.error(error, "Supabase getUserBookings error");
-      throw new Error(`Supabase error: ${error.message}`, { cause: error });
-    }
-
-    try {
-      return this.parseBookingList(data);
-    } catch (err) {
-      logger.error(err, "Database schema drift detected in getUserBookings");
-      throw new DatabaseSchemaDriftError("Booking", err);
-    }
+    return this.bookingRepo.getUserBookings(userId, limit, offset);
   }
 
-  async getConfirmedBookings(
-    limit?: number,
-    offset?: number,
-  ): Promise<Booking[]> {
-    let query = this.client
-      .from("bookings")
-      .select("*")
-      .eq("status", "confirmed")
-      .order("created_at", { ascending: false });
-
-    if (limit !== undefined) {
-      query = query.limit(limit);
-      if (offset !== undefined) {
-        query = query.range(offset, offset + limit - 1);
-      }
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      logger.error(error, "Supabase getConfirmedBookings error");
-      throw new Error(`Supabase error: ${error.message}`, { cause: error });
-    }
-
-    try {
-      return this.parseBookingList(data);
-    } catch (err) {
-      logger.error(
-        err,
-        "Database schema drift detected in getConfirmedBookings",
-      );
-      throw new DatabaseSchemaDriftError("Booking", err);
-    }
+  getConfirmedBookings(limit?: number, offset?: number): Promise<Booking[]> {
+    return this.bookingRepo.getConfirmedBookings(limit, offset);
   }
 
-  private mapHospitalItem(
-    item: z.infer<typeof dbHospitalSchema>,
-  ): Hospital | null {
-    const provider = Array.isArray(item.providers)
-      ? item.providers[0]
-      : item.providers;
-    if (!provider) return null;
-    return {
-      id: provider.id,
-      name: provider.name,
-      h3_index: provider.h3_index,
-      latitude: provider.latitude,
-      longitude: provider.longitude,
-      provider_type: provider.provider_type,
-      address: provider.address,
-      phone: provider.phone,
-      created_at: provider.created_at,
-      igd_phone: item.igd_phone,
-      igd_email: item.igd_email,
-      bed_capacity: item.bed_capacity,
-      specializations: item.specializations,
-      accreditation: item.accreditation,
-      rating: item.rating,
-      rating_count: item.rating_count,
-      website_url: item.website_url,
-    };
+  // --- IAmbulanceRepository ---
+
+  getAmbulance(ambulanceId: string): Promise<AmbulanceInfo | null> {
+    return this.ambulanceRepo.getAmbulance(ambulanceId);
   }
 
-  async searchProviders(raw: string, expanded: string): Promise<Provider[]> {
-    const { data, error } = await this.client.rpc(
-      "search_providers_optimized",
-      {
-        search_term: expanded,
-        raw_term: raw,
-      },
-    );
-
-    if (error) {
-      logger.error(error, "Supabase searchProviders error");
-      throw new Error(`Supabase error: ${error.message}`, { cause: error });
-    }
-
-    try {
-      return dbProviderSchema.array().parse(data || []);
-    } catch (err) {
-      logger.error(err, "Database schema drift detected in searchProviders");
-      throw new DatabaseSchemaDriftError("Provider", err);
-    }
+  findAvailableAmbulances(h3Indexes: string[]): Promise<AmbulanceDetails[]> {
+    return this.ambulanceRepo.findAvailableAmbulances(h3Indexes);
   }
 
-  async findProvidersByH3Indexes(h3Indexes: string[]): Promise<Provider[]> {
-    if (h3Indexes.length === 0) return [];
-    const { data, error } = await this.client
-      .from("providers")
-      .select("*")
-      .in("h3_index", h3Indexes);
-
-    if (error) {
-      logger.error(error, "Supabase findProvidersByH3Indexes error");
-      throw new Error(`Supabase error: ${error.message}`, { cause: error });
-    }
-
-    try {
-      return dbProviderSchema.array().parse(data || []);
-    } catch (err) {
-      logger.error(
-        err,
-        "Database schema drift detected in findProvidersByH3Indexes",
-      );
-      throw new DatabaseSchemaDriftError("Provider", err);
-    }
+  getAmbulanceProviderLocation(
+    ambulanceId: string,
+  ): Promise<{ lat: number; lng: number } | null> {
+    return this.ambulanceRepo.getAmbulanceProviderLocation(ambulanceId);
   }
 
-  async searchHospitals(raw: string, expanded: string): Promise<Hospital[]> {
-    const { data: ids, error: rpcError } = await this.client.rpc(
-      "search_hospitals_optimized",
-      { search_term: expanded, raw_term: raw },
-    );
+  // --- IProviderRepository ---
 
-    if (rpcError) {
-      logger.error(rpcError, "Supabase searchHospitals RPC error");
-      throw new Error(`Supabase error: ${rpcError.message}`, {
-        cause: rpcError,
-      });
-    }
-
-    if (!ids || ids.length === 0) return [];
-
-    const hospitalIds = ids.map((r: { hospital_id: string }) => r.hospital_id);
-    const providerOrderMap = new Map(
-      ids.map((r: { provider_id: string }, i: number) => [r.provider_id, i]),
-    );
-
-    const { data, error } = await this.client
-      .from("hospitals")
-      .select(
-        `
-        id,
-        provider_id,
-        igd_phone,
-        igd_email,
-        bed_capacity,
-        specializations,
-        accreditation,
-        rating,
-        rating_count,
-        website_url,
-        providers!inner (
-          id,
-          name,
-          h3_index,
-          latitude,
-          longitude,
-          provider_type,
-          address,
-          phone,
-          created_at
-        )
-      `,
-      )
-      .in("id", hospitalIds);
-
-    if (error) {
-      logger.error(error, "Supabase searchHospitals error");
-      throw new Error(`Supabase error: ${error.message}`, { cause: error });
-    }
-
-    try {
-      const rawResults = dbHospitalSchema.array().parse(data || []);
-      return rawResults
-        .map((item): Hospital | null => this.mapHospitalItem(item))
-        .filter((h): h is Hospital => h !== null)
-        .sort(
-          (a, b) =>
-            ((providerOrderMap.get(a.id) ?? Infinity) as number) -
-            ((providerOrderMap.get(b.id) ?? Infinity) as number),
-        );
-    } catch (err) {
-      logger.error(err, "Database schema drift detected in searchHospitals");
-      throw new DatabaseSchemaDriftError("Hospital", err);
-    }
+  searchProviders(raw: string, expanded: string): Promise<Provider[]> {
+    return this.providerRepo.searchProviders(raw, expanded);
   }
 
-  async findHospitalsByH3Indexes(
-    h3Indexes: string[],
-  ): Promise<HospitalDetails[]> {
-    if (h3Indexes.length === 0) return [];
-    const { data, error } = await this.client
-      .from("hospitals")
-      .select(
-        `
-        id,
-        provider_id,
-        igd_phone,
-        igd_email,
-        bed_capacity,
-        specializations,
-        accreditation,
-        rating,
-        rating_count,
-        website_url,
-        providers!inner (
-          id,
-          name,
-          h3_index,
-          latitude,
-          longitude,
-          provider_type,
-          address,
-          phone,
-          created_at
-        )
-      `,
-      )
-      .eq("providers.provider_type", "rumah_sakit")
-      .in("providers.h3_index", h3Indexes)
-      .order("providers.name", { ascending: true });
+  findProvidersByH3Indexes(h3Indexes: string[]): Promise<Provider[]> {
+    return this.providerRepo.findProvidersByH3Indexes(h3Indexes);
+  }
 
-    if (error) {
-      logger.error(error, "Supabase findHospitalsByH3Indexes error");
-      throw new Error(`Supabase error: ${error.message}`, { cause: error });
-    }
+  // --- IHospitalRepository ---
 
-    try {
-      const rawResults = dbHospitalSchema.array().parse(data || []);
-      return rawResults
-        .map((item): HospitalDetails | null => this.mapHospitalItem(item))
-        .filter((h): h is HospitalDetails => h !== null);
-    } catch (err) {
-      logger.error(
-        err,
-        "Database schema drift detected in findHospitalsByH3Indexes",
-      );
-      throw new DatabaseSchemaDriftError("Hospital", err);
-    }
+  searchHospitals(raw: string, expanded: string): Promise<Hospital[]> {
+    return this.hospitalRepo.searchHospitals(raw, expanded);
+  }
+
+  findHospitalsByH3Indexes(h3Indexes: string[]): Promise<HospitalDetails[]> {
+    return this.hospitalRepo.findHospitalsByH3Indexes(h3Indexes);
+  }
+
+  // --- IRealtimeBroadcaster ---
+
+  broadcastTripLocation(
+    bookingId: string,
+    location: AmbulanceLocation,
+  ): Promise<void> {
+    return this.realtimeRepo.broadcastTripLocation(bookingId, location);
   }
 }

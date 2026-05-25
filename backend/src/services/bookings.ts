@@ -5,6 +5,11 @@ import { Booking, BookingData, JwtPayload } from "../types";
 import type { BookingStatus } from "../utils/constants";
 import { ERROR_MESSAGES } from "../utils/constants";
 import { canAccessBooking, isDriverRole } from "../utils/auth";
+import {
+  NotFoundError,
+  ForbiddenError,
+  BookingStateError,
+} from "../utils/errors";
 
 const VALID_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
   draft: ["cancelled"],
@@ -139,26 +144,5 @@ export class BookingService implements IBookingService {
     const updated = await this.bookingRepo.getBooking(id);
     if (!updated) throw new Error("Booking not found after update");
     return updated;
-  }
-}
-
-export class NotFoundError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "NotFoundError";
-  }
-}
-
-export class ForbiddenError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ForbiddenError";
-  }
-}
-
-export class BookingStateError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "BookingStateError";
   }
 }

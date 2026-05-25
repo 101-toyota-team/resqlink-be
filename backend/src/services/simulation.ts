@@ -1,10 +1,11 @@
-import { ICacheRepository } from "../repositories/cache";
+import { IGenericCache } from "../repositories/generic-cache";
 import { IBookingRepository } from "../repositories/booking";
 import { IAmbulanceRepository } from "../repositories/ambulance";
 import { IRealtimeBroadcaster } from "../repositories/realtime";
 import { IMapsRepository } from "../repositories/maps";
 import { Booking } from "../types";
 import logger from "../utils/logger";
+import { decodePolyline } from "../utils/polyline";
 
 export interface ISimulationService {
   startSimulation(booking: Booking): Promise<boolean>;
@@ -17,7 +18,7 @@ export interface ISimulationService {
 
 export class SimulationService implements ISimulationService {
   constructor(
-    private cache: ICacheRepository,
+    private cache: IGenericCache,
     private bookingRepo: IBookingRepository,
     private ambulanceRepo: IAmbulanceRepository,
     private realtime: IRealtimeBroadcaster,
@@ -52,7 +53,7 @@ export class SimulationService implements ISimulationService {
     }
 
     const encodedPolyline = directions.routes[0].overview_polyline.points;
-    const points = this.decodePolyline(encodedPolyline);
+    const points = decodePolyline(encodedPolyline);
 
     if (points.length === 0) {
       logger.error(booking.id, "Decoded polyline for booking is empty");
@@ -131,57 +132,5 @@ export class SimulationService implements ISimulationService {
     await this.cache.del(`sim:active:${driverId}`);
     await this.cache.del(`sim:route:${bookingId}`);
     await this.cache.del(`sim:step:${bookingId}`);
-  }
-
-  private decodePolyline(encoded: string): { lat: number; lng: number }[] {
-    const points: { lat: number; lng: number }[] = [];
-    let index = 0;
-    const len = encoded.length;
-    let lat = 0;
-    let lng = 0;
-
-    try {
-      while (index < len) {
-        let b;
-        let shift = 0;
-        let result = 0;
-        do {
-          if (index >= len) break;
-          b = encoded.charCodeAt(index++) - 63;
-          result |= (b & 0x1f) << shift;
-          shift += 5;
-        } while (b >= 0x20);
-        const dlat = result & 1 ? ~(result >> 1) : result >> 1;
-        lat += dlat;
-
-        shift = 0;
-        result = 0;
-        do {
-          if (index >= len) break;
-          b = encoded.charCodeAt(index++) - 63;
-          result |= (b & 0x1f) << shift;
-          shift += 5;
-        } while (b >= 0x20);
-        const dlng = result & 1 ? ~(result >> 1) : result >> 1;
-        lng += dlng;
-
-        const pLat = lat / 1e5;
-        const pLng = lng / 1e5;
-
-        if (
-          !isNaN(pLat) &&
-          !isNaN(pLng) &&
-          pLat >= -90 &&
-          pLat <= 90 &&
-          pLng >= -180 &&
-          pLng <= 180
-        ) {
-          points.push({ lat: pLat, lng: pLng });
-        }
-      }
-    } catch (error) {
-      logger.error(error, "Error decoding polyline");
-    }
-    return points;
   }
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, Mocked } from "vitest";
 import { SimulationService } from "../src/services/simulation";
 import { ICacheRepository } from "../src/repositories/cache";
+import { IGenericCache } from "../src/repositories/generic-cache";
 import { IBookingRepository } from "../src/repositories/booking";
 import { IAmbulanceRepository } from "../src/repositories/ambulance";
 import { IRealtimeBroadcaster } from "../src/repositories/realtime";
@@ -8,7 +9,7 @@ import { IMapsRepository } from "../src/repositories/maps";
 import { Booking } from "../src/types";
 
 describe("SimulationService", () => {
-  let mockCache: Mocked<ICacheRepository>;
+  let mockCache: Mocked<IGenericCache & ICacheRepository>;
   let mockBookingRepo: Mocked<IBookingRepository>;
   let mockAmbulanceRepo: Mocked<IAmbulanceRepository>;
   let mockRealtime: Mocked<IRealtimeBroadcaster>;
@@ -47,7 +48,7 @@ describe("SimulationService", () => {
       ttl: vi.fn(),
       incr: vi.fn(),
       del: vi.fn(),
-    } as Mocked<ICacheRepository>;
+    } as unknown as Mocked<IGenericCache & ICacheRepository>;
     mockBookingRepo = {
       createBooking: vi.fn(),
       getBooking: vi.fn(),

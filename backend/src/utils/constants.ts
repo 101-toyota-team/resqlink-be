@@ -31,8 +31,6 @@ export const DISPATCH = {
 
 // Discovery Routes
 export const DISCOVERY = {
-  DEFAULT_PAGE_SIZE: 20,
-  MAX_PAGE_SIZE: 100,
   H3_RING_RADIUS: 1,
 };
 

@@ -17,7 +17,7 @@ import {
   NotFoundError,
   ForbiddenError,
   BookingStateError,
-} from "../services/bookings";
+} from "../utils/errors";
 
 const bookingsApp = createRouteApp();
 
