@@ -9,9 +9,9 @@ providersApp.get(
   "/search",
   zValidator("query", providerSearchSchema, validatorHook),
   async (c) => {
-    const { q } = c.req.valid("query");
+    const { q, limit } = c.req.valid("query");
     const providerService = c.get("getProviderService")();
-    const results = await providerService.searchProviders(q);
+    const results = await providerService.searchProviders(q, limit);
     return c.json(results);
   },
 );

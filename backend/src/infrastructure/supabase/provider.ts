@@ -9,13 +9,19 @@ export class ProviderRepository
   extends SupabaseClientBase
   implements IProviderRepository
 {
-  async searchProviders(raw: string, expanded: string): Promise<Provider[]> {
+  async searchProviders(
+    raw: string,
+    expanded: string,
+    limit?: number,
+  ): Promise<Provider[]> {
+    const params: Record<string, unknown> = {
+      search_term: expanded,
+      raw_term: raw,
+    };
+    if (limit !== undefined) params.max_results = limit;
     const { data, error } = await this.client.rpc(
       "search_providers_optimized",
-      {
-        search_term: expanded,
-        raw_term: raw,
-      },
+      params,
     );
 
     if (error) {

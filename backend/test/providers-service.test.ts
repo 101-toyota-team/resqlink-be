@@ -52,13 +52,28 @@ describe("ProviderService", () => {
       expect(mockRepo.searchProviders).toHaveBeenCalledWith(
         "RS jakarta",
         "Rumah Sakit jakarta",
+        undefined,
       );
     });
 
     it("preserves non-abbreviated queries", async () => {
       mockRepo.searchProviders.mockResolvedValue([]);
       await service.searchProviders("klinik");
-      expect(mockRepo.searchProviders).toHaveBeenCalledWith("klinik", "klinik");
+      expect(mockRepo.searchProviders).toHaveBeenCalledWith(
+        "klinik",
+        "klinik",
+        undefined,
+      );
+    });
+
+    it("passes limit to repository when provided", async () => {
+      mockRepo.searchProviders.mockResolvedValue([]);
+      await service.searchProviders("RS jakarta", 5);
+      expect(mockRepo.searchProviders).toHaveBeenCalledWith(
+        "RS jakarta",
+        "Rumah Sakit jakarta",
+        5,
+      );
     });
 
     it("propagates repo errors", async () => {
