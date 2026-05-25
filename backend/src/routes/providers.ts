@@ -1,12 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { providerSearchSchema, providerNearbySchema } from "../schemas";
 import { createRouteApp } from "../utils/route";
-import {
-  ERROR_MESSAGES,
-  errorResponse,
-  validatorHook,
-} from "../utils/constants";
-import logger from "../utils/logger";
+import { validatorHook } from "../utils/constants";
 
 const providersApp = createRouteApp();
 
@@ -14,15 +9,10 @@ providersApp.get(
   "/search",
   zValidator("query", providerSearchSchema, validatorHook),
   async (c) => {
-    try {
-      const { q } = c.req.valid("query");
-      const providerService = c.get("getProviderService")();
-      const results = await providerService.searchProviders(q);
-      return c.json(results);
-    } catch (error) {
-      logger.error(error, "Error searching providers");
-      return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);
-    }
+    const { q } = c.req.valid("query");
+    const providerService = c.get("getProviderService")();
+    const results = await providerService.searchProviders(q);
+    return c.json(results);
   },
 );
 
@@ -30,19 +20,14 @@ providersApp.get(
   "/nearby",
   zValidator("query", providerNearbySchema, validatorHook),
   async (c) => {
-    try {
-      const { h3_index, lat, lng } = c.req.valid("query");
-      const providerService = c.get("getProviderService")();
-      const results = await providerService.findNearbyProviders(
-        h3_index,
-        lat,
-        lng,
-      );
-      return c.json(results);
-    } catch (error) {
-      logger.error(error, "Error finding nearby providers");
-      return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);
-    }
+    const { h3_index, lat, lng } = c.req.valid("query");
+    const providerService = c.get("getProviderService")();
+    const results = await providerService.findNearbyProviders(
+      h3_index,
+      lat,
+      lng,
+    );
+    return c.json(results);
   },
 );
 

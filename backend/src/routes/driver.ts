@@ -6,58 +6,47 @@ import {
   errorResponse,
   validatorHook,
 } from "../utils/constants";
-import logger from "../utils/logger";
 import { isDriverRole } from "../utils/auth";
 
 const driverApp = createRouteApp();
 
 driverApp.get("/bookings", async (c) => {
-  try {
-    const payload = c.get("jwtPayload");
-    const isDriver = isDriverRole(payload);
+  const payload = c.get("jwtPayload");
+  const isDriver = isDriverRole(payload);
 
-    if (!isDriver) {
-      return c.json(errorResponse(ERROR_MESSAGES.FORBIDDEN_ACCESS), 403);
-    }
-
-    const db = c.get("getSupabaseRepo")();
-    const bookings = await db.getConfirmedBookings();
-
-    return c.json(bookings);
-  } catch (error) {
-    logger.error(error, "Driver /bookings error");
-    return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);
+  if (!isDriver) {
+    return c.json(errorResponse(ERROR_MESSAGES.FORBIDDEN_ACCESS), 403);
   }
+
+  const db = c.get("getSupabaseRepo")();
+  const bookings = await db.getConfirmedBookings();
+
+  return c.json(bookings);
 });
 
 driverApp.post(
   "/ping",
   zValidator("json", driverPingSchema, validatorHook),
   async (c) => {
-    try {
-      const body = c.req.valid("json");
-      const { driver_id, lat, lng, h3_index, previous_h3_index } = body;
+    const body = c.req.valid("json");
+    const { driver_id, lat, lng, h3_index, previous_h3_index } = body;
 
-      const payload = c.get("jwtPayload");
-      const isDriver = isDriverRole(payload);
+    const payload = c.get("jwtPayload");
+    const isDriver = isDriverRole(payload);
 
-      if (payload.sub !== driver_id || !isDriver) {
-        return c.json(errorResponse(ERROR_MESSAGES.FORBIDDEN_ACCESS), 403);
-      }
-
-      const dispatchService = c.get("getDispatchService")();
-      await dispatchService.updateDriverStatus(
-        driver_id,
-        { lat, lng },
-        h3_index,
-        previous_h3_index,
-      );
-
-      return c.json({ driver_id, lat, lng, h3_index, previous_h3_index });
-    } catch (error) {
-      logger.error(error, "Driver /ping error");
-      return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);
+    if (payload.sub !== driver_id || !isDriver) {
+      return c.json(errorResponse(ERROR_MESSAGES.FORBIDDEN_ACCESS), 403);
     }
+
+    const dispatchService = c.get("getDispatchService")();
+    await dispatchService.updateDriverStatus(
+      driver_id,
+      { lat, lng },
+      h3_index,
+      previous_h3_index,
+    );
+
+    return c.json({ driver_id, lat, lng, h3_index, previous_h3_index });
   },
 );
 

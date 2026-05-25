@@ -7,6 +7,7 @@ import { ERROR_MESSAGES, errorResponse } from "./utils/constants";
 import { diMiddleware } from "./middleware/di";
 import { supabaseAuth } from "./middleware/auth";
 import { rateLimiter } from "./middleware/rate-limit";
+import { errorHandler } from "./middleware/error-handler";
 
 import discoveryApp from "./routes/discovery";
 import bookingsApp from "./routes/bookings";
@@ -50,9 +51,6 @@ app.route("/driver", driverApp);
 app.route("/hospitals", hospitalsApp);
 app.route("/providers", providersApp);
 
-app.onError((err, c) => {
-  logger.error({ err }, "Unhandled exception: %s", err.message);
-  return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);
-});
+app.onError(errorHandler);
 
 export default app;

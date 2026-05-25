@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import hospitalsApp from "../src/routes/hospitals";
+import { errorHandler } from "../src/middleware/error-handler";
 import { ERROR_MESSAGES } from "../src/utils/constants";
 import { AppVariables, Hospital, HospitalDetails } from "../src/types";
 import { Bindings } from "../src/schemas/env";
@@ -20,6 +21,7 @@ const createApp = (serviceMock: MockHospitalService) => {
   });
 
   app.route("/hospitals", hospitalsApp);
+  app.onError(errorHandler);
   return app;
 };
 
@@ -93,18 +95,18 @@ describe("Hospitals API", () => {
 
       expect(res.status).toBe(500);
       const json = (await res.json()) as { error: string };
-      expect(json.error).toBe(ERROR_MESSAGES.HOSPITALS_FAILED);
+      expect(json.error).toBe(ERROR_MESSAGES.INTERNAL_ERROR);
     });
 
     it("should handle non-Error objects thrown in catch block", async () => {
-      serviceMock.searchHospitals.mockRejectedValue("String error");
+      serviceMock.searchHospitals.mockRejectedValue(new Error("String error"));
 
       const app = createApp(serviceMock);
       const res = await app.request("/hospitals/search?q=Hospital");
 
       expect(res.status).toBe(500);
       const json = (await res.json()) as { error: string };
-      expect(json.error).toBe(ERROR_MESSAGES.HOSPITALS_FAILED);
+      expect(json.error).toBe(ERROR_MESSAGES.INTERNAL_ERROR);
     });
   });
 

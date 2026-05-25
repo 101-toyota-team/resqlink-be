@@ -1,13 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { nearbyAmbulancesSchema } from "../schemas";
 import { createRouteApp } from "../utils/route";
-import {
-  ERROR_MESSAGES,
-  errorResponse,
-  validatorHook,
-  DISCOVERY,
-} from "../utils/constants";
-import logger from "../utils/logger";
+import { DISCOVERY, validatorHook } from "../utils/constants";
 
 const discoveryApp = createRouteApp();
 
@@ -15,24 +9,19 @@ discoveryApp.get(
   "/nearby",
   zValidator("query", nearbyAmbulancesSchema, validatorHook),
   async (c) => {
-    try {
-      const { h3_index, pickup } = c.req.valid("query");
+    const { h3_index, pickup } = c.req.valid("query");
 
-      const dispatchService = c.get("getDispatchService")();
-      const drivers = await dispatchService.findNearbyAmbulances(
-        h3_index,
-        DISCOVERY.H3_RING_RADIUS,
-        pickup,
-      );
+    const dispatchService = c.get("getDispatchService")();
+    const drivers = await dispatchService.findNearbyAmbulances(
+      h3_index,
+      DISCOVERY.H3_RING_RADIUS,
+      pickup,
+    );
 
-      return c.json({
-        center: h3_index,
-        found_drivers: drivers,
-      });
-    } catch (error) {
-      logger.error({ error }, "Discovery /nearby error");
-      return c.json(errorResponse(ERROR_MESSAGES.DISCOVERY_FAILED), 500);
-    }
+    return c.json({
+      center: h3_index,
+      found_drivers: drivers,
+    });
   },
 );
 

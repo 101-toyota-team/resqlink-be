@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import bookingsApp from "../src/routes/bookings";
+import { errorHandler } from "../src/middleware/error-handler";
 import { ERROR_MESSAGES } from "../src/utils/constants";
 import { AppVariables, JwtPayload } from "../src/types";
 import { Bindings } from "../src/schemas/env";
@@ -77,6 +78,7 @@ const createApp = (
   });
 
   app.route("/bookings", bookingsApp);
+  app.onError(errorHandler);
   return app;
 };
 
@@ -262,7 +264,7 @@ describe("Bookings API", () => {
 
       expect(res.status).toBe(500);
       const json = (await res.json()) as { error: string };
-      expect(json.error).toBe(ERROR_MESSAGES.BOOKING_FAILED);
+      expect(json.error).toBe(ERROR_MESSAGES.INTERNAL_ERROR);
     });
   });
 
