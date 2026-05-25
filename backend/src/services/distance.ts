@@ -1,4 +1,4 @@
-import { ICacheRepository } from "../repositories/cache";
+import { IGenericCache } from "../repositories/generic-cache";
 import { IMapsRepository } from "../repositories/maps";
 import { AmbulanceLocation } from "../types";
 import { IGeoService } from "./geo";
@@ -22,7 +22,7 @@ export interface IDistanceService {
 export class DistanceService implements IDistanceService {
   constructor(
     private maps: IMapsRepository,
-    private cache: ICacheRepository,
+    private cache: IGenericCache,
     private geo: IGeoService,
   ) {}
 

@@ -3,8 +3,15 @@ import { IBookingService } from "./services/bookings";
 import { ISimulationService } from "./services/simulation";
 import { IProviderService } from "./services/providers";
 import { IHospitalService } from "./services/hospitals";
-import { IPersistenceRepository } from "./repositories/db";
+import {
+  IBookingRepository,
+  IAmbulanceRepository,
+  IProviderRepository,
+  IHospitalRepository,
+  IRealtimeBroadcaster,
+} from "./repositories/db";
 import { IMapsRepository } from "./repositories/maps";
+import { IGenericCache } from "./repositories/generic-cache";
 import { ICacheRepository } from "./repositories/cache";
 import type { BookingStatus } from "./utils/constants";
 
@@ -136,9 +143,13 @@ export interface AppVariables {
   getDispatchService: () => IDispatchService;
   getProviderService: () => IProviderService;
   getHospitalService: () => IHospitalService;
-  getSupabaseRepo: () => IPersistenceRepository;
+  getSupabaseRepo: () => IBookingRepository &
+    IAmbulanceRepository &
+    IProviderRepository &
+    IHospitalRepository &
+    IRealtimeBroadcaster;
   getMaps: () => IMapsRepository;
-  getCache: () => ICacheRepository;
+  getCache: () => IGenericCache & ICacheRepository;
   getLogger: () => ILogger;
   jwtPayload: JwtPayload;
 }
