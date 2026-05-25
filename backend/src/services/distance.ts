@@ -112,7 +112,7 @@ export class DistanceService implements IDistanceService {
       );
       for (const result of writeResults) {
         if (result.status === "rejected") {
-          logger.warn("Distance cache write failed: %s", result.reason);
+          logger.warn("Distance cache write failed:", result.reason);
         }
       }
     }

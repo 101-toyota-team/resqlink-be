@@ -28,7 +28,7 @@ export function rateLimiter(
       }
     } catch (err) {
       logger.error(
-        { err },
+        err,
         `Native rate limiter error for ${bindingName} — allowing request`,
       );
       await next();
