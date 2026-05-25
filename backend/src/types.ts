@@ -143,6 +143,11 @@ export interface AppVariables {
   getDispatchService: () => IDispatchService;
   getProviderService: () => IProviderService;
   getHospitalService: () => IHospitalService;
+  getBookingRepo: () => IBookingRepository;
+  getAmbulanceRepo: () => IAmbulanceRepository;
+  getProviderRepo: () => IProviderRepository;
+  getHospitalRepo: () => IHospitalRepository;
+  getRealtimeRepo: () => IRealtimeBroadcaster;
   getSupabaseRepo: () => IBookingRepository &
     IAmbulanceRepository &
     IProviderRepository &

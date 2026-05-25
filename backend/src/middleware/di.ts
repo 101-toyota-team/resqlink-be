@@ -2,7 +2,13 @@ import { MiddlewareHandler } from "hono";
 import { BookingService, IBookingService } from "../services/bookings";
 import { DispatchService, IDispatchService } from "../services/dispatch";
 import { SimulationService, ISimulationService } from "../services/simulation";
-import { SupabaseRepository } from "../infrastructure/supabase";
+import {
+  BookingRepository,
+  AmbulanceRepository,
+  ProviderRepository,
+  HospitalRepository,
+  RealtimeBroadcaster,
+} from "../infrastructure/supabase";
 import { UpstashRedisRepository } from "../infrastructure/upstash";
 import { GoogleMapsRepository } from "../infrastructure/google-maps";
 import { Bindings } from "../schemas/env";
@@ -22,7 +28,11 @@ export const diMiddleware: MiddlewareHandler<{
   let dispatchService: IDispatchService | undefined;
   let providerService: IProviderService | undefined;
   let hospitalService: IHospitalService | undefined;
-  let dbRepo: SupabaseRepository | undefined;
+  let bookingRepo: BookingRepository | undefined;
+  let ambulanceRepo: AmbulanceRepository | undefined;
+  let providerRepo: ProviderRepository | undefined;
+  let hospitalRepo: HospitalRepository | undefined;
+  let realtimeRepo: RealtimeBroadcaster | undefined;
   let mapsRepo: GoogleMapsRepository | undefined;
   let cacheRepo: UpstashRedisRepository | undefined;
   let geoService: GeoService | undefined;
@@ -35,13 +45,77 @@ export const diMiddleware: MiddlewareHandler<{
 
   c.set("getLogger", getLogger);
 
+  const getGeo = () => {
+    if (!geoService) geoService = new GeoService();
+    return geoService;
+  };
+
+  c.set("getBookingRepo", () => {
+    if (!bookingRepo) {
+      bookingRepo = new BookingRepository(
+        c.env.SUPABASE_URL,
+        c.env.SUPABASE_SECRET_KEY,
+      );
+    }
+    return bookingRepo;
+  });
+
+  c.set("getAmbulanceRepo", () => {
+    if (!ambulanceRepo) {
+      ambulanceRepo = new AmbulanceRepository(
+        c.env.SUPABASE_URL,
+        c.env.SUPABASE_SECRET_KEY,
+      );
+    }
+    return ambulanceRepo;
+  });
+
+  c.set("getProviderRepo", () => {
+    if (!providerRepo) {
+      providerRepo = new ProviderRepository(
+        c.env.SUPABASE_URL,
+        c.env.SUPABASE_SECRET_KEY,
+      );
+    }
+    return providerRepo;
+  });
+
+  c.set("getHospitalRepo", () => {
+    if (!hospitalRepo) {
+      hospitalRepo = new HospitalRepository(
+        c.env.SUPABASE_URL,
+        c.env.SUPABASE_SECRET_KEY,
+      );
+    }
+    return hospitalRepo;
+  });
+
+  c.set("getRealtimeRepo", () => {
+    if (!realtimeRepo) {
+      realtimeRepo = new RealtimeBroadcaster(
+        c.env.SUPABASE_URL,
+        c.env.SUPABASE_SECRET_KEY,
+      );
+    }
+    return realtimeRepo;
+  });
+
+  // Backward-compatible combined repo getter
+  c.set("getSupabaseRepo", () => ({
+    ...c.get("getBookingRepo")(),
+    ...c.get("getAmbulanceRepo")(),
+    ...c.get("getProviderRepo")(),
+    ...c.get("getHospitalRepo")(),
+    ...c.get("getRealtimeRepo")(),
+  }));
+
   c.set("getSimulationService", () => {
     if (!simulationService) {
       simulationService = new SimulationService(
         c.get("getCache")(),
-        c.get("getSupabaseRepo")(),
-        c.get("getSupabaseRepo")(),
-        c.get("getSupabaseRepo")(),
+        c.get("getBookingRepo")(),
+        c.get("getAmbulanceRepo")(),
+        c.get("getRealtimeRepo")(),
         c.get("getMaps")(),
       );
     }
@@ -51,31 +125,30 @@ export const diMiddleware: MiddlewareHandler<{
   c.set("getBookingService", () => {
     if (!bookingService) {
       bookingService = new BookingService(
-        c.get("getSupabaseRepo")(),
-        c.get("getSupabaseRepo")(),
+        c.get("getBookingRepo")(),
+        c.get("getAmbulanceRepo")(),
         c.get("getSimulationService")(),
       );
     }
     return bookingService;
   });
 
-  const getGeo = () => {
-    if (!geoService) geoService = new GeoService();
-    return geoService;
-  };
-
   c.set("getProviderService", () => {
     if (!providerService) {
-      const repo = c.get("getSupabaseRepo")();
-      providerService = new ProviderService(repo, getGeo());
+      providerService = new ProviderService(
+        c.get("getProviderRepo")(),
+        getGeo(),
+      );
     }
     return providerService;
   });
 
   c.set("getHospitalService", () => {
     if (!hospitalService) {
-      const repo = c.get("getSupabaseRepo")();
-      hospitalService = new HospitalService(repo, getGeo());
+      hospitalService = new HospitalService(
+        c.get("getHospitalRepo")(),
+        getGeo(),
+      );
     }
     return hospitalService;
   });
@@ -83,7 +156,7 @@ export const diMiddleware: MiddlewareHandler<{
   c.set("getDispatchService", () => {
     if (!dispatchService) {
       const cache = c.get("getCache")();
-      const ambulanceRepo = c.get("getSupabaseRepo")();
+      const ambulanceRepo = c.get("getAmbulanceRepo")();
       const maps = c.get("getMaps")();
       const geo = getGeo();
       const distanceService = new DistanceService(maps, cache, geo);
@@ -97,16 +170,6 @@ export const diMiddleware: MiddlewareHandler<{
       );
     }
     return dispatchService;
-  });
-
-  c.set("getSupabaseRepo", () => {
-    if (!dbRepo) {
-      dbRepo = new SupabaseRepository(
-        c.env.SUPABASE_URL,
-        c.env.SUPABASE_SECRET_KEY,
-      );
-    }
-    return dbRepo;
   });
 
   c.set("getMaps", () => {
