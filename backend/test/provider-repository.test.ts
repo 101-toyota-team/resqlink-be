@@ -73,6 +73,18 @@ describe("SupabaseRepository provider methods", () => {
         repository.searchProviders("raw", "expanded"),
       ).rejects.toThrow(DatabaseSchemaDriftError);
     });
+
+    it("passes max_results to RPC when limit is provided", async () => {
+      mockRpc.mockResolvedValue({ data: [validProvider], error: null });
+
+      await repository.searchProviders("raw", "expanded", 5);
+
+      expect(mockRpc).toHaveBeenCalledWith("search_providers_optimized", {
+        search_term: "expanded",
+        raw_term: "raw",
+        max_results: 5,
+      });
+    });
   });
 
   describe("findProvidersByH3Indexes", () => {

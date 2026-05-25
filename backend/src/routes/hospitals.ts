@@ -9,9 +9,9 @@ hospitalsApp.get(
   "/search",
   zValidator("query", hospitalSearchSchema, validatorHook),
   async (c) => {
-    const { q } = c.req.valid("query");
+    const { q, limit } = c.req.valid("query");
     const hospitalService = c.get("getHospitalService")();
-    const results = await hospitalService.searchHospitals(q);
+    const results = await hospitalService.searchHospitals(q, limit);
     return c.json(results);
   },
 );

@@ -4,7 +4,7 @@ import { IGeoService } from "./geo";
 import { preprocessQuery } from "../utils/query";
 
 export interface IHospitalService {
-  searchHospitals(query: string): Promise<Hospital[]>;
+  searchHospitals(query: string, limit?: number): Promise<Hospital[]>;
   findNearbyHospitals(h3Index: string): Promise<HospitalDetails[]>;
 }
 
@@ -14,9 +14,9 @@ export class HospitalService implements IHospitalService {
     private geo: IGeoService,
   ) {}
 
-  async searchHospitals(query: string): Promise<Hospital[]> {
+  async searchHospitals(query: string, limit?: number): Promise<Hospital[]> {
     const { raw, expanded } = preprocessQuery(query);
-    return this.hospitalRepo.searchHospitals(raw, expanded);
+    return this.hospitalRepo.searchHospitals(raw, expanded, limit);
   }
 
   async findNearbyHospitals(h3Index: string): Promise<HospitalDetails[]> {

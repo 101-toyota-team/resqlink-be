@@ -120,8 +120,12 @@ export class SupabaseRepository
 
   // --- IProviderRepository ---
 
-  searchProviders(raw: string, expanded: string): Promise<Provider[]> {
-    return this.providerRepo.searchProviders(raw, expanded);
+  searchProviders(
+    raw: string,
+    expanded: string,
+    limit?: number,
+  ): Promise<Provider[]> {
+    return this.providerRepo.searchProviders(raw, expanded, limit);
   }
 
   findProvidersByH3Indexes(h3Indexes: string[]): Promise<Provider[]> {
@@ -130,8 +134,12 @@ export class SupabaseRepository
 
   // --- IHospitalRepository ---
 
-  searchHospitals(raw: string, expanded: string): Promise<Hospital[]> {
-    return this.hospitalRepo.searchHospitals(raw, expanded);
+  searchHospitals(
+    raw: string,
+    expanded: string,
+    limit?: number,
+  ): Promise<Hospital[]> {
+    return this.hospitalRepo.searchHospitals(raw, expanded, limit);
   }
 
   findHospitalsByH3Indexes(h3Indexes: string[]): Promise<HospitalDetails[]> {

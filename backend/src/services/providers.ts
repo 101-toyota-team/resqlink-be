@@ -5,7 +5,7 @@ import { preprocessQuery } from "../utils/query";
 import { PROVIDER_SEARCH } from "../utils/constants";
 
 export interface IProviderService {
-  searchProviders(query: string): Promise<ProviderDetails[]>;
+  searchProviders(query: string, limit?: number): Promise<ProviderDetails[]>;
   findNearbyProviders(
     h3Index: string,
     lat?: number,
@@ -19,9 +19,12 @@ export class ProviderService implements IProviderService {
     private geo: IGeoService,
   ) {}
 
-  async searchProviders(query: string): Promise<ProviderDetails[]> {
+  async searchProviders(
+    query: string,
+    limit?: number,
+  ): Promise<ProviderDetails[]> {
     const { raw, expanded } = preprocessQuery(query);
-    return this.providerRepo.searchProviders(raw, expanded);
+    return this.providerRepo.searchProviders(raw, expanded, limit);
   }
 
   async findNearbyProviders(

@@ -38,10 +38,19 @@ export class HospitalRepository
     };
   }
 
-  async searchHospitals(raw: string, expanded: string): Promise<Hospital[]> {
+  async searchHospitals(
+    raw: string,
+    expanded: string,
+    limit?: number,
+  ): Promise<Hospital[]> {
+    const params: Record<string, unknown> = {
+      search_term: expanded,
+      raw_term: raw,
+    };
+    if (limit !== undefined) params.max_results = limit;
     const { data: ids, error: rpcError } = await this.client.rpc(
       "search_hospitals_optimized",
-      { search_term: expanded, raw_term: raw },
+      params,
     );
 
     if (rpcError) {

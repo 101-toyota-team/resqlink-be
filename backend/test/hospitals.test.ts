@@ -74,7 +74,28 @@ describe("Hospitals API", () => {
 
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual(mockResults);
-      expect(serviceMock.searchHospitals).toHaveBeenCalledWith("Hospital");
+      expect(serviceMock.searchHospitals).toHaveBeenCalledWith(
+        "Hospital",
+        undefined,
+      );
+    });
+
+    it("should pass limit param to service when provided", async () => {
+      serviceMock.searchHospitals.mockResolvedValue([]);
+
+      const app = createApp(serviceMock);
+      const res = await app.request("/hospitals/search?q=test&limit=10");
+
+      expect(res.status).toBe(200);
+      expect(serviceMock.searchHospitals).toHaveBeenCalledWith("test", 10);
+    });
+
+    it("should reject limit exceeding max", async () => {
+      const app = createApp(serviceMock);
+      const res = await app.request("/hospitals/search?q=test&limit=200");
+
+      expect(res.status).toBe(400);
+      expect(serviceMock.searchHospitals).not.toHaveBeenCalled();
     });
 
     it("should return 400 for validation errors (e.g. query too short)", async () => {

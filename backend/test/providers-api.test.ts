@@ -51,6 +51,7 @@ describe("ProviderService", () => {
     expect(mockProviderRepo.searchProviders).toHaveBeenCalledWith(
       "RS Duren Sawit",
       "Rumah Sakit Duren Sawit",
+      undefined,
     );
   });
 
@@ -59,6 +60,7 @@ describe("ProviderService", () => {
     expect(mockProviderRepo.searchProviders).toHaveBeenCalledWith(
       "RSUD and RSIA",
       "Rumah Sakit Umum Daerah and Rumah Sakit Ibu dan Anak",
+      undefined,
     );
   });
 });
@@ -93,7 +95,28 @@ describe("Providers API", () => {
 
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual(mockResults);
-      expect(serviceMock.searchProviders).toHaveBeenCalledWith("Provider");
+      expect(serviceMock.searchProviders).toHaveBeenCalledWith(
+        "Provider",
+        undefined,
+      );
+    });
+
+    it("passes limit param to service when provided", async () => {
+      serviceMock.searchProviders.mockResolvedValue([]);
+
+      const app = createApp(serviceMock);
+      const res = await app.request("/providers/search?q=test&limit=5");
+
+      expect(res.status).toBe(200);
+      expect(serviceMock.searchProviders).toHaveBeenCalledWith("test", 5);
+    });
+
+    it("rejects limit exceeding max", async () => {
+      const app = createApp(serviceMock);
+      const res = await app.request("/providers/search?q=test&limit=200");
+
+      expect(res.status).toBe(400);
+      expect(serviceMock.searchProviders).not.toHaveBeenCalled();
     });
 
     it("returns 400 for query too short", async () => {

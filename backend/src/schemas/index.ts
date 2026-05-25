@@ -74,6 +74,7 @@ export const driverPingSchema = z.object({
 
 export const searchQuerySchema = z.object({
   q: z.string().min(2, "Search query must be at least 2 characters").max(256),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 
 export const hospitalSearchSchema = searchQuerySchema;
