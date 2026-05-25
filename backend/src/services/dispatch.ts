@@ -1,4 +1,3 @@
-import { IGenericCache } from "../repositories/generic-cache";
 import { ICacheRepository } from "../repositories/cache";
 import { IAmbulanceRepository } from "../repositories/ambulance";
 import { AmbulanceDetails, AmbulanceLocation } from "../types";
