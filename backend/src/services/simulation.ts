@@ -45,10 +45,7 @@ export class SimulationService implements ISimulationService {
     );
 
     if (directions.status !== "OK" || !directions.routes[0]) {
-      logger.error(
-        "Directions API failed for simulation: %s",
-        directions.status,
-      );
+      logger.error("Directions API failed for simulation:", directions.status);
       return false;
     }
 
@@ -56,7 +53,7 @@ export class SimulationService implements ISimulationService {
     const points = decodePolyline(encodedPolyline);
 
     if (points.length === 0) {
-      logger.error(booking.id, "Decoded polyline for booking is empty");
+      logger.error("Decoded polyline for booking is empty:", booking.id);
       return false;
     }
 

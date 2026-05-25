@@ -51,7 +51,7 @@ export class GoogleMapsRepository implements IMapsRepository {
     const response = await this.handleResponse(await fetchWithTimeout(url));
     const data = await response.json();
     if (!isValidDistanceMatrix(data)) {
-      logger.error({ data }, "Invalid distance matrix response");
+      logger.error(data, "Invalid distance matrix response");
       throw new Error("Invalid response from Google Distance Matrix API");
     }
     return data;
@@ -68,7 +68,7 @@ export class GoogleMapsRepository implements IMapsRepository {
     const response = await this.handleResponse(await fetchWithTimeout(url));
     const data = await response.json();
     if (!isValidDirections(data)) {
-      logger.error({ data }, "Invalid directions response");
+      logger.error(data, "Invalid directions response");
       throw new Error("Invalid response from Google Directions API");
     }
     return data;
