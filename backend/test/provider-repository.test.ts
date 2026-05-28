@@ -47,6 +47,7 @@ describe("SupabaseRepository provider methods", () => {
       expect(mockRpc).toHaveBeenCalledWith("search_providers_optimized", {
         search_term: "expanded",
         raw_term: "raw",
+        max_results: 50,
       });
       expect(result).toEqual([validProvider]);
     });

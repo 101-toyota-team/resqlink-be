@@ -17,8 +17,8 @@ export class ProviderRepository
     const params: Record<string, unknown> = {
       search_term: expanded,
       raw_term: raw,
+      max_results: limit ?? 50,
     };
-    if (limit !== undefined) params.max_results = limit;
     const { data, error } = await this.client.rpc(
       "search_providers_optimized",
       params,
