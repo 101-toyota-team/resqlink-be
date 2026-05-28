@@ -46,8 +46,8 @@ export class HospitalRepository
     const params: Record<string, unknown> = {
       search_term: expanded,
       raw_term: raw,
+      max_results: limit ?? 50,
     };
-    if (limit !== undefined) params.max_results = limit;
     const { data: ids, error: rpcError } = await this.client.rpc(
       "search_hospitals_optimized",
       params,
@@ -150,7 +150,7 @@ export class HospitalRepository
       )
       .eq("providers.provider_type", "rumah_sakit")
       .in("providers.h3_index", h3Indexes)
-      .order("providers.name", { ascending: true });
+      .order("name", { foreignTable: "providers", ascending: true });
 
     if (error) {
       logger.error(error, "Supabase findHospitalsByH3Indexes error");
