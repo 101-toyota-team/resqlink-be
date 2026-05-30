@@ -104,6 +104,11 @@ export interface Booking extends BookingData {
 export interface JwtPayload {
   sub: string;
   role?: string;
+  app_metadata?: {
+    role?: string;
+    provider_id?: string;
+    [key: string]: unknown;
+  };
   [key: string]: unknown;
 }
 
