@@ -102,6 +102,20 @@ export class SupabaseRepository
     return this.bookingRepo.getConfirmedBookings(limit, offset);
   }
 
+  getBookingsByProvider(
+    providerId: string,
+    status?: BookingStatus,
+    limit?: number,
+    offset?: number,
+  ): Promise<Booking[]> {
+    return this.bookingRepo.getBookingsByProvider(
+      providerId,
+      status,
+      limit,
+      offset,
+    );
+  }
+
   // --- IAmbulanceRepository ---
 
   getAmbulance(ambulanceId: string): Promise<AmbulanceInfo | null> {
@@ -153,5 +167,9 @@ export class SupabaseRepository
     location: AmbulanceLocation,
   ): Promise<void> {
     return this.realtimeRepo.broadcastTripLocation(bookingId, location);
+  }
+
+  broadcastNewBooking(providerId: string, booking: Booking): Promise<void> {
+    return this.realtimeRepo.broadcastNewBooking(providerId, booking);
   }
 }

@@ -56,6 +56,7 @@ describe("SimulationService", () => {
       assignAmbulance: vi.fn(),
       getConfirmedBookings: vi.fn(),
       getUserBookings: vi.fn(),
+      getBookingsByProvider: vi.fn(),
     } as Mocked<IBookingRepository>;
     mockAmbulanceRepo = {
       getAmbulance: vi.fn(),
@@ -64,6 +65,7 @@ describe("SimulationService", () => {
     } as Mocked<IAmbulanceRepository>;
     mockRealtime = {
       broadcastTripLocation: vi.fn(),
+      broadcastNewBooking: vi.fn(),
     } as Mocked<IRealtimeBroadcaster>;
     mockMaps = {
       getDirections: vi.fn(),

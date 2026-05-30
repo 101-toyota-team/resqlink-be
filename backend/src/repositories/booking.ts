@@ -12,4 +12,10 @@ export interface IBookingRepository {
     offset?: number,
   ): Promise<Booking[]>;
   getConfirmedBookings(limit?: number, offset?: number): Promise<Booking[]>;
+  getBookingsByProvider(
+    providerId: string,
+    status?: BookingStatus,
+    limit?: number,
+    offset?: number,
+  ): Promise<Booking[]>;
 }

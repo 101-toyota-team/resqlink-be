@@ -26,10 +26,12 @@ interface MockDb {
   getAmbulanceProviderLocation: ReturnType<typeof vi.fn>;
   getUserBookings: ReturnType<typeof vi.fn>;
   getConfirmedBookings: ReturnType<typeof vi.fn>;
+  getBookingsByProvider: ReturnType<typeof vi.fn>;
   searchProviders: ReturnType<typeof vi.fn>;
   findProvidersByH3Indexes: ReturnType<typeof vi.fn>;
   searchHospitals: ReturnType<typeof vi.fn>;
   findHospitalsByH3Indexes: ReturnType<typeof vi.fn>;
+  broadcastNewBooking: ReturnType<typeof vi.fn>;
 }
 
 // A minimal app wrapper to inject dependencies and middleware for testing
@@ -70,6 +72,7 @@ const createApp = (
       return new BookingService(
         dbMock as IBookingRepository,
         dbMock as IAmbulanceRepository,
+        dbMock as IRealtimeBroadcaster,
         buildSimulationService(),
       );
     });
@@ -105,6 +108,8 @@ describe("Bookings API", () => {
       findProvidersByH3Indexes: vi.fn(),
       searchHospitals: vi.fn(),
       findHospitalsByH3Indexes: vi.fn(),
+      getBookingsByProvider: vi.fn(),
+      broadcastNewBooking: vi.fn(),
     };
   });
 
@@ -222,6 +227,7 @@ describe("Bookings API", () => {
         status: "draft",
       };
       dbMock.createBooking.mockResolvedValue(mockDraftBooking);
+      dbMock.broadcastNewBooking = vi.fn().mockResolvedValue(undefined);
 
       const app = createApp(dbMock, { sub: mockUserId });
       const res = await app.request("/bookings", {
@@ -236,6 +242,40 @@ describe("Bookings API", () => {
         ...draftPayload,
         user_id: mockUserId,
       });
+      expect(dbMock.broadcastNewBooking).not.toHaveBeenCalled();
+    });
+
+    it("should broadcast to provider channel when draft booking is created with provider_id", async () => {
+      const { ambulance_id: _ambulance_id, ...draftPayload } =
+        validBookingPayload;
+
+      const providerId = "223e4567-e89b-12d3-a456-426614174009";
+      const payloadWithProvider = {
+        ...draftPayload,
+        provider_id: providerId,
+      };
+
+      const mockDraftBooking = {
+        id: mockBookingId,
+        ...payloadWithProvider,
+        user_id: mockUserId,
+        status: "draft",
+      };
+      dbMock.createBooking.mockResolvedValue(mockDraftBooking);
+      dbMock.broadcastNewBooking = vi.fn().mockResolvedValue(undefined);
+
+      const app = createApp(dbMock, { sub: mockUserId });
+      const res = await app.request("/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payloadWithProvider),
+      });
+
+      expect(res.status).toBe(201);
+      expect(dbMock.broadcastNewBooking).toHaveBeenCalledWith(
+        providerId,
+        mockDraftBooking,
+      );
     });
 
     it("should return 400 for validation errors", async () => {
@@ -850,6 +890,83 @@ describe("Bookings API", () => {
       });
 
       expect(res.status).toBe(400);
+      expect(dbMock.assignAmbulance).not.toHaveBeenCalled();
+    });
+
+    it("should return 200 if authorized as provider with matching provider_id", async () => {
+      const providerId = "prov-123";
+      const mockBooking = {
+        id: mockBookingId,
+        user_id: mockUserId,
+        provider_id: providerId,
+        status: "draft",
+        booking_type: "medis",
+        patient_condition: "test",
+        pickup_address: "test",
+        pickup_lat: -6.2,
+        pickup_lng: 106.8,
+        pickup_h3: "876526b33ffffff",
+        destination_address: "test",
+        destination_lat: -6.21,
+        destination_lng: 106.82,
+        created_at: "2025-01-01T00:00:00Z",
+      };
+      dbMock.getBooking.mockResolvedValue(mockBooking);
+      dbMock.getAmbulance.mockResolvedValue({
+        id: "223e4567-e89b-12d3-a456-426614174001",
+        provider_id: providerId,
+      });
+      const updatedBooking = {
+        ...mockBooking,
+        ambulance_id: "223e4567-e89b-12d3-a456-426614174001",
+        status: "confirmed",
+      };
+      dbMock.assignAmbulance.mockResolvedValue(updatedBooking);
+
+      const app = createApp(dbMock, {
+        sub: mockOtherUserId,
+        role: "provider",
+        app_metadata: { provider_id: providerId },
+      });
+      const res = await app.request(`/bookings/${mockBookingId}/assign`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ambulance_id: "223e4567-e89b-12d3-a456-426614174001",
+        }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(dbMock.assignAmbulance).toHaveBeenCalledWith(
+        mockBookingId,
+        "223e4567-e89b-12d3-a456-426614174001",
+      );
+    });
+
+    it("should return 403 if provider_id does not match", async () => {
+      const providerId = "prov-123";
+      const mockBooking = {
+        id: mockBookingId,
+        user_id: mockUserId,
+        provider_id: "prov-999", // Different provider
+        status: "draft",
+      };
+      dbMock.getBooking.mockResolvedValue(mockBooking);
+
+      const app = createApp(dbMock, {
+        sub: mockOtherUserId,
+        role: "provider",
+        app_metadata: { provider_id: providerId },
+      });
+      const res = await app.request(`/bookings/${mockBookingId}/assign`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ambulance_id: "223e4567-e89b-12d3-a456-426614174001",
+        }),
+      });
+
+      expect(res.status).toBe(403);
       expect(dbMock.assignAmbulance).not.toHaveBeenCalled();
     });
 

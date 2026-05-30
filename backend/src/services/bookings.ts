@@ -1,5 +1,6 @@
 import { IBookingRepository } from "../repositories/booking";
 import { IAmbulanceRepository } from "../repositories/ambulance";
+import { IRealtimeBroadcaster } from "../repositories/realtime";
 import { ISimulationService } from "./simulation";
 import { Booking, BookingData, JwtPayload } from "../types";
 import type { BookingStatus } from "../utils/constants";
@@ -45,12 +46,23 @@ export class BookingService implements IBookingService {
   constructor(
     private bookingRepo: IBookingRepository,
     private ambulanceRepo: IAmbulanceRepository,
+    private realtime: IRealtimeBroadcaster,
     private simulation: ISimulationService,
   ) {}
 
   async createBooking(data: BookingData, userId: string): Promise<Booking> {
     const bookingData = { ...data, user_id: userId };
-    return this.bookingRepo.createBooking(bookingData);
+    const booking = await this.bookingRepo.createBooking(bookingData);
+
+    if (booking.status === "draft" && booking.provider_id) {
+      await this.realtime
+        .broadcastNewBooking(booking.provider_id, booking)
+        .catch((err) => {
+          console.error("Failed to broadcast new booking to provider:", err);
+        });
+    }
+
+    return booking;
   }
 
   async getBooking(id: string, payload: JwtPayload): Promise<Booking> {
@@ -58,7 +70,13 @@ export class BookingService implements IBookingService {
     if (!booking) {
       throw new NotFoundError(ERROR_MESSAGES.BOOKING_NOT_FOUND);
     }
-    if (!canAccessBooking(payload, booking.user_id)) {
+    if (
+      !canAccessBooking(
+        payload,
+        booking.user_id,
+        booking.provider_id || undefined,
+      )
+    ) {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
     }
     return booking;
@@ -82,7 +100,13 @@ export class BookingService implements IBookingService {
       throw new NotFoundError(ERROR_MESSAGES.BOOKING_NOT_FOUND);
     }
 
-    if (!canAccessBooking(payload, booking.user_id)) {
+    if (
+      !canAccessBooking(
+        payload,
+        booking.user_id,
+        booking.provider_id || undefined,
+      )
+    ) {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
     }
 
@@ -115,7 +139,13 @@ export class BookingService implements IBookingService {
       throw new NotFoundError(ERROR_MESSAGES.BOOKING_NOT_FOUND);
     }
 
-    if (!canAccessBooking(payload, booking.user_id)) {
+    if (
+      !canAccessBooking(
+        payload,
+        booking.user_id,
+        booking.provider_id || undefined,
+      )
+    ) {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
     }
 
