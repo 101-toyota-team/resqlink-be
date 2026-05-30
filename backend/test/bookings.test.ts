@@ -337,8 +337,7 @@ describe("Bookings API", () => {
 
       const app = createApp(dbMock, {
         sub: mockDriverId,
-        role: "driver",
-        app_metadata: { provider_id: "prov-123" },
+        app_metadata: { role: "driver", provider_id: "prov-123" },
       });
       const res = await app.request(`/bookings/${mockBookingId}`);
 
@@ -462,8 +461,7 @@ describe("Bookings API", () => {
         dbMock,
         {
           sub: mockDriverId,
-          role: "driver",
-          app_metadata: { provider_id: "prov-123" },
+          app_metadata: { role: "driver", provider_id: "prov-123" },
         },
         dispatchMock,
       );
@@ -499,8 +497,7 @@ describe("Bookings API", () => {
         dbMock,
         {
           sub: mockDriverId,
-          role: "driver",
-          app_metadata: { provider_id: "prov-123" },
+          app_metadata: { role: "driver", provider_id: "prov-123" },
         },
         dispatchMock,
       );
@@ -549,8 +546,7 @@ describe("Bookings API", () => {
         dbMock,
         {
           sub: mockOtherUserId,
-          role: "provider",
-          app_metadata: { provider_id: "prov-123" },
+          app_metadata: { role: "provider", provider_id: "prov-123" },
         },
         dispatchMock,
       );
@@ -713,8 +709,7 @@ describe("Bookings API", () => {
       dbMock,
       {
         sub: mockDriverId,
-        role: "driver",
-        app_metadata: { provider_id: "prov-123" },
+        app_metadata: { role: "driver", provider_id: "prov-123" },
       },
       dispatchMock,
     );
@@ -1048,8 +1043,7 @@ describe("Bookings API", () => {
 
       const app = createApp(dbMock, {
         sub: mockOtherUserId,
-        role: "provider",
-        app_metadata: { provider_id: providerId },
+        app_metadata: { role: "provider", provider_id: providerId },
       });
       const res = await app.request(`/bookings/${mockBookingId}/assign`, {
         method: "PUT",
@@ -1078,8 +1072,7 @@ describe("Bookings API", () => {
 
       const app = createApp(dbMock, {
         sub: mockOtherUserId,
-        role: "provider",
-        app_metadata: { provider_id: providerId },
+        app_metadata: { role: "provider", provider_id: providerId },
       });
       const res = await app.request(`/bookings/${mockBookingId}/assign`, {
         method: "PUT",
