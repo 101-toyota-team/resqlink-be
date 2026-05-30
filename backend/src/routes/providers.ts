@@ -2,6 +2,14 @@ import { zValidator } from "@hono/zod-validator";
 import { providerSearchSchema, providerNearbySchema } from "../schemas";
 import { createRouteApp } from "../utils/route";
 import { validatorHook } from "../utils/constants";
+import { supabaseAuth } from "../middleware/auth";
+import { isProviderRole, getProviderId } from "../utils/auth";
+import {
+  ERROR_MESSAGES,
+  errorResponse,
+  BOOKING_STATUSES,
+} from "../utils/constants";
+import { z } from "zod";
 
 const providersApp = createRouteApp();
 
@@ -28,6 +36,40 @@ providersApp.get(
       lng,
     );
     return c.json(results);
+  },
+);
+
+providersApp.get(
+  "/:id/bookings",
+  supabaseAuth,
+  zValidator(
+    "query",
+    z.object({
+      status: z.enum(BOOKING_STATUSES).optional(),
+      limit: z.coerce.number().min(1).max(50).optional().default(10),
+      offset: z.coerce.number().min(0).optional().default(0),
+    }),
+    validatorHook,
+  ),
+  async (c) => {
+    const payload = c.get("jwtPayload");
+    const providerId = c.req.param("id");
+
+    if (!isProviderRole(payload) || getProviderId(payload) !== providerId) {
+      return c.json(errorResponse(ERROR_MESSAGES.FORBIDDEN_ACCESS), 403);
+    }
+
+    const { status, limit, offset } = c.req.valid("query");
+    const bookingRepo = c.get("getSupabaseRepo")();
+
+    const bookings = await bookingRepo.getBookingsByProvider(
+      providerId,
+      status,
+      limit,
+      offset,
+    );
+
+    return c.json(bookings);
   },
 );
 
