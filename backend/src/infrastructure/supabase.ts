@@ -98,8 +98,12 @@ export class SupabaseRepository
     return this.bookingRepo.getUserBookings(userId, limit, offset);
   }
 
-  getConfirmedBookings(limit?: number, offset?: number): Promise<Booking[]> {
-    return this.bookingRepo.getConfirmedBookings(limit, offset);
+  getConfirmedBookings(
+    providerId: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<Booking[]> {
+    return this.bookingRepo.getConfirmedBookings(providerId, limit, offset);
   }
 
   getBookingsByProvider(

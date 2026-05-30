@@ -2,7 +2,10 @@ import { IBookingRepository } from "../../repositories/booking";
 import { SupabaseClientBase } from "./client";
 import { Booking, BookingData } from "../../types";
 import type { BookingStatus } from "../../utils/constants";
-import { DatabaseSchemaDriftError } from "../../utils/constants";
+import {
+  DatabaseSchemaDriftError,
+  ERROR_MESSAGES,
+} from "../../utils/constants";
 import { dbBookingSchema } from "../../schemas/db";
 import logger from "../../utils/logger";
 
@@ -47,7 +50,7 @@ export class BookingRepository
       return this.parseBooking(booking);
     } catch (err) {
       logger.error(err, "Database schema drift detected in createBooking");
-      throw new Error("Data integrity error occurred");
+      throw new Error(ERROR_MESSAGES.INTERNAL_ERROR);
     }
   }
 
@@ -100,14 +103,14 @@ export class BookingRepository
         });
       }
       logger.error(error, "Supabase assignAmbulance error");
-      throw new Error(`Supabase error: ${error.message}`, { cause: error });
+      throw new Error(ERROR_MESSAGES.INTERNAL_ERROR, { cause: error });
     }
 
     try {
       return this.parseBooking(data);
     } catch (err) {
       logger.error(err, "Database schema drift detected in assignAmbulance");
-      throw new Error("Data integrity error occurred");
+      throw new Error(ERROR_MESSAGES.INTERNAL_ERROR);
     }
   }
 
@@ -119,7 +122,7 @@ export class BookingRepository
 
     if (error) {
       logger.error(error, "Supabase updateBookingStatus error");
-      throw new Error(`Supabase error: ${error.message}`, { cause: error });
+      throw new Error(ERROR_MESSAGES.INTERNAL_ERROR, { cause: error });
     }
   }
 
@@ -145,7 +148,7 @@ export class BookingRepository
 
     if (error) {
       logger.error(error, "Supabase getUserBookings error");
-      throw new Error(`Supabase error: ${error.message}`, { cause: error });
+      throw new Error(ERROR_MESSAGES.INTERNAL_ERROR, { cause: error });
     }
 
     try {
@@ -157,6 +160,7 @@ export class BookingRepository
   }
 
   async getConfirmedBookings(
+    providerId: string,
     limit?: number,
     offset?: number,
   ): Promise<Booking[]> {
@@ -164,6 +168,7 @@ export class BookingRepository
       .from("bookings")
       .select("*")
       .eq("status", "confirmed")
+      .eq("provider_id", providerId)
       .order("created_at", { ascending: false });
 
     if (limit !== undefined) {
@@ -177,7 +182,7 @@ export class BookingRepository
 
     if (error) {
       logger.error(error, "Supabase getConfirmedBookings error");
-      throw new Error(`Supabase error: ${error.message}`, { cause: error });
+      throw new Error(ERROR_MESSAGES.INTERNAL_ERROR, { cause: error });
     }
 
     try {
@@ -218,7 +223,7 @@ export class BookingRepository
 
     if (error) {
       logger.error(error, "Supabase getBookingsByProvider error");
-      throw new Error(`Supabase error: ${error.message}`, { cause: error });
+      throw new Error(ERROR_MESSAGES.INTERNAL_ERROR, { cause: error });
     }
 
     try {
