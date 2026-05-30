@@ -5,7 +5,7 @@ import { ISimulationService } from "./simulation";
 import { Booking, BookingData, JwtPayload } from "../types";
 import type { BookingStatus } from "../utils/constants";
 import { ERROR_MESSAGES } from "../utils/constants";
-import { canAccessBooking, isDriverRole } from "../utils/auth";
+import { canAccessBooking, isDriverRole, isProviderRole } from "../utils/auth";
 import {
   NotFoundError,
   ForbiddenError,
@@ -114,19 +114,25 @@ export class BookingService implements IBookingService {
       throw new BookingStateError("Booking is not in draft status");
     }
 
+    const ambulance = await this.ambulanceRepo.getAmbulance(ambulanceId);
+    if (!ambulance) {
+      throw new NotFoundError("Ambulance not found");
+    }
+
     if (booking.provider_id) {
-      const ambulance = await this.ambulanceRepo.getAmbulance(ambulanceId);
-      if (!ambulance) {
-        throw new NotFoundError("Ambulance not found");
-      }
       if (ambulance.provider_id !== booking.provider_id) {
         throw new ForbiddenError(
           "Ambulance does not belong to the selected provider",
         );
       }
+      return this.bookingRepo.assignAmbulance(id, ambulanceId);
     }
 
-    return this.bookingRepo.assignAmbulance(id, ambulanceId);
+    return this.bookingRepo.assignAmbulance(
+      id,
+      ambulanceId,
+      ambulance.provider_id,
+    );
   }
 
   async updateStatus(
@@ -149,7 +155,11 @@ export class BookingService implements IBookingService {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
     }
 
-    if (newStatus === "en_route" && !isDriverRole(payload)) {
+    if (
+      newStatus === "en_route" &&
+      !isDriverRole(payload) &&
+      !isProviderRole(payload)
+    ) {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
     }
 

@@ -272,8 +272,28 @@ describe("canAccessBooking", () => {
     expect(canAccessBooking({ sub: "abc" }, "abc")).toBe(true);
   });
 
-  it("allows driver users", () => {
-    expect(canAccessBooking({ sub: "abc", role: "driver" }, "xyz")).toBe(true);
+  it("denies driver access without matching provider_id", () => {
+    expect(canAccessBooking({ sub: "abc", role: "driver" }, "xyz")).toBe(false);
+  });
+
+  it("allows driver access with matching provider_id", () => {
+    expect(
+      canAccessBooking(
+        {
+          sub: "abc",
+          role: "driver",
+          app_metadata: { provider_id: "prov-123" },
+        },
+        "xyz",
+        "prov-123",
+      ),
+    ).toBe(true);
+  });
+
+  it("denies access if both booking user id and sub are undefined", () => {
+    expect(
+      canAccessBooking({ role: "user" } as unknown as JwtPayload, undefined),
+    ).toBe(false);
   });
 
   it("denies unrelated non-driver", () => {

@@ -326,15 +326,20 @@ describe("Bookings API", () => {
     });
 
     it("should return 200 and booking data when requested by a driver", async () => {
-      // Driver does not own the booking, but has driver role
+      // Driver does not own the booking, but has driver role and matching provider_id
       const mockBooking = {
         id: mockBookingId,
         user_id: mockUserId,
+        provider_id: "prov-123",
         status: "confirmed",
       };
       dbMock.getBooking.mockResolvedValue(mockBooking);
 
-      const app = createApp(dbMock, { sub: mockDriverId, role: "driver" });
+      const app = createApp(dbMock, {
+        sub: mockDriverId,
+        role: "driver",
+        app_metadata: { provider_id: "prov-123" },
+      });
       const res = await app.request(`/bookings/${mockBookingId}`);
 
       expect(res.status).toBe(200);
@@ -345,13 +350,14 @@ describe("Bookings API", () => {
       const mockBooking = {
         id: mockBookingId,
         user_id: mockUserId,
+        provider_id: "prov-123",
         status: "confirmed",
       };
       dbMock.getBooking.mockResolvedValue(mockBooking);
 
       const app = createApp(dbMock, {
         sub: mockDriverId,
-        app_metadata: { role: "driver" },
+        app_metadata: { role: "driver", provider_id: "prov-123" },
       });
       const res = await app.request(`/bookings/${mockBookingId}`);
 
@@ -444,6 +450,7 @@ describe("Bookings API", () => {
       const mockBooking = {
         id: mockBookingId,
         user_id: mockUserId,
+        provider_id: "prov-123",
         status: "confirmed",
       };
       dbMock.getBooking.mockResolvedValue(mockBooking);
@@ -453,7 +460,11 @@ describe("Bookings API", () => {
       const dispatchMock = { startSimulationForBooking };
       const app = createApp(
         dbMock,
-        { sub: mockDriverId, role: "driver" },
+        {
+          sub: mockDriverId,
+          role: "driver",
+          app_metadata: { provider_id: "prov-123" },
+        },
         dispatchMock,
       );
       const res = await app.request(`/bookings/${mockBookingId}/status`, {
@@ -477,6 +488,7 @@ describe("Bookings API", () => {
       const mockBooking = {
         id: mockBookingId,
         user_id: mockUserId,
+        provider_id: "prov-123",
         status: "confirmed",
       };
       dbMock.getBooking.mockResolvedValue(mockBooking);
@@ -485,7 +497,11 @@ describe("Bookings API", () => {
       const dispatchMock = { startSimulationForBooking };
       const app = createApp(
         dbMock,
-        { sub: mockDriverId, role: "driver" },
+        {
+          sub: mockDriverId,
+          role: "driver",
+          app_metadata: { provider_id: "prov-123" },
+        },
         dispatchMock,
       );
       const res = await app.request(`/bookings/${mockBookingId}/status`, {
@@ -498,7 +514,7 @@ describe("Bookings API", () => {
       expect(dbMock.updateBookingStatus).not.toHaveBeenCalled();
     });
 
-    it("should return 403 when non-driver sets en_route", async () => {
+    it("should return 403 when non-driver/non-provider sets en_route", async () => {
       const mockBooking = {
         id: mockBookingId,
         user_id: mockUserId,
@@ -515,6 +531,44 @@ describe("Bookings API", () => {
 
       expect(res.status).toBe(403);
       expect(dbMock.updateBookingStatus).not.toHaveBeenCalled();
+    });
+
+    it("should return 200 when provider sets en_route", async () => {
+      const mockBooking = {
+        id: mockBookingId,
+        user_id: mockUserId,
+        provider_id: "prov-123",
+        status: "confirmed",
+      };
+      dbMock.getBooking.mockResolvedValue(mockBooking);
+      dbMock.updateBookingStatus.mockResolvedValue(undefined);
+
+      const startSimulationForBooking = vi.fn().mockResolvedValue(true);
+      const dispatchMock = { startSimulationForBooking };
+      const app = createApp(
+        dbMock,
+        {
+          sub: mockOtherUserId,
+          role: "provider",
+          app_metadata: { provider_id: "prov-123" },
+        },
+        dispatchMock,
+      );
+      const res = await app.request(`/bookings/${mockBookingId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "en_route" }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(dbMock.updateBookingStatus).toHaveBeenCalledWith(
+        mockBookingId,
+        "en_route",
+      );
+      expect(startSimulationForBooking).toHaveBeenCalledWith(
+        mockBooking,
+        mockOtherUserId,
+      );
     });
 
     it("should return 400 for invalid status enums", async () => {
@@ -649,6 +703,7 @@ describe("Bookings API", () => {
     const mockBooking = {
       id: mockBookingId,
       user_id: mockUserId,
+      provider_id: "prov-123",
       status: "en_route",
     };
     dbMock.getBooking.mockResolvedValue(mockBooking);
@@ -656,7 +711,11 @@ describe("Bookings API", () => {
     const dispatchMock = { startSimulationForBooking: vi.fn() };
     const app = createApp(
       dbMock,
-      { sub: mockDriverId, role: "driver" },
+      {
+        sub: mockDriverId,
+        role: "driver",
+        app_metadata: { provider_id: "prov-123" },
+      },
       dispatchMock,
     );
     const res = await app.request(`/bookings/${mockBookingId}/status`, {
@@ -826,6 +885,65 @@ describe("Bookings API", () => {
   });
 
   describe("PUT /bookings/:id/assign", () => {
+    it("should return 404 if assigned ambulance does not exist for general draft", async () => {
+      const mockBooking = {
+        id: mockBookingId,
+        user_id: mockUserId,
+        status: "draft",
+      };
+      dbMock.getBooking.mockResolvedValue(mockBooking);
+      dbMock.getAmbulance.mockResolvedValue(null);
+
+      const app = createApp(dbMock, { sub: mockUserId });
+      const res = await app.request(`/bookings/${mockBookingId}/assign`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ambulance_id: "223e4567-e89b-12d3-a456-426614174001",
+        }),
+      });
+
+      expect(res.status).toBe(404);
+      expect(dbMock.assignAmbulance).not.toHaveBeenCalled();
+    });
+
+    it("should sync provider_id from ambulance when assigning to general draft", async () => {
+      const mockBooking = {
+        id: mockBookingId,
+        user_id: mockUserId,
+        status: "draft",
+      };
+      const mockAmbulance = {
+        id: "223e4567-e89b-12d3-a456-426614174001",
+        provider_id: "prov-new-123",
+      };
+
+      dbMock.getBooking.mockResolvedValue(mockBooking);
+      dbMock.getAmbulance.mockResolvedValue(mockAmbulance);
+      dbMock.assignAmbulance.mockResolvedValue({
+        ...mockBooking,
+        ambulance_id: mockAmbulance.id,
+        provider_id: mockAmbulance.provider_id,
+        status: "confirmed",
+      });
+
+      const app = createApp(dbMock, { sub: mockUserId });
+      const res = await app.request(`/bookings/${mockBookingId}/assign`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ambulance_id: mockAmbulance.id,
+        }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(dbMock.assignAmbulance).toHaveBeenCalledWith(
+        mockBookingId,
+        mockAmbulance.id,
+        mockAmbulance.provider_id,
+      );
+    });
+
     it("should return 200 with updated booking on successful ambulance assignment", async () => {
       const mockBooking = {
         id: mockBookingId,
@@ -843,6 +961,10 @@ describe("Bookings API", () => {
         created_at: "2025-01-01T00:00:00Z",
       };
       dbMock.getBooking.mockResolvedValue(mockBooking);
+      dbMock.getAmbulance.mockResolvedValue({
+        id: "223e4567-e89b-12d3-a456-426614174001",
+        provider_id: "prov-123",
+      });
       const updatedBooking = {
         ...mockBooking,
         ambulance_id: "223e4567-e89b-12d3-a456-426614174001",
@@ -869,6 +991,7 @@ describe("Bookings API", () => {
       expect(dbMock.assignAmbulance).toHaveBeenCalledWith(
         mockBookingId,
         "223e4567-e89b-12d3-a456-426614174001",
+        "prov-123",
       );
     });
 
@@ -1014,6 +1137,10 @@ describe("Bookings API", () => {
         status: "draft",
       };
       dbMock.getBooking.mockResolvedValue(mockBooking);
+      dbMock.getAmbulance.mockResolvedValue({
+        id: "223e4567-e89b-12d3-a456-426614174001",
+        provider_id: "prov-123",
+      });
       dbMock.assignAmbulance.mockRejectedValue(new Error("Assign failed"));
 
       const app = createApp(dbMock, { sub: mockUserId });
