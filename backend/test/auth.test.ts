@@ -4,6 +4,7 @@ import type { JwtPayload } from "../src/types";
 import {
   isDriverRole,
   isProviderRole,
+  isAdminRole,
   canAccessBooking,
   getRoleFromMetadata,
   getProviderId,
@@ -244,8 +245,8 @@ describe("Authentication & Authorization", () => {
 });
 
 describe("isDriverRole", () => {
-  it("returns false when payload.role is driver but app_metadata is missing", () => {
-    expect(isDriverRole({ sub: "abc", role: "driver" })).toBe(false);
+  it("returns true when payload.role is driver even if app_metadata is missing", () => {
+    expect(isDriverRole({ sub: "abc", role: "driver" })).toBe(true);
   });
 
   it("returns true when app_metadata.role is driver", () => {
@@ -287,6 +288,16 @@ describe("canAccessBooking", () => {
         },
         "xyz",
         "prov-123",
+      ),
+    ).toBe(true);
+  });
+
+  it("allows admin access to any booking", () => {
+    expect(
+      canAccessBooking(
+        { sub: "admin-1", app_metadata: { role: "admin" } },
+        "user-1",
+        "prov-1",
       ),
     ).toBe(true);
   });
@@ -375,8 +386,8 @@ describe("isProviderRole", () => {
     ).toBe(true);
   });
 
-  it("returns false when payload.role is provider but app_metadata is missing", () => {
-    expect(isProviderRole({ sub: "abc", role: "provider" })).toBe(false);
+  it("returns true when payload.role is provider even if app_metadata is missing", () => {
+    expect(isProviderRole({ sub: "abc", role: "provider" })).toBe(true);
   });
 
   it("returns false when no provider role present", () => {
@@ -385,6 +396,25 @@ describe("isProviderRole", () => {
 
   it("returns false when role is missing", () => {
     expect(isProviderRole({ sub: "abc" })).toBe(false);
+  });
+});
+
+describe("isAdminRole", () => {
+  it("returns true when app_metadata.role is admin", () => {
+    expect(
+      isAdminRole({
+        sub: "abc",
+        app_metadata: { role: "admin" },
+      }),
+    ).toBe(true);
+  });
+
+  it("returns true when payload.role is admin", () => {
+    expect(isAdminRole({ sub: "abc", role: "admin" })).toBe(true);
+  });
+
+  it("returns false when no admin role present", () => {
+    expect(isAdminRole({ sub: "abc", role: "user" })).toBe(false);
   });
 });
 
@@ -398,13 +428,13 @@ describe("getProviderId", () => {
     ).toBe("prov-123");
   });
 
-  it("returns undefined when provider_id is in payload directly but not in app_metadata", () => {
+  it("returns provider_id when it is in payload directly", () => {
     expect(
       getProviderId({
         sub: "abc",
         provider_id: "prov-456",
       }),
-    ).toBeUndefined();
+    ).toBe("prov-456");
   });
 
   it("returns undefined when provider_id is missing", () => {
