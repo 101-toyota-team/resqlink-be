@@ -3,8 +3,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { JwtPayload } from "../src/types";
 import {
   isDriverRole,
+  isProviderRole,
   canAccessBooking,
   getRoleFromMetadata,
+  getProviderId,
 } from "../src/utils/auth";
 
 // ALL MOCKS AT THE TOP
@@ -283,6 +285,48 @@ describe("canAccessBooking", () => {
       false,
     );
   });
+
+  it("allows provider with matching provider_id", () => {
+    expect(
+      canAccessBooking(
+        {
+          sub: "abc",
+          role: "provider",
+          app_metadata: { provider_id: "prov-123" },
+        },
+        "other-user",
+        "prov-123",
+      ),
+    ).toBe(true);
+  });
+
+  it("denies provider with non-matching provider_id", () => {
+    expect(
+      canAccessBooking(
+        {
+          sub: "abc",
+          role: "provider",
+          app_metadata: { provider_id: "prov-123" },
+        },
+        "other-user",
+        "prov-999",
+      ),
+    ).toBe(false);
+  });
+
+  it("denies provider when booking has no provider_id", () => {
+    expect(
+      canAccessBooking(
+        {
+          sub: "abc",
+          role: "provider",
+          app_metadata: { provider_id: "prov-123" },
+        },
+        "other-user",
+        undefined,
+      ),
+    ).toBe(false);
+  });
 });
 
 describe("getRoleFromMetadata", () => {
@@ -300,5 +344,67 @@ describe("getRoleFromMetadata", () => {
 
   it("returns undefined when role is not a string", () => {
     expect(getRoleFromMetadata({ role: 123 })).toBeUndefined();
+  });
+});
+
+describe("isProviderRole", () => {
+  it("returns true when app_metadata.role is provider", () => {
+    expect(
+      isProviderRole({
+        sub: "abc",
+        app_metadata: { role: "provider" },
+      }),
+    ).toBe(true);
+  });
+
+  it("returns true when payload.role is provider", () => {
+    expect(isProviderRole({ sub: "abc", role: "provider" })).toBe(true);
+  });
+
+  it("returns false when no provider role present", () => {
+    expect(isProviderRole({ sub: "abc", role: "user" })).toBe(false);
+  });
+
+  it("returns false when role is missing", () => {
+    expect(isProviderRole({ sub: "abc" })).toBe(false);
+  });
+});
+
+describe("getProviderId", () => {
+  it("extracts provider_id from app_metadata", () => {
+    expect(
+      getProviderId({
+        sub: "abc",
+        app_metadata: { provider_id: "prov-123" },
+      }),
+    ).toBe("prov-123");
+  });
+
+  it("extracts provider_id from payload directly", () => {
+    expect(
+      getProviderId({
+        sub: "abc",
+        provider_id: "prov-456",
+      }),
+    ).toBe("prov-456");
+  });
+
+  it("returns undefined when provider_id is missing", () => {
+    expect(getProviderId({ sub: "abc" })).toBeUndefined();
+  });
+
+  it("returns undefined when app_metadata is null", () => {
+    expect(
+      getProviderId({ sub: "abc", app_metadata: null as unknown as undefined }),
+    ).toBeUndefined();
+  });
+
+  it("returns undefined when app_metadata.provider_id is not a string", () => {
+    expect(
+      getProviderId({
+        sub: "abc",
+        app_metadata: { provider_id: 12345 },
+      }),
+    ).toBeUndefined();
   });
 });
