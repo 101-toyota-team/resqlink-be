@@ -3,21 +3,57 @@ import { Hono } from "hono";
 import providersApp from "../src/routes/providers";
 import { errorHandler } from "../src/middleware/error-handler";
 import { ERROR_MESSAGES } from "../src/utils/constants";
-import { AppVariables, Provider } from "../src/types";
+import { AppVariables, Provider, JwtPayload } from "../src/types";
 import { Bindings } from "../src/schemas/env";
 import { IProviderService, ProviderService } from "../src/services/providers";
-import { IProviderRepository } from "../src/repositories/provider";
-import { IGeoService } from "../src/services/geo";
+import type { IProviderRepository } from "../src/repositories/provider";
+import type { IGeoService } from "../src/services/geo";
+import type { IBookingRepository } from "../src/repositories/booking";
+import type { IAmbulanceRepository } from "../src/repositories/ambulance";
+import type { IHospitalRepository } from "../src/repositories/hospital";
+import type { IRealtimeBroadcaster } from "../src/repositories/realtime";
+import { env } from "cloudflare:test";
+import { verifyWithJwks } from "hono/jwt";
+
+vi.mock("hono/jwt", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("hono/jwt")>();
+  return {
+    ...mod,
+    verifyWithJwks: vi.fn(),
+  };
+});
 
 interface MockProviderService {
   searchProviders: ReturnType<typeof vi.fn>;
   findNearbyProviders: ReturnType<typeof vi.fn>;
 }
 
-const createApp = (serviceMock: MockProviderService) => {
+interface MockBookingRepo {
+  getBookingsByProvider: ReturnType<typeof vi.fn>;
+}
+
+const createApp = (
+  serviceMock: MockProviderService,
+  bookingRepoMock?: MockBookingRepo,
+  jwtPayloadMock?: JwtPayload,
+) => {
   const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
   app.use("*", async (c, next) => {
     c.set("getProviderService", () => serviceMock as IProviderService);
+    if (bookingRepoMock) {
+      c.set(
+        "getSupabaseRepo",
+        () =>
+          bookingRepoMock as unknown as IBookingRepository &
+            IAmbulanceRepository &
+            IProviderRepository &
+            IHospitalRepository &
+            IRealtimeBroadcaster,
+      );
+    }
+    if (jwtPayloadMock) {
+      c.set("jwtPayload", jwtPayloadMock);
+    }
     await next();
   });
   app.route("/providers", providersApp);
@@ -277,6 +313,120 @@ describe("Providers API", () => {
       expect(res.status).toBe(500);
       const json = (await res.json()) as { error: string };
       expect(json.error).toBe(ERROR_MESSAGES.INTERNAL_ERROR);
+    });
+  });
+
+  describe("GET /providers/:id/bookings", () => {
+    let bookingRepoMock: MockBookingRepo;
+
+    beforeEach(() => {
+      bookingRepoMock = {
+        getBookingsByProvider: vi.fn(),
+      };
+    });
+
+    it("returns 401 if missing Authorization header", async () => {
+      const app = createApp(serviceMock, bookingRepoMock);
+      const res = await app.request("/providers/prov-123/bookings");
+
+      expect(res.status).toBe(401);
+      expect(bookingRepoMock.getBookingsByProvider).not.toHaveBeenCalled();
+    });
+
+    it("returns 403 if user lacks provider role", async () => {
+      const payload = { sub: "user-123", role: "authenticated" };
+      vi.mocked(verifyWithJwks).mockResolvedValue(payload);
+      const app = createApp(serviceMock, bookingRepoMock, payload);
+
+      const res = await app.request(
+        "/providers/prov-123/bookings",
+        {
+          headers: { Authorization: "Bearer token" },
+        },
+        env,
+      );
+
+      expect(res.status).toBe(403);
+      expect(bookingRepoMock.getBookingsByProvider).not.toHaveBeenCalled();
+    });
+
+    it("returns 403 if provider ID in token does not match route ID", async () => {
+      const jwtPayload = {
+        sub: "user-123",
+        role: "provider",
+        app_metadata: { provider_id: "prov-999" },
+      };
+      vi.mocked(verifyWithJwks).mockResolvedValue(jwtPayload);
+      const app = createApp(serviceMock, bookingRepoMock, jwtPayload);
+
+      const res = await app.request(
+        "/providers/prov-123/bookings",
+        {
+          headers: { Authorization: "Bearer token" },
+        },
+        env,
+      );
+
+      expect(res.status).toBe(403);
+      expect(bookingRepoMock.getBookingsByProvider).not.toHaveBeenCalled();
+    });
+
+    it("returns 200 and bookings when authorized correctly", async () => {
+      const providerId = "prov-123";
+      const jwtPayload = {
+        sub: "user-123",
+        role: "provider",
+        app_metadata: { provider_id: providerId },
+      };
+      vi.mocked(verifyWithJwks).mockResolvedValue(jwtPayload);
+
+      const mockBookings = [
+        { id: "booking-1", provider_id: providerId, status: "draft" },
+      ];
+      bookingRepoMock.getBookingsByProvider.mockResolvedValue(mockBookings);
+
+      const app = createApp(serviceMock, bookingRepoMock, jwtPayload);
+      const res = await app.request(
+        `/providers/${providerId}/bookings?status=draft&limit=10`,
+        {
+          headers: { Authorization: "Bearer token" },
+        },
+        env,
+      );
+
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual(mockBookings);
+      expect(bookingRepoMock.getBookingsByProvider).toHaveBeenCalledWith(
+        providerId,
+        "draft",
+        10,
+        0,
+      );
+    });
+
+    it("returns 500 on repository error", async () => {
+      const providerId = "prov-123";
+      const jwtPayload = {
+        sub: "user-123",
+        role: "provider",
+        app_metadata: { provider_id: providerId },
+      };
+      vi.mocked(verifyWithJwks).mockResolvedValue(jwtPayload);
+
+      bookingRepoMock.getBookingsByProvider.mockRejectedValue(
+        new Error("DB Error"),
+      );
+
+      const app = createApp(serviceMock, bookingRepoMock, jwtPayload);
+      const res = await app.request(
+        `/providers/${providerId}/bookings`,
+        {
+          headers: { Authorization: "Bearer token" },
+        },
+        env,
+      );
+
+      expect(res.status).toBe(500);
     });
   });
 });
