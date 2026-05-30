@@ -179,7 +179,7 @@ describe("Authentication & Authorization", () => {
   it("should return 403 if driver_id in body does not match sub in JWT", async () => {
     const payload: JwtPayload = {
       sub: driverId,
-      role: "driver",
+      app_metadata: { role: "driver" },
     };
     vi.mocked(verifyWithJwks).mockResolvedValue(payload);
 
@@ -211,7 +211,7 @@ describe("Authentication & Authorization", () => {
   it("should allow driver ping if authenticated as driver with matching ID", async () => {
     const payload: JwtPayload = {
       sub: driverId,
-      role: "driver",
+      app_metadata: { role: "driver" },
     };
     vi.mocked(verifyWithJwks).mockResolvedValue(payload);
 
@@ -244,8 +244,8 @@ describe("Authentication & Authorization", () => {
 });
 
 describe("isDriverRole", () => {
-  it("returns true when payload.role is driver", () => {
-    expect(isDriverRole({ sub: "abc", role: "driver" })).toBe(true);
+  it("returns false when payload.role is driver but app_metadata is missing", () => {
+    expect(isDriverRole({ sub: "abc", role: "driver" })).toBe(false);
   });
 
   it("returns true when app_metadata.role is driver", () => {
@@ -273,7 +273,9 @@ describe("canAccessBooking", () => {
   });
 
   it("denies driver access without matching provider_id", () => {
-    expect(canAccessBooking({ sub: "abc", role: "driver" }, "xyz")).toBe(false);
+    expect(
+      canAccessBooking({ sub: "abc", app_metadata: { role: "driver" } }, "xyz"),
+    ).toBe(false);
   });
 
   it("allows driver access with matching provider_id", () => {
@@ -281,8 +283,7 @@ describe("canAccessBooking", () => {
       canAccessBooking(
         {
           sub: "abc",
-          role: "driver",
-          app_metadata: { provider_id: "prov-123" },
+          app_metadata: { role: "driver", provider_id: "prov-123" },
         },
         "xyz",
         "prov-123",
@@ -311,8 +312,7 @@ describe("canAccessBooking", () => {
       canAccessBooking(
         {
           sub: "abc",
-          role: "provider",
-          app_metadata: { provider_id: "prov-123" },
+          app_metadata: { role: "provider", provider_id: "prov-123" },
         },
         "other-user",
         "prov-123",
@@ -325,8 +325,7 @@ describe("canAccessBooking", () => {
       canAccessBooking(
         {
           sub: "abc",
-          role: "provider",
-          app_metadata: { provider_id: "prov-123" },
+          app_metadata: { role: "provider", provider_id: "prov-123" },
         },
         "other-user",
         "prov-999",
@@ -339,8 +338,7 @@ describe("canAccessBooking", () => {
       canAccessBooking(
         {
           sub: "abc",
-          role: "provider",
-          app_metadata: { provider_id: "prov-123" },
+          app_metadata: { role: "provider", provider_id: "prov-123" },
         },
         "other-user",
         undefined,
@@ -377,8 +375,8 @@ describe("isProviderRole", () => {
     ).toBe(true);
   });
 
-  it("returns true when payload.role is provider", () => {
-    expect(isProviderRole({ sub: "abc", role: "provider" })).toBe(true);
+  it("returns false when payload.role is provider but app_metadata is missing", () => {
+    expect(isProviderRole({ sub: "abc", role: "provider" })).toBe(false);
   });
 
   it("returns false when no provider role present", () => {
@@ -400,13 +398,13 @@ describe("getProviderId", () => {
     ).toBe("prov-123");
   });
 
-  it("extracts provider_id from payload directly", () => {
+  it("returns undefined when provider_id is in payload directly but not in app_metadata", () => {
     expect(
       getProviderId({
         sub: "abc",
         provider_id: "prov-456",
       }),
-    ).toBe("prov-456");
+    ).toBeUndefined();
   });
 
   it("returns undefined when provider_id is missing", () => {

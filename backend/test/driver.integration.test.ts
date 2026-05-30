@@ -81,7 +81,10 @@ describe("Driver Integration Tests", () => {
 
   describe("GET /driver/bookings", () => {
     it("should return 200 and an array of bookings for a valid driver", async () => {
-      const payload: JwtPayload = { sub: driverId, role: "driver" };
+      const payload: JwtPayload = {
+        sub: driverId,
+        app_metadata: { role: "driver" },
+      };
       vi.mocked(verifyWithJwks).mockResolvedValue(payload);
 
       const res = await app.request(
@@ -126,7 +129,10 @@ describe("Driver Integration Tests", () => {
 
   describe("POST /driver/ping validation", () => {
     it("should return 400 if driver_id is missing", async () => {
-      const payload: JwtPayload = { sub: driverId, role: "driver" };
+      const payload: JwtPayload = {
+        sub: driverId,
+        app_metadata: { role: "driver" },
+      };
       vi.mocked(verifyWithJwks).mockResolvedValue(payload);
 
       const res = await app.request(
@@ -151,7 +157,10 @@ describe("Driver Integration Tests", () => {
     });
 
     it("should return 400 if lat is invalid", async () => {
-      const payload: JwtPayload = { sub: driverId, role: "driver" };
+      const payload: JwtPayload = {
+        sub: driverId,
+        app_metadata: { role: "driver" },
+      };
       vi.mocked(verifyWithJwks).mockResolvedValue(payload);
 
       const res = await app.request(
@@ -177,7 +186,10 @@ describe("Driver Integration Tests", () => {
     });
 
     it("should return 400 if h3_index is invalid", async () => {
-      const payload: JwtPayload = { sub: driverId, role: "driver" };
+      const payload: JwtPayload = {
+        sub: driverId,
+        app_metadata: { role: "driver" },
+      };
       vi.mocked(verifyWithJwks).mockResolvedValue(payload);
 
       const res = await app.request(

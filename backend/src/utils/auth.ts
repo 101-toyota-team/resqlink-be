@@ -12,12 +12,12 @@ export function getRoleFromMetadata(metadata: unknown): string | undefined {
 
 export function isDriverRole(payload: JwtPayload): boolean {
   const metadataRole = getRoleFromMetadata(payload.app_metadata);
-  return payload.role === "driver" || metadataRole === "driver";
+  return metadataRole === "driver";
 }
 
 export function isProviderRole(payload: JwtPayload): boolean {
   const metadataRole = getRoleFromMetadata(payload.app_metadata);
-  return payload.role === "provider" || metadataRole === "provider";
+  return metadataRole === "provider";
 }
 
 export function getProviderId(payload: JwtPayload): string | undefined {
@@ -27,10 +27,6 @@ export function getProviderId(payload: JwtPayload): string | undefined {
     if (typeof providerId === "string") {
       return providerId;
     }
-  }
-
-  if (typeof payload.provider_id === "string") {
-    return payload.provider_id;
   }
 
   return undefined;

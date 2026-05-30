@@ -334,7 +334,10 @@ describe("Providers API", () => {
     });
 
     it("returns 403 if user lacks provider role", async () => {
-      const payload = { sub: "user-123", role: "authenticated" };
+      const payload = {
+        sub: "user-123",
+        app_metadata: { role: "authenticated" },
+      };
       vi.mocked(verifyWithJwks).mockResolvedValue(payload);
       const app = createApp(serviceMock, bookingRepoMock, payload);
 
@@ -353,8 +356,7 @@ describe("Providers API", () => {
     it("returns 403 if provider ID in token does not match route ID", async () => {
       const jwtPayload = {
         sub: "user-123",
-        role: "provider",
-        app_metadata: { provider_id: "prov-999" },
+        app_metadata: { role: "provider", provider_id: "prov-999" },
       };
       vi.mocked(verifyWithJwks).mockResolvedValue(jwtPayload);
       const app = createApp(serviceMock, bookingRepoMock, jwtPayload);
@@ -375,8 +377,7 @@ describe("Providers API", () => {
       const providerId = "prov-123";
       const jwtPayload = {
         sub: "user-123",
-        role: "provider",
-        app_metadata: { provider_id: providerId },
+        app_metadata: { role: "provider", provider_id: providerId },
       };
       vi.mocked(verifyWithJwks).mockResolvedValue(jwtPayload);
 
@@ -408,8 +409,7 @@ describe("Providers API", () => {
       const providerId = "prov-123";
       const jwtPayload = {
         sub: "user-123",
-        role: "provider",
-        app_metadata: { provider_id: providerId },
+        app_metadata: { role: "provider", provider_id: providerId },
       };
       vi.mocked(verifyWithJwks).mockResolvedValue(jwtPayload);
 
