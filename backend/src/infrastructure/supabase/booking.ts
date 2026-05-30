@@ -72,10 +72,22 @@ export class BookingRepository
     }
   }
 
-  async assignAmbulance(id: string, ambulanceId: string): Promise<Booking> {
+  async assignAmbulance(
+    id: string,
+    ambulanceId: string,
+    providerId?: string,
+  ): Promise<Booking> {
+    const updateData: Record<string, string> = {
+      ambulance_id: ambulanceId,
+      status: "confirmed",
+    };
+    if (providerId) {
+      updateData.provider_id = providerId;
+    }
+
     const { data, error } = await this.client
       .from("bookings")
-      .update({ ambulance_id: ambulanceId, status: "confirmed" })
+      .update(updateData)
       .eq("id", id)
       .eq("status", "draft")
       .select()

@@ -41,9 +41,8 @@ export function canAccessBooking(
   bookingUserId: string | undefined,
   bookingProviderId?: string | undefined,
 ): boolean {
-  if (bookingUserId === payload.sub) return true;
-  if (isDriverRole(payload)) return true;
-  if (isProviderRole(payload) && bookingProviderId) {
+  if (bookingUserId && bookingUserId === payload.sub) return true;
+  if ((isProviderRole(payload) || isDriverRole(payload)) && bookingProviderId) {
     return getProviderId(payload) === bookingProviderId;
   }
   return false;
