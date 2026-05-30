@@ -178,4 +178,45 @@ export class BookingRepository
       throw new DatabaseSchemaDriftError("Booking", err);
     }
   }
+
+  async getBookingsByProvider(
+    providerId: string,
+    status?: BookingStatus,
+    limit?: number,
+    offset?: number,
+  ): Promise<Booking[]> {
+    let query = this.client
+      .from("bookings")
+      .select("*")
+      .eq("provider_id", providerId)
+      .order("created_at", { ascending: false });
+
+    if (status) {
+      query = query.eq("status", status);
+    }
+
+    if (limit !== undefined) {
+      query = query.limit(limit);
+      if (offset !== undefined) {
+        query = query.range(offset, offset + limit - 1);
+      }
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      logger.error(error, "Supabase getBookingsByProvider error");
+      throw new Error(`Supabase error: ${error.message}`, { cause: error });
+    }
+
+    try {
+      return this.parseBookingList(data);
+    } catch (err) {
+      logger.error(
+        err,
+        "Database schema drift detected in getBookingsByProvider",
+      );
+      throw new DatabaseSchemaDriftError("Booking", err);
+    }
+  }
 }
