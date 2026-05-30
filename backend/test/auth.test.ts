@@ -423,7 +423,7 @@ describe("getProviderId", () => {
     expect(
       getProviderId({
         sub: "abc",
-        app_metadata: { provider_id: 12345 },
+        app_metadata: { provider_id: 12345 as any },
       }),
     ).toBeUndefined();
   });

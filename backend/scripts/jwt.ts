@@ -115,7 +115,7 @@ async function main() {
         auth: { autoRefreshToken: false, persistSession: false },
       });
 
-      const metadata: any = {};
+      const metadata: { role?: string; provider_id?: string } = {};
       if (role) metadata.role = role;
       if (provider_id) metadata.provider_id = provider_id;
 
@@ -189,6 +189,10 @@ Examples:
   npx tsx scripts/jwt.ts signup test@example.com MyPass123! driver
   npx tsx scripts/jwt.ts signup provider@example.com MyPass123! provider 123e4567-e89b-12d3-a456-426614174000
   npx tsx scripts/jwt.ts decode eyJhbGciOiJFUzI1NiIs...
+
+WARNING: This script handles PII (emails) and sensitive tokens. 
+         Tokens and user data will be exposed in your terminal logs.
+         Use with caution in shared environments.
 
 Note: Reads SUPABASE_URL and SUPABASE_SECRET_KEY from backend/.dev.vars
       `);
