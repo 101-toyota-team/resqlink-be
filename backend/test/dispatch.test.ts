@@ -51,6 +51,7 @@ describe("DispatchService", () => {
       startSimulation: vi.fn(),
       advanceSimulation: vi.fn(),
       startSimulationForBooking: vi.fn(),
+      stopSimulation: vi.fn().mockResolvedValue(undefined),
     } as Mocked<ISimulationService>;
     service = new DispatchService(
       mockCache,

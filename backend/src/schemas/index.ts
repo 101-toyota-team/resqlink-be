@@ -1,6 +1,10 @@
 import { z } from "zod";
 import * as h3 from "h3-js";
-import { BOOKING_STATUSES, GLOBAL_H3_RESOLUTION } from "../utils/constants";
+import {
+  BOOKING_FEES,
+  BOOKING_STATUSES,
+  GLOBAL_H3_RESOLUTION,
+} from "../utils/constants";
 
 const h3IndexSchema = z.string().refine(
   (val) => {
@@ -48,10 +52,15 @@ export const nearbyAmbulancesSchema = z.object({
     }, "Invalid pickup format — expected lat,lng (e.g. -6.2,106.8)"),
 });
 
+const bookingTypes = Object.keys(BOOKING_FEES) as [
+  keyof typeof BOOKING_FEES,
+  ...Array<keyof typeof BOOKING_FEES>,
+];
+
 export const bookingSchema = z.object({
   ambulance_id: z.string().uuid().optional(),
   provider_id: z.string().uuid().optional(),
-  booking_type: z.enum(["medis", "sosial", "jenazah", "darurat"]),
+  booking_type: z.enum(bookingTypes),
   patient_condition: z.string(),
   pickup_address: z.string(),
   pickup_lat: z.number().min(-90).max(90),

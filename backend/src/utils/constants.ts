@@ -34,6 +34,7 @@ export const DISCOVERY = {
   H3_RING_RADIUS: 1,
 };
 
+// Booking Fees
 // Provider Search
 export const PROVIDER_SEARCH = {
   MAX_RING_DISTANCE: 30,
@@ -70,6 +71,13 @@ export class DatabaseSchemaDriftError extends Error {
   }
 }
 
+export const BOOKING_FEES = {
+  medis: 50000,
+  sosial: 0,
+  jenazah: 50000,
+  darurat: 100000,
+} as const;
+
 // Error messages
 export const ERROR_MESSAGES = {
   INVALID_COORDINATES: "Invalid coordinates provided",
@@ -88,6 +96,7 @@ export const ERROR_MESSAGES = {
   AUTH_SERVICE_UNAVAILABLE: "Authentication service unavailable",
   CONFIGURATION_ERROR: "Configuration error",
   VALIDATION_FAILED: "Validation failed",
+  MAPS_API_FAILURE: "Maps API request failed",
 };
 
 /**

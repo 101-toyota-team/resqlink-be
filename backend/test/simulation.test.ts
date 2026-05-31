@@ -230,6 +230,39 @@ describe("SimulationService", () => {
     );
   });
 
+  it("should start simulation using driver location as origin", async () => {
+    const mockDriverId = "driver_1";
+    const bookingWithDriver: Booking = {
+      ...mockBooking,
+      driver_id: mockDriverId,
+    };
+    const driverLoc = { lat: -6.05, lng: 106.75 };
+
+    mockCache.getDriverLocation.mockResolvedValue(driverLoc);
+    mockMaps.getDirections.mockResolvedValue({
+      status: "OK",
+      routes: [
+        {
+          bounds: {},
+          copyrights: "",
+          legs: [],
+          overview_polyline: { points: "a~l~Fjk_uO~clMmhwD" },
+          summary: "",
+          warnings: [],
+          waypoint_order: [],
+        },
+      ],
+    });
+
+    await service.startSimulation(bookingWithDriver);
+
+    expect(mockCache.getDriverLocation).toHaveBeenCalledWith(mockDriverId);
+    expect(mockMaps.getDirections).toHaveBeenCalledWith(
+      "-6.05,106.75",
+      "-6.1,106.8",
+    );
+  });
+
   it("should clean up simulation keys when booking is null", async () => {
     const mockDriverId = "driver_1";
     mockCache.get.mockImplementation(async (key: string) => {

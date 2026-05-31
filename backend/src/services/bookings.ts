@@ -4,7 +4,7 @@ import { IRealtimeBroadcaster } from "../repositories/realtime";
 import { ISimulationService } from "./simulation";
 import { Booking, BookingData, JwtPayload } from "../types";
 import type { BookingStatus } from "../utils/constants";
-import { ERROR_MESSAGES } from "../utils/constants";
+import { BOOKING_FEES, ERROR_MESSAGES } from "../utils/constants";
 import { canAccessBooking, isDriverRole, isProviderRole } from "../utils/auth";
 import {
   NotFoundError,
@@ -51,7 +51,8 @@ export class BookingService implements IBookingService {
   ) {}
 
   async createBooking(data: BookingData, userId: string): Promise<Booking> {
-    const bookingData = { ...data, user_id: userId };
+    const estimated_price = BOOKING_FEES[data.booking_type];
+    const bookingData = { ...data, user_id: userId, estimated_price };
     const booking = await this.bookingRepo.createBooking(bookingData);
 
     if (booking.status === "draft" && booking.provider_id) {
@@ -178,6 +179,14 @@ export class BookingService implements IBookingService {
       if (!started) {
         throw new Error("Failed to start route simulation");
       }
+    }
+
+    if (newStatus === "cancelled") {
+      await this.simulation
+        .stopSimulation(id, booking.driver_id || "")
+        .catch((err) => {
+          console.error("Failed to stop simulation on cancellation:", err);
+        });
     }
 
     await this.bookingRepo.updateBookingStatus(id, newStatus);
