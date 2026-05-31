@@ -51,7 +51,7 @@ jobs:
           npx wrangler secret put UPSTASH_REDIS_REST_URL --env dev <<< "${{ secrets.UPSTASH_REDIS_REST_URL }}"
           npx wrangler secret put UPSTASH_REDIS_REST_TOKEN --env dev <<< "${{ secrets.UPSTASH_REDIS_REST_TOKEN }}"
           npx wrangler secret put SUPABASE_SECRET_KEY --env dev <<< "${{ secrets.SUPABASE_SECRET_KEY }}"
-          npx wrangler secret put GOOGLE_MAPS_API_KEY --env dev <<< "${{ secrets.GOOGLE_MAPS_API_KEY }}"
+          npx wrangler secret put MAPBOX_ACCESS_TOKEN --env dev <<< "${{ secrets.MAPBOX_ACCESS_TOKEN }}"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
