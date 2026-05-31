@@ -182,11 +182,10 @@ export class BookingService implements IBookingService {
     }
 
     if (newStatus === "cancelled") {
-      await this.simulation
-        .stopSimulation(id, booking.driver_id || "")
-        .catch((err) => {
-          console.error("Failed to stop simulation on cancellation:", err);
-        });
+      // Driver ID is no longer required here
+      await this.simulation.stopSimulation(id).catch((err) => {
+        console.error("Failed to stop simulation on cancellation:", err);
+      });
     }
 
     await this.bookingRepo.updateBookingStatus(id, newStatus);
