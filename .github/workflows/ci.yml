@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, staging ]
+    branches: [ main, dev ]
   pull_request:
-    branches: [ main, staging ]
+    branches: [ main, dev ]
 
 jobs:
   backend-ci:
@@ -21,6 +21,7 @@ jobs:
       - name: Create .dev.vars for Cloudflare Worker tests
         run: |
           cat > backend/.dev.vars <<EOF
+          SUPABASE_URL=https://${{ secrets.SUPABASE_PROJECT_ID }}.supabase.co
           UPSTASH_REDIS_REST_URL=${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN=${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
           SUPABASE_SECRET_KEY=${{ secrets.SUPABASE_SECRET_KEY }}
