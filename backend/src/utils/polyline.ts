@@ -34,8 +34,8 @@ export function decodePolyline(
       const dlng = result & 1 ? ~(result >> 1) : result >> 1;
       lng += dlng;
 
-      const pLat = lat / 1e5;
-      const pLng = lng / 1e5;
+      const pLat = lat / 1e6;
+      const pLng = lng / 1e6;
 
       if (
         !isNaN(pLat) &&
