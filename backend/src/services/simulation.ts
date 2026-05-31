@@ -1,4 +1,5 @@
 import { IGenericCache } from "../repositories/generic-cache";
+import { ICacheRepository } from "../repositories/cache";
 import { IBookingRepository } from "../repositories/booking";
 import { IAmbulanceRepository } from "../repositories/ambulance";
 import { IRealtimeBroadcaster } from "../repositories/realtime";
@@ -14,11 +15,12 @@ export interface ISimulationService {
     booking: Booking,
     driverId: string,
   ): Promise<boolean>;
+  stopSimulation(bookingId: string, driverId: string): Promise<void>;
 }
 
 export class SimulationService implements ISimulationService {
   constructor(
-    private cache: IGenericCache,
+    private cache: IGenericCache & ICacheRepository,
     private bookingRepo: IBookingRepository,
     private ambulanceRepo: IAmbulanceRepository,
     private realtime: IRealtimeBroadcaster,
@@ -31,13 +33,23 @@ export class SimulationService implements ISimulationService {
       return false;
     }
 
-    const providerLoc = await this.ambulanceRepo.getAmbulanceProviderLocation(
-      booking.ambulance_id,
-    );
+    let origin: string | null = null;
 
-    const origin = providerLoc
-      ? `${providerLoc.lat},${providerLoc.lng}`
-      : `${booking.pickup_lat},${booking.pickup_lng}`;
+    if (booking.driver_id) {
+      const driverLoc = await this.cache.getDriverLocation(booking.driver_id);
+      if (driverLoc) {
+        origin = `${driverLoc.lat},${driverLoc.lng}`;
+      }
+    }
+
+    if (!origin) {
+      const providerLoc = await this.ambulanceRepo.getAmbulanceProviderLocation(
+        booking.ambulance_id,
+      );
+      origin = providerLoc
+        ? `${providerLoc.lat},${providerLoc.lng}`
+        : `${booking.pickup_lat},${booking.pickup_lng}`;
+    }
 
     const directions = await this.maps.getDirections(
       origin,
@@ -120,6 +132,10 @@ export class SimulationService implements ISimulationService {
     if (!ok) return false;
     await this.cache.set(`sim:active:${driverId}`, booking.id, 3600);
     return true;
+  }
+
+  async stopSimulation(bookingId: string, driverId: string): Promise<void> {
+    await this.cleanupSimulation(driverId, bookingId);
   }
 
   private async cleanupSimulation(

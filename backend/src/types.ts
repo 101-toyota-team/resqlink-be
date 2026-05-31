@@ -93,6 +93,8 @@ export interface BookingData {
   destination_lat: number;
   destination_lng: number;
   user_id?: string;
+  estimated_price?: number;
+  driver_id?: string | null;
 }
 
 export interface Booking extends BookingData {

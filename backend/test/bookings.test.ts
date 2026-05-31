@@ -60,6 +60,7 @@ const createApp = (
         startSimulation: vi.fn(),
         advanceSimulation: vi.fn(),
         startSimulationForBooking: vi.fn(),
+        stopSimulation: vi.fn().mockResolvedValue(undefined),
       };
       return (
         simulationMock ? { ...baseMock, ...simulationMock } : baseMock
@@ -183,6 +184,7 @@ describe("Bookings API", () => {
     const validBookingPayload = {
       ambulance_id: "223e4567-e89b-12d3-a456-426614174001",
       booking_type: "medis",
+      estimated_price: 50000,
       patient_condition: "Stable",
       pickup_address: "123 Main St",
       pickup_lat: -6.2,
