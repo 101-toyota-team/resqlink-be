@@ -10,7 +10,7 @@ import {
   RealtimeBroadcaster,
 } from "../infrastructure/supabase";
 import { UpstashRedisRepository } from "../infrastructure/upstash";
-import { GoogleMapsRepository } from "../infrastructure/google-maps";
+import { MapboxRepository } from "../infrastructure/mapbox";
 import { Bindings } from "../schemas/env";
 import { AppVariables, ILogger } from "../types";
 import { GeoService } from "../services/geo";
@@ -33,7 +33,7 @@ export const diMiddleware: MiddlewareHandler<{
   let providerRepo: ProviderRepository | undefined;
   let hospitalRepo: HospitalRepository | undefined;
   let realtimeRepo: RealtimeBroadcaster | undefined;
-  let mapsRepo: GoogleMapsRepository | undefined;
+  let mapsRepo: MapboxRepository | undefined;
   let cacheRepo: UpstashRedisRepository | undefined;
   let geoService: GeoService | undefined;
   let logger: ILogger | undefined;
@@ -175,7 +175,7 @@ export const diMiddleware: MiddlewareHandler<{
 
   c.set("getMaps", () => {
     if (!mapsRepo) {
-      mapsRepo = new GoogleMapsRepository(c.env.GOOGLE_MAPS_API_KEY);
+      mapsRepo = new MapboxRepository(c.env.MAPBOX_ACCESS_TOKEN);
     }
     return mapsRepo;
   });

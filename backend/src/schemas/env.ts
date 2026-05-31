@@ -6,6 +6,7 @@ export const envSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_SECRET_KEY: z.string().min(1),
   GOOGLE_MAPS_API_KEY: z.string().min(1),
+  MAPBOX_ACCESS_TOKEN: z.string().min(1),
   RL_DEFAULT: z.any().optional(),
   RL_DRIVER: z.any().optional(),
 });
