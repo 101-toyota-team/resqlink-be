@@ -18,7 +18,7 @@ This is the Cloudflare Workers backend for the vehicle routing app.
    cd backend
    npm install
    ```
-4. Configure `.dev.vars` with your **dev** environment credentials, including `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, and `GOOGLE_MAPS_API_KEY`.
+4. Configure `.dev.vars` with your **dev** environment credentials, including `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, and `MAPBOX_ACCESS_TOKEN`.
 5. Start the local Wrangler development server (it will automatically pick up `.dev.vars`):
    ```bash
    npx wrangler dev

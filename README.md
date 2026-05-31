@@ -8,14 +8,14 @@ This project consists of:
 *   **Database**: Supabase (PostgreSQL) for persistence and Auth.
 *   **Real-time State**: Upstash Serverless Redis for O(1) H3 spatial matchmaking.
 *   **Spatial Indexing**: Uber H3 (Resolution 7) calculated client-side (by the mobile app).
-*   **Maps**: Google Maps Platform API.
+*   **Maps**: Mapbox API.
 
 ## 🚀 Getting Started
 
 ### 1. Prerequisites
 You will need free-tier accounts and API keys for:
 *   [Supabase](https://supabase.com) (Database & Auth)
-*   [Google Maps Platform](https://mapsplatform.google.com/) (Maps & Routing)
+*   [Mapbox](https://www.mapbox.com/) (Maps & Routing)
 *   [Upstash](https://upstash.com) (Serverless Redis)
 *   [Cloudflare](https://workers.cloudflare.com) (Backend hosting)
 
@@ -28,7 +28,7 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SECRET_KEY=your-service-role-key
 UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
 UPSTASH_REDIS_REST_TOKEN=your-token
-GOOGLE_MAPS_API_KEY=your-api-key
+MAPBOX_ACCESS_TOKEN=pk.your-access-token
 ```
 
 ### 3. Running Locally
@@ -40,7 +40,7 @@ GOOGLE_MAPS_API_KEY=your-api-key
 *   **H3 Resolution**: Level **7** is the project standard (15-character hex).
 *   **Matchmaking**: Static discovery (Providers/Hospitals) queries Supabase. The Backend is responsible for `gridDisk(1)` neighbor expansion (hospitals) and multi-ring progressive search via `gridRingUnsafe` up to radius 30 (providers). Real-time simulation state and driver presence pings are managed in Upstash Redis.
 *   **Real-time**: High-frequency GPS updates use Supabase Broadcast Channels (bypassing DB disk).
-*   **Google Maps API Keys**: Ensure you have created a restricted key for the backend (Cloudflare Worker). No special scopes are needed for Matrix, Directions, or Places APIs beyond enabling them in the Google Cloud Console.
+*   **Mapbox Access Tokens**: Ensure you have created a token for the backend (Cloudflare Worker). Ensure the token has scopes for Directions and Matrix APIs.
 
 ## 📦 Deployment
 To push database migrations to Supabase and deploy the Cloudflare Worker simultaneously:
@@ -73,21 +73,15 @@ We use Supabase's modern asymmetric keys and JWKS. You do **not** need to store 
    *   **Secret Key (`service_role` / `secret`):** Found right below the anon key. Keep this highly secure! This bypasses RLS.
        *   *Used in:* Backend (`SUPABASE_SECRET_KEY`)
 
-### 2. Google Maps Platform
-The project requires a Google Maps API Key for the backend (and the separate frontend repo). Google provides a recurring $200 monthly credit.
+### 2. Mapbox Platform
+The project requires a Mapbox Access Token for the backend (and the separate frontend repo).
 
 **Steps:**
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
-2. Create a new project named "ResQLink".
-3. Enable the following APIs:
-   * Distance Matrix API
-   * Directions API
-   * Places API
-   * (And Maps SDK for Android/iOS if setting up for the frontend)
-4. Go to **Credentials**, click **Create Credentials** -> **API Key**.
-5. **Security Step:** Create a restricted key for the backend.
-6. Copy the generated key.
-   *   *Used in:* Backend (`GOOGLE_MAPS_API_KEY`)
+1. Go to the [Mapbox Account page](https://account.mapbox.com/).
+2. Create a new token.
+3. Ensure the token has access to the **Directions** and **Matrix** APIs.
+4. Copy the generated token.
+   *   *Used in:* Backend (`MAPBOX_ACCESS_TOKEN`)
 
 ### 3. Upstash (Serverless Redis)
 Upstash is used by the backend for high-speed spatial indexing (H3) and matchmaking.

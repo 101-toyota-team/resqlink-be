@@ -22,8 +22,8 @@ vi.mock("../src/infrastructure/upstash", () => ({
   }),
 }));
 
-vi.mock("../src/infrastructure/google-maps", () => ({
-  GoogleMapsRepository: vi.fn().mockImplementation(function () {
+vi.mock("../src/infrastructure/mapbox", () => ({
+  MapboxRepository: vi.fn().mockImplementation(function () {
     return {
       getDistanceMatrix: vi.fn(),
       getDirections: vi.fn(),

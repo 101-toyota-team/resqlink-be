@@ -415,7 +415,7 @@ paths:
       summary: Driver Ping (Telemetry)
       description: >-
         Simulate movement by pinging the driver's location. Advances the
-        pre-calculated simulation route.
+        pre-calculated simulation route (calculated via Mapbox).
       tags:
         - Driver
       security:
