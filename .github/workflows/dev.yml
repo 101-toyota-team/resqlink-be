@@ -1,14 +1,14 @@
-name: Deploy Backend
+name: Deploy Dev Backend
 
 on:
   push:
     branches:
-      - staging
+      - dev
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: STAGING
+    environment: DEVELOPMENT
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -47,18 +47,18 @@ jobs:
       - name: Push Secrets to Cloudflare Worker
         working-directory: ./backend
         run: |
-          npx wrangler secret put SUPABASE_URL --env staging <<< "https://${{ secrets.SUPABASE_PROJECT_ID }}.supabase.co"
-          npx wrangler secret put UPSTASH_REDIS_REST_URL --env staging <<< "${{ secrets.UPSTASH_REDIS_REST_URL }}"
-          npx wrangler secret put UPSTASH_REDIS_REST_TOKEN --env staging <<< "${{ secrets.UPSTASH_REDIS_REST_TOKEN }}"
-          npx wrangler secret put SUPABASE_SECRET_KEY --env staging <<< "${{ secrets.SUPABASE_SECRET_KEY }}"
-          npx wrangler secret put GOOGLE_MAPS_API_KEY --env staging <<< "${{ secrets.GOOGLE_MAPS_API_KEY }}"
+          npx wrangler secret put SUPABASE_URL --env dev <<< "https://${{ secrets.SUPABASE_PROJECT_ID }}.supabase.co"
+          npx wrangler secret put UPSTASH_REDIS_REST_URL --env dev <<< "${{ secrets.UPSTASH_REDIS_REST_URL }}"
+          npx wrangler secret put UPSTASH_REDIS_REST_TOKEN --env dev <<< "${{ secrets.UPSTASH_REDIS_REST_TOKEN }}"
+          npx wrangler secret put SUPABASE_SECRET_KEY --env dev <<< "${{ secrets.SUPABASE_SECRET_KEY }}"
+          npx wrangler secret put GOOGLE_MAPS_API_KEY --env dev <<< "${{ secrets.GOOGLE_MAPS_API_KEY }}"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Deploy Cloudflare Worker
         working-directory: ./backend
-        run: npx wrangler deploy --env staging
+        run: npx wrangler deploy --env dev
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -67,5 +67,5 @@ jobs:
 # When ready to deploy main branch to production:
 # 1. Create a "PRODUCTION" environment in GitHub settings
 # 2. Configure it to deploy on 'main' branch
-# 3. Add PRODUCTION secrets (same variables as STAGING)
+# 3. Add PRODUCTION secrets (same variables as DEV)
 # 4. Add a second deploy job that targets the 'main' branch and PRODUCTION environment
