@@ -451,8 +451,8 @@ describe("getProviderId", () => {
     expect(
       getProviderId({
         sub: "abc",
-        app_metadata: { provider_id: 12345 as any },
-      }),
+        app_metadata: { provider_id: 12345 },
+      } as unknown as JwtPayload),
     ).toBeUndefined();
   });
 });

@@ -376,8 +376,8 @@ describe("Bookings API", () => {
 
       const app = createApp(dbMock, {
         sub: mockOtherUserId,
-        app_metadata: { role: 123 as any }, // Invalid role type
-      });
+        app_metadata: { role: 123 }, // Invalid role type
+      } as unknown as JwtPayload);
       const res = await app.request(`/bookings/${mockBookingId}`);
 
       expect(res.status).toBe(403); // Falls back to forbidden
@@ -393,8 +393,8 @@ describe("Bookings API", () => {
 
       const app = createApp(dbMock, {
         sub: mockOtherUserId,
-        app_metadata: null as any,
-      });
+        app_metadata: null,
+      } as unknown as JwtPayload);
       const res = await app.request(`/bookings/${mockBookingId}`);
 
       expect(res.status).toBe(403);
