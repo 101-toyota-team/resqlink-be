@@ -4,7 +4,7 @@ import { IMapsRepository } from "../src/repositories/maps";
 import { ICacheRepository } from "../src/repositories/cache";
 import { IGenericCache } from "../src/repositories/generic-cache";
 import { IGeoService } from "../src/services/geo";
-import { GoogleDistanceMatrixResponse } from "../src/types";
+import { DistanceMatrixResponse } from "../src/types";
 
 describe("DistanceService", () => {
   let mockMaps: Mocked<IMapsRepository>;
@@ -18,7 +18,7 @@ describe("DistanceService", () => {
     { id: "d2", lat: -6.3, lng: 106.7 },
   ];
 
-  const mockMatrixResponse: GoogleDistanceMatrixResponse = {
+  const mockMatrixResponse: DistanceMatrixResponse = {
     rows: [
       {
         elements: [

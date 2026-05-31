@@ -89,13 +89,7 @@ describe("SimulationService", () => {
       status: "OK",
       routes: [
         {
-          bounds: {},
-          copyrights: "",
-          legs: [],
           overview_polyline: { points: "a~l~Fjk_uO~clMmhwD" },
-          summary: "",
-          warnings: [],
-          waypoint_order: [],
         },
       ],
     });
@@ -123,13 +117,7 @@ describe("SimulationService", () => {
       status: "OK",
       routes: [
         {
-          bounds: {},
-          copyrights: "",
-          legs: [],
           overview_polyline: { points: "" },
-          summary: "",
-          warnings: [],
-          waypoint_order: [],
         },
       ],
     });
@@ -244,13 +232,7 @@ describe("SimulationService", () => {
       status: "OK",
       routes: [
         {
-          bounds: {},
-          copyrights: "",
-          legs: [],
           overview_polyline: { points: "a~l~Fjk_uO~clMmhwD" },
-          summary: "",
-          warnings: [],
-          waypoint_order: [],
         },
       ],
     });
