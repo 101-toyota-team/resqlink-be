@@ -209,6 +209,7 @@ describe("SimulationService", () => {
       mockBookingId,
       "arrived",
     );
+    expect(mockCache.del).toHaveBeenCalledWith(`sim:active:${mockDriverId}`);
   });
 
   it("should not set sim:active when startSimulation fails", async () => {

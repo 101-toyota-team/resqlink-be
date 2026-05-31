@@ -38,7 +38,7 @@ interface MockDb {
 const createApp = (
   dbMock: MockDb,
   jwtPayloadMock: JwtPayload,
-  simulationMock?: { startSimulationForBooking: ReturnType<typeof vi.fn> },
+  simulationMock?: Partial<ISimulationService>,
 ) => {
   const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
 
@@ -537,6 +537,7 @@ describe("Bookings API", () => {
         id: mockBookingId,
         user_id: mockUserId,
         provider_id: "prov-123",
+        driver_id: mockDriverId,
         status: "confirmed",
       };
       dbMock.getBooking.mockResolvedValue(mockBooking);
@@ -565,8 +566,39 @@ describe("Bookings API", () => {
       );
       expect(startSimulationForBooking).toHaveBeenCalledWith(
         mockBooking,
-        mockOtherUserId,
+        mockDriverId,
       );
+    });
+
+    it("should return 400 when provider sets en_route without assigned driver", async () => {
+      const mockBooking = {
+        id: mockBookingId,
+        user_id: mockUserId,
+        provider_id: "prov-123",
+        status: "confirmed",
+      };
+      dbMock.getBooking.mockResolvedValue(mockBooking);
+
+      const startSimulationForBooking = vi.fn().mockResolvedValue(true);
+      const simulationServiceMock = { startSimulationForBooking };
+      const app = createApp(
+        dbMock,
+        {
+          sub: mockOtherUserId,
+          app_metadata: { role: "provider", provider_id: "prov-123" },
+        },
+        simulationServiceMock,
+      );
+
+      const res = await app.request(`/bookings/${mockBookingId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "en_route" }),
+      });
+
+      expect(res.status).toBe(400);
+      expect(startSimulationForBooking).not.toHaveBeenCalled();
+      expect(dbMock.updateBookingStatus).not.toHaveBeenCalled();
     });
 
     it("should return 400 for invalid status enums", async () => {
@@ -813,6 +845,30 @@ describe("Bookings API", () => {
       mockBookingId,
       "cancelled",
     );
+  });
+
+  it("should return 500 and not update booking if stopSimulation fails on cancellation", async () => {
+    const mockBooking = {
+      id: mockBookingId,
+      user_id: mockUserId,
+      status: "confirmed",
+    };
+    dbMock.getBooking.mockResolvedValue(mockBooking);
+
+    const stopSimulation = vi
+      .fn()
+      .mockRejectedValue(new Error("Redis timeout during cleanup"));
+
+    const app = createApp(dbMock, { sub: mockUserId }, { stopSimulation });
+    const res = await app.request(`/bookings/${mockBookingId}/status`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "cancelled" }),
+    });
+
+    expect(res.status).toBe(500);
+    expect(stopSimulation).toHaveBeenCalledWith(mockBookingId);
+    expect(dbMock.updateBookingStatus).not.toHaveBeenCalled();
   });
 
   it("should return 200 for en_route to cancelled transition", async () => {
