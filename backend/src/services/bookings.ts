@@ -172,9 +172,19 @@ export class BookingService implements IBookingService {
     }
 
     if (newStatus === "en_route") {
+      const simulationDriverId = isDriverRole(payload)
+        ? payload.sub
+        : booking.driver_id;
+
+      if (!simulationDriverId) {
+        throw new BookingStateError(
+          "Cannot start simulation: booking has no assigned driver",
+        );
+      }
+
       const started = await this.simulation.startSimulationForBooking(
         booking,
-        payload.sub,
+        simulationDriverId,
       );
       if (!started) {
         throw new Error("Failed to start route simulation");
@@ -182,15 +192,10 @@ export class BookingService implements IBookingService {
     }
 
     if (newStatus === "cancelled") {
-      // Driver ID is no longer required here
-      await this.simulation.stopSimulation(id).catch((err) => {
-        console.error("Failed to stop simulation on cancellation:", err);
-      });
+      await this.simulation.stopSimulation(id);
     }
 
     await this.bookingRepo.updateBookingStatus(id, newStatus);
-    const updated = await this.bookingRepo.getBooking(id);
-    if (!updated) throw new Error("Booking not found after update");
-    return updated;
+    return { ...booking, status: newStatus };
   }
 }

@@ -102,7 +102,7 @@ export class SimulationService implements ISimulationService {
     if (!route || step === null || step >= route.length) {
       if (step !== null && route && step >= route.length) {
         await this.bookingRepo.updateBookingStatus(bookingId, "arrived");
-        await this.cleanupSimulation(driverId, bookingId);
+        await this.cleanupSimulation(bookingId, driverId);
       }
       return;
     }
@@ -121,7 +121,7 @@ export class SimulationService implements ISimulationService {
 
     if (step + 1 >= route.length) {
       await this.bookingRepo.updateBookingStatus(bookingId, "arrived");
-      await this.cleanupSimulation(driverId, bookingId);
+      await this.cleanupSimulation(bookingId, driverId);
     }
   }
 
