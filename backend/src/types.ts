@@ -114,27 +114,25 @@ export interface JwtPayload {
   [key: string]: unknown;
 }
 
-export interface GoogleDistanceMatrixResponse {
+export interface DistanceMatrixElement {
+  status: string;
+  duration: { text: string; value: number };
+  distance: { text: string; value: number };
+}
+
+export interface DistanceMatrixResponse {
   rows: {
-    elements: {
-      status: string;
-      duration: { text: string; value: number };
-      distance: { text: string; value: number };
-    }[];
+    elements: DistanceMatrixElement[];
   }[];
   status: string;
 }
 
-export interface GoogleDirectionsResponse {
-  routes: Array<{
-    bounds: Record<string, unknown>;
-    copyrights: string;
-    legs: unknown[];
-    overview_polyline: { points: string };
-    summary: string;
-    warnings: string[];
-    waypoint_order: number[];
-  }>;
+export interface DirectionsRoute {
+  overview_polyline: { points: string };
+}
+
+export interface DirectionsResponse {
+  routes: DirectionsRoute[];
   status: string;
 }
 
