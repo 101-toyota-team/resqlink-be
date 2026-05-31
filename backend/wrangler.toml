@@ -1,9 +1,7 @@
-name = "staging"
 main = "src/index.ts"
 compatibility_date = "2026-01-01"
 
 [vars]
-SUPABASE_URL = "https://oddfremdisrivnepklga.supabase.co"
 # DO NOT put real secrets here. Use .dev.vars for local and 'wrangler secret put' for prod.
 
 [[ratelimits]]
@@ -19,3 +17,9 @@ namespace_id = "1002"
 [ratelimits.simple]
 limit = 60
 period = 60
+
+[env.staging]
+name = "staging"
+
+[env.dev]
+name = "dev"
