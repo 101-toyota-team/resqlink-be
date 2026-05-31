@@ -46,6 +46,15 @@ GOOGLE_MAPS_API_KEY=your-api-key
 To push database migrations to Supabase and deploy the Cloudflare Worker simultaneously:
 *   `cd backend && npx wrangler deploy`
 
+### Troubleshooting CI/CD Failures
+If the "Deploy Supabase Migrations" step fails with a password authentication error:
+1.  **Verify your password**: Ensure `SUPABASE_DB_PASSWORD` in GitHub Secrets matches your database password.
+2.  **Test locally**: Run the following command to verify your password works:
+    ```bash
+    supabase link --project-ref your-project-ref --password your-password
+    ```
+3.  **Reset password**: If you've forgotten it, reset it in the Supabase Dashboard under **Project Settings > Database**.
+
 ---
 
 ## 🔑 Detailed Credential Setup Guide
