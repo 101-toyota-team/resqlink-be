@@ -72,8 +72,8 @@ export class DistanceService implements IDistanceService {
       ]);
 
       if (matrix.status !== "OK") {
-        logger.warn(
-          "Google Maps Distance API returned non-OK status: %s",
+        logger.error(
+          "Maps Distance API returned non-OK status: %s",
           matrix.status,
         );
         return resultsWithCache.map((r) => ({
