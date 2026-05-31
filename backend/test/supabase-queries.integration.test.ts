@@ -10,8 +10,9 @@ describe("Supabase Real Query Integration Tests", () => {
   describe("ProviderRepository", () => {
     it("should successfully execute searchProviders without throwing PGRST203", async () => {
       const providerRepo = new ProviderRepository(
-        (env as any).SUPABASE_URL as string,
-        (env as any).SUPABASE_SECRET_KEY as string,
+        (env as unknown as Record<string, string>).SUPABASE_URL as string,
+        (env as unknown as Record<string, string>)
+          .SUPABASE_SECRET_KEY as string,
       );
 
       // Attempt a search both with and without explicit limit to ensure no RPC ambiguity
@@ -31,8 +32,9 @@ describe("Supabase Real Query Integration Tests", () => {
 
     it("should successfully execute findProvidersByH3Indexes", async () => {
       const providerRepo = new ProviderRepository(
-        (env as any).SUPABASE_URL as string,
-        (env as any).SUPABASE_SECRET_KEY as string,
+        (env as unknown as Record<string, string>).SUPABASE_URL as string,
+        (env as unknown as Record<string, string>)
+          .SUPABASE_SECRET_KEY as string,
       );
 
       const results = await providerRepo.findProvidersByH3Indexes([
@@ -45,8 +47,9 @@ describe("Supabase Real Query Integration Tests", () => {
   describe("HospitalRepository", () => {
     it("should successfully execute searchHospitals without throwing PGRST203", async () => {
       const hospitalRepo = new HospitalRepository(
-        (env as any).SUPABASE_URL as string,
-        (env as any).SUPABASE_SECRET_KEY as string,
+        (env as unknown as Record<string, string>).SUPABASE_URL as string,
+        (env as unknown as Record<string, string>)
+          .SUPABASE_SECRET_KEY as string,
       );
 
       const resWithLimit = await hospitalRepo.searchHospitals("rs", "rs", 5);
@@ -58,8 +61,9 @@ describe("Supabase Real Query Integration Tests", () => {
 
     it("should successfully execute findHospitalsByH3Indexes without throwing PGRST100", async () => {
       const hospitalRepo = new HospitalRepository(
-        (env as any).SUPABASE_URL as string,
-        (env as any).SUPABASE_SECRET_KEY as string,
+        (env as unknown as Record<string, string>).SUPABASE_URL as string,
+        (env as unknown as Record<string, string>)
+          .SUPABASE_SECRET_KEY as string,
       );
 
       // 878c106a4ffffff is a valid H3 index form

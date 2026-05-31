@@ -178,7 +178,7 @@ describe("Bookings Integration Lifecycle", () => {
     });
     expect(resCancel.status).toBe(200);
 
-    // 4. Verify cleanup
-    expect(stopSimulation).toHaveBeenCalledWith(mockBookingId, "");
+    // 4. Verify cleanup — simulation.stopSimulation was called with bookingId only
+    expect(stopSimulation).toHaveBeenCalledWith(mockBookingId);
   });
 });

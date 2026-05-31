@@ -15,7 +15,7 @@ export interface ISimulationService {
     booking: Booking,
     driverId: string,
   ): Promise<boolean>;
-  stopSimulation(bookingId: string, driverId: string): Promise<void>;
+  stopSimulation(bookingId: string): Promise<void>;
 }
 
 export class SimulationService implements ISimulationService {
@@ -80,7 +80,7 @@ export class SimulationService implements ISimulationService {
 
     const booking = await this.bookingRepo.getBooking(bookingId);
     if (!booking) {
-      await this.cleanupSimulation(driverId, bookingId);
+      await this.cleanupSimulation(bookingId, driverId);
       return;
     }
 
@@ -90,7 +90,7 @@ export class SimulationService implements ISimulationService {
       booking.status === "completed" ||
       booking.status === "cancelled"
     ) {
-      await this.cleanupSimulation(driverId, bookingId);
+      await this.cleanupSimulation(bookingId, driverId);
       return;
     }
 
@@ -117,6 +117,7 @@ export class SimulationService implements ISimulationService {
     await this.cache.set(`sim:step:${bookingId}`, step + 1, 3600);
     await this.cache.expire(`sim:route:${bookingId}`, 3600);
     await this.cache.expire(`sim:active:${driverId}`, 3600);
+    await this.cache.expire(`sim:booking_driver:${bookingId}`, 3600);
 
     if (step + 1 >= route.length) {
       await this.bookingRepo.updateBookingStatus(bookingId, "arrived");
@@ -131,18 +132,30 @@ export class SimulationService implements ISimulationService {
     const ok = await this.startSimulation(booking);
     if (!ok) return false;
     await this.cache.set(`sim:active:${driverId}`, booking.id, 3600);
+    await this.cache.set(`sim:booking_driver:${booking.id}`, driverId, 3600);
     return true;
   }
 
-  async stopSimulation(bookingId: string, driverId: string): Promise<void> {
-    await this.cleanupSimulation(driverId, bookingId);
+  async stopSimulation(bookingId: string): Promise<void> {
+    await this.cleanupSimulation(bookingId);
   }
 
   private async cleanupSimulation(
-    driverId: string,
     bookingId: string,
+    driverIdFallback?: string,
   ): Promise<void> {
-    await this.cache.del(`sim:active:${driverId}`);
+    let driverId = driverIdFallback;
+    if (!driverId) {
+      driverId =
+        (await this.cache.get<string>(`sim:booking_driver:${bookingId}`)) ||
+        undefined;
+    }
+
+    if (driverId) {
+      await this.cache.del(`sim:active:${driverId}`);
+    }
+
+    await this.cache.del(`sim:booking_driver:${bookingId}`);
     await this.cache.del(`sim:route:${bookingId}`);
     await this.cache.del(`sim:step:${bookingId}`);
   }

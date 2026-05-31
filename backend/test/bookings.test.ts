@@ -376,7 +376,7 @@ describe("Bookings API", () => {
 
       const app = createApp(dbMock, {
         sub: mockOtherUserId,
-        app_metadata: { role: 123 as any }, // Invalid role type
+        app_metadata: { role: 123 }, // Invalid role type
       });
       const res = await app.request(`/bookings/${mockBookingId}`);
 
@@ -393,7 +393,7 @@ describe("Bookings API", () => {
 
       const app = createApp(dbMock, {
         sub: mockOtherUserId,
-        app_metadata: null as any,
+        app_metadata: null,
       });
       const res = await app.request(`/bookings/${mockBookingId}`);
 
