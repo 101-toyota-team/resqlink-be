@@ -7,8 +7,6 @@ import { Bindings } from "../src/schemas/env";
 import {
   IBookingRepository,
   IAmbulanceRepository,
-  IProviderRepository,
-  IHospitalRepository,
   IRealtimeBroadcaster,
 } from "../src/repositories/db";
 import { BookingService } from "../src/services/bookings";

@@ -3,11 +3,7 @@ import { IMapsRepository } from "../repositories/maps";
 import { AmbulanceLocation } from "../types";
 import { IGeoService } from "./geo";
 import logger from "../utils/logger";
-import {
-  DISTANCE_SERVICE,
-  GLOBAL_H3_RESOLUTION,
-  REDIS,
-} from "../utils/constants";
+import { GLOBAL_H3_RESOLUTION, REDIS } from "../utils/constants";
 
 export interface IDistanceService {
   getEnrichedDrivers<T extends AmbulanceLocation>(
