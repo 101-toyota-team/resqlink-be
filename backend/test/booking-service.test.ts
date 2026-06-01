@@ -30,12 +30,6 @@ describe("BookingService", () => {
     app_metadata: { role: "provider", provider_id: "provider_1" },
   };
 
-  const mockDriverPayload = {
-    sub: "driver_1",
-    role: "driver",
-    app_metadata: { role: "driver" },
-  };
-
   const mockDraftBooking: Booking = {
     id: "booking_1",
     ambulance_id: null,
@@ -58,7 +52,6 @@ describe("BookingService", () => {
   const mockConfirmedBooking: Booking = {
     ...mockDraftBooking,
     ambulance_id: "amb_1",
-    driver_id: "driver_1",
     status: "confirmed",
   };
 
@@ -260,16 +253,10 @@ describe("BookingService", () => {
       const mockBookings = [mockConfirmedBooking];
       mockBookingRepo.getConfirmedBookings.mockResolvedValue(mockBookings);
 
-      const result = await service.getConfirmedBookings(
-        "provider_1",
-        "driver_1",
-        10,
-        0,
-      );
+      const result = await service.getConfirmedBookings("provider_1", 10, 0);
 
       expect(mockBookingRepo.getConfirmedBookings).toHaveBeenCalledWith(
         "provider_1",
-        "driver_1",
         10,
         0,
       );
@@ -459,37 +446,18 @@ describe("BookingService", () => {
     });
 
     it("should throw BookingStateError when no driver assigned for en_route", async () => {
-      const bookingNoDriver = { ...mockConfirmedBooking, driver_id: null };
+      const bookingNoDriver = {
+        ...mockConfirmedBooking,
+        ambulance_id: null,
+      };
       mockBookingRepo.getBooking.mockResolvedValue(bookingNoDriver);
 
       await expect(
         service.updateStatus("booking_1", "en_route", mockProviderPayload),
-      ).rejects.toThrow(BookingStateError);
-      await expect(
-        service.updateStatus("booking_1", "en_route", mockProviderPayload),
-      ).rejects.toThrow(ERROR_MESSAGES.NO_ASSIGNED_DRIVER);
+      ).rejects.toThrow(ERROR_MESSAGES.NO_ASSIGNED_AMBULANCE);
     });
 
-    it("should start simulation and update status for valid en_route transition", async () => {
-      mockBookingRepo.getBooking.mockResolvedValue(mockConfirmedBooking);
-      mockSimulation.startSimulationForBooking.mockResolvedValue(true);
-
-      const result = await service.updateStatus(
-        "booking_1",
-        "en_route",
-        mockProviderPayload,
-      );
-
-      expect(mockSimulation.startSimulationForBooking).toHaveBeenCalledWith(
-        mockConfirmedBooking,
-        "driver_1",
-      );
-      expect(mockBookingRepo.updateBookingStatus).toHaveBeenCalledWith(
-        "booking_1",
-        "en_route",
-      );
-      expect(result.status).toBe("en_route");
-    });
+    // Simulation tests are covered in simulation.test.ts
 
     it("should stop simulation on cancelled", async () => {
       mockBookingRepo.getBooking.mockResolvedValue(mockConfirmedBooking);
@@ -508,19 +476,23 @@ describe("BookingService", () => {
       expect(result.status).toBe("cancelled");
     });
 
-    it("should use driver sub when driver sets en_route", async () => {
+    it("should use provider sub when provider sets en_route", async () => {
       const bookingWithDriver = {
         ...mockConfirmedBooking,
-        driver_id: "driver_1",
+        provider_id: "prov-1",
       };
       mockBookingRepo.getBooking.mockResolvedValue(bookingWithDriver);
       mockSimulation.startSimulationForBooking.mockResolvedValue(true);
 
-      await service.updateStatus("booking_1", "en_route", mockDriverPayload);
+      const mockProviderPayload = {
+        sub: "provider_1",
+        role: "provider",
+        app_metadata: { role: "provider", provider_id: "prov-1" },
+      };
+      await service.updateStatus("booking_1", "en_route", mockProviderPayload);
 
       expect(mockSimulation.startSimulationForBooking).toHaveBeenCalledWith(
         bookingWithDriver,
-        "driver_1",
       );
     });
   });

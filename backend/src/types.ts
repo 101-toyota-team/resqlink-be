@@ -12,7 +12,6 @@ import {
 } from "./repositories/db";
 import { IMapsRepository } from "./repositories/maps";
 import { IGenericCache } from "./repositories/generic-cache";
-import { ICacheRepository } from "./repositories/cache";
 import type { BookingStatus } from "./utils/constants";
 
 export const PROVIDER_TYPES = [
@@ -94,7 +93,6 @@ export interface BookingData {
   destination_lng: number;
   user_id?: string;
   estimated_price?: number;
-  driver_id?: string | null;
 }
 
 export interface Booking extends BookingData {
@@ -154,6 +152,6 @@ export interface AppVariables {
   getHospitalRepo: () => IHospitalRepository;
   getRealtimeRepo: () => IRealtimeBroadcaster;
   getMaps: () => IMapsRepository;
-  getCache: () => IGenericCache & ICacheRepository;
+  getCache: () => IGenericCache;
   jwtPayload: JwtPayload;
 }

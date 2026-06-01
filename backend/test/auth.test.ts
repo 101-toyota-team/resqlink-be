@@ -12,7 +12,6 @@ const mockEnv = {
 };
 import type { JwtPayload } from "../src/types";
 import {
-  isDriverRole,
   isProviderRole,
   isAdminRole,
   canAccessBooking,
@@ -93,7 +92,6 @@ import app from "../src/index";
 import { verifyWithJwks } from "hono/jwt";
 
 describe("Authentication & Authorization", () => {
-  const driverId = "00000000-0000-0000-0000-000000000001";
   const riderId = "00000000-0000-0000-0000-000000000002";
 
   beforeEach(() => {
@@ -154,169 +152,11 @@ describe("Authentication & Authorization", () => {
       status: "confirmed",
     });
   });
-
-  it("should return 403 if user is not a driver on driver endpoints", async () => {
-    const payload: JwtPayload = {
-      sub: riderId,
-      role: "authenticated",
-    };
-    vi.mocked(verifyWithJwks).mockResolvedValue(payload);
-
-    const res = await app.request(
-      "/driver/ping",
-      {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer valid-rider-token",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          driver_id: riderId,
-          h3_index: "878c106a4ffffff",
-          lat: -6.2,
-          lng: 106.8,
-        }),
-      },
-      mockEnv,
-    );
-
-    expect(res.status).toBe(403);
-    expect(await res.json()).toEqual({
-      error: "You do not have permission to access this resource",
-      details: {},
-    });
-  });
-
-  it("should return 403 if driver_id in body does not match sub in JWT", async () => {
-    const payload: JwtPayload = {
-      sub: driverId,
-      app_metadata: { role: "driver" },
-    };
-    vi.mocked(verifyWithJwks).mockResolvedValue(payload);
-
-    const res = await app.request(
-      "/driver/ping",
-      {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer valid-driver-token",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          driver_id: "00000000-0000-0000-0000-000000000004",
-          h3_index: "878c106a4ffffff",
-          lat: -6.2,
-          lng: 106.8,
-        }),
-      },
-      mockEnv,
-    );
-
-    expect(res.status).toBe(403);
-    expect(await res.json()).toEqual({
-      error: "You do not have permission to access this resource",
-      details: {},
-    });
-  });
-
-  it("should allow driver ping if authenticated as driver with matching ID", async () => {
-    const payload: JwtPayload = {
-      sub: driverId,
-      app_metadata: { role: "driver" },
-    };
-    vi.mocked(verifyWithJwks).mockResolvedValue(payload);
-
-    const res = await app.request(
-      "/driver/ping",
-      {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer valid-driver-token",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          driver_id: driverId,
-          h3_index: "878c106a4ffffff",
-          lat: -6.2,
-          lng: 106.8,
-        }),
-      },
-      mockEnv,
-    );
-
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({
-      driver_id: driverId,
-      h3_index: "878c106a4ffffff",
-      lat: -6.2,
-      lng: 106.8,
-    });
-  });
-});
-
-describe("isDriverRole", () => {
-  it("returns true when payload.role is driver even if app_metadata is missing", () => {
-    expect(isDriverRole({ sub: "abc", role: "driver" })).toBe(true);
-  });
-
-  it("returns true when app_metadata.role is driver", () => {
-    expect(
-      isDriverRole({
-        sub: "abc",
-        role: "user",
-        app_metadata: { role: "driver" },
-      }),
-    ).toBe(true);
-  });
-
-  it("returns false when no driver role present", () => {
-    expect(isDriverRole({ sub: "abc", role: "user" })).toBe(false);
-  });
-
-  it("returns false when role is missing", () => {
-    expect(isDriverRole({ sub: "abc" })).toBe(false);
-  });
 });
 
 describe("canAccessBooking", () => {
   it("allows booking owner", () => {
     expect(canAccessBooking({ sub: "abc" }, "abc")).toBe(true);
-  });
-
-  it("denies driver access if driver_id does not match sub", () => {
-    expect(
-      canAccessBooking(
-        { sub: "driver-1", app_metadata: { role: "driver" } },
-        "user-1",
-        "prov-1",
-        "driver-2",
-      ),
-    ).toBe(false);
-  });
-
-  it("allows driver access if driver_id matches sub", () => {
-    expect(
-      canAccessBooking(
-        { sub: "driver-1", app_metadata: { role: "driver" } },
-        "user-1",
-        "prov-1",
-        "driver-1",
-      ),
-    ).toBe(true);
-  });
-
-  it("denies driver access based on provider_id (strict isolation)", () => {
-    expect(
-      canAccessBooking(
-        {
-          sub: "driver-1",
-          app_metadata: { role: "driver", provider_id: "prov-123" },
-        },
-        "user-1",
-        "prov-123",
-        "driver-2",
-      ),
-    ).toBe(false);
   });
 
   it("allows admin access to any booking", () => {

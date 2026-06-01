@@ -347,13 +347,12 @@ describe("Bookings API", () => {
       expect(dbMock.getBooking).toHaveBeenCalledWith(mockBookingId);
     });
 
-    it("should return 200 and booking data when requested by a driver", async () => {
-      // Driver does not own the booking, but has driver role and matching provider_id
+    it("should return 403 and booking data when requested by a driver", async () => {
+      // Driver access is removed, so this test should now expect 403
       const mockBooking = {
         id: mockBookingId,
         user_id: mockUserId,
         provider_id: "prov-123",
-        driver_id: mockDriverId,
         status: "confirmed",
       };
       dbMock.getBooking.mockResolvedValue(mockBooking);
@@ -364,16 +363,15 @@ describe("Bookings API", () => {
       });
       const res = await app.request(`/bookings/${mockBookingId}`, {}, mockEnv);
 
-      expect(res.status).toBe(200);
-      expect(await res.json()).toEqual(mockBooking);
+      // Driver access is no longer authorized
+      expect(res.status).toBe(403);
     });
 
-    it("should return 200 and booking data when requested by a driver via app_metadata role", async () => {
+    it("should return 403 and booking data when requested by a driver via app_metadata role", async () => {
       const mockBooking = {
         id: mockBookingId,
         user_id: mockUserId,
         provider_id: "prov-123",
-        driver_id: mockDriverId,
         status: "confirmed",
       };
       dbMock.getBooking.mockResolvedValue(mockBooking);
@@ -384,8 +382,7 @@ describe("Bookings API", () => {
       });
       const res = await app.request(`/bookings/${mockBookingId}`, {}, mockEnv);
 
-      expect(res.status).toBe(200);
-      expect(await res.json()).toEqual(mockBooking);
+      expect(res.status).toBe(403);
     });
 
     it("should handle invalid app_metadata gracefully (missing role)", async () => {
@@ -469,12 +466,12 @@ describe("Bookings API", () => {
   });
 
   describe("PUT /bookings/:id/status", () => {
-    it("should return 200 on successful status update by driver", async () => {
+    it("should return 200 on successful status update by provider", async () => {
       const mockBooking = {
         id: mockBookingId,
         user_id: mockUserId,
         provider_id: "prov-123",
-        driver_id: mockDriverId,
+        ambulance_id: "amb-123",
         status: "confirmed",
       };
       dbMock.getBooking.mockResolvedValue(mockBooking);
@@ -485,8 +482,8 @@ describe("Bookings API", () => {
       const app = createApp(
         dbMock,
         {
-          sub: mockDriverId,
-          app_metadata: { role: "driver", provider_id: "prov-123" },
+          sub: "provider-1",
+          app_metadata: { role: "provider", provider_id: "prov-123" },
         },
         dispatchMock,
       );
@@ -505,10 +502,7 @@ describe("Bookings API", () => {
         mockBookingId,
         "en_route",
       );
-      expect(startSimulationForBooking).toHaveBeenCalledWith(
-        mockBooking,
-        mockDriverId,
-      );
+      expect(startSimulationForBooking).toHaveBeenCalledWith(mockBooking);
     });
 
     it("should return 500 when simulation setup fails", async () => {
@@ -516,7 +510,6 @@ describe("Bookings API", () => {
         id: mockBookingId,
         user_id: mockUserId,
         provider_id: "prov-123",
-        driver_id: mockDriverId,
         status: "confirmed",
       };
       dbMock.getBooking.mockResolvedValue(mockBooking);
@@ -526,8 +519,8 @@ describe("Bookings API", () => {
       const app = createApp(
         dbMock,
         {
-          sub: mockDriverId,
-          app_metadata: { role: "driver", provider_id: "prov-123" },
+          sub: "provider-1",
+          app_metadata: { role: "provider", provider_id: "prov-123" },
         },
         dispatchMock,
       );
@@ -541,11 +534,12 @@ describe("Bookings API", () => {
         mockEnv,
       );
 
+      // Simulation failure returns BookingStateError (mapped to 400)
       expect(res.status).toBe(400);
       expect(dbMock.updateBookingStatus).not.toHaveBeenCalled();
     });
 
-    it("should return 403 when non-driver/non-provider sets en_route", async () => {
+    it("should return 403 when non-provider sets en_route", async () => {
       const mockBooking = {
         id: mockBookingId,
         user_id: mockUserId,
@@ -573,7 +567,7 @@ describe("Bookings API", () => {
         id: mockBookingId,
         user_id: mockUserId,
         provider_id: "prov-123",
-        driver_id: mockDriverId,
+        ambulance_id: "amb-123",
         status: "confirmed",
       };
       dbMock.getBooking.mockResolvedValue(mockBooking);
@@ -604,13 +598,10 @@ describe("Bookings API", () => {
         mockBookingId,
         "en_route",
       );
-      expect(startSimulationForBooking).toHaveBeenCalledWith(
-        mockBooking,
-        mockDriverId,
-      );
+      expect(startSimulationForBooking).toHaveBeenCalledWith(mockBooking);
     });
 
-    it("should return 400 when provider sets en_route without assigned driver", async () => {
+    it("should return 400 when provider sets en_route without assigned ambulance", async () => {
       const mockBooking = {
         id: mockBookingId,
         user_id: mockUserId,
@@ -806,7 +797,6 @@ describe("Bookings API", () => {
       id: mockBookingId,
       user_id: mockUserId,
       provider_id: "prov-123",
-      driver_id: mockDriverId,
       status: "en_route",
     };
     dbMock.getBooking.mockResolvedValue(mockBooking);
@@ -815,8 +805,8 @@ describe("Bookings API", () => {
     const app = createApp(
       dbMock,
       {
-        sub: mockDriverId,
-        app_metadata: { role: "driver", provider_id: "prov-123" },
+        sub: "provider-1",
+        app_metadata: { role: "provider", provider_id: "prov-123" },
       },
       dispatchMock,
     );

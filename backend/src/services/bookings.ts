@@ -5,7 +5,7 @@ import { ISimulationService } from "./simulation";
 import { Booking, BookingData, JwtPayload } from "../types";
 import type { BookingStatus } from "../utils/constants";
 import { BOOKING_FEES, ERROR_MESSAGES } from "../utils/constants";
-import { canAccessBooking, isDriverRole, isProviderRole } from "../utils/auth";
+import { canAccessBooking, isAdminRole, isProviderRole } from "../utils/auth";
 import logger from "../utils/logger";
 import {
   NotFoundError,
@@ -43,7 +43,6 @@ export interface IBookingService {
   ): Promise<Booking>;
   getConfirmedBookings(
     providerId: string,
-    driverId?: string,
     limit?: number,
     offset?: number,
   ): Promise<Booking[]>;
@@ -89,7 +88,6 @@ export class BookingService implements IBookingService {
         payload,
         booking.user_id,
         booking.provider_id || undefined,
-        booking.driver_id,
       )
     ) {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
@@ -107,16 +105,10 @@ export class BookingService implements IBookingService {
 
   async getConfirmedBookings(
     providerId: string,
-    driverId?: string,
     limit?: number,
     offset?: number,
   ): Promise<Booking[]> {
-    return this.bookingRepo.getConfirmedBookings(
-      providerId,
-      driverId,
-      limit,
-      offset,
-    );
+    return this.bookingRepo.getConfirmedBookings(providerId, limit, offset);
   }
 
   async getBookingsByProvider(
@@ -148,7 +140,6 @@ export class BookingService implements IBookingService {
         payload,
         booking.user_id,
         booking.provider_id || undefined,
-        booking.driver_id,
       )
     ) {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
@@ -192,7 +183,6 @@ export class BookingService implements IBookingService {
         payload,
         booking.user_id,
         booking.provider_id || undefined,
-        booking.driver_id,
       )
     ) {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
@@ -200,8 +190,8 @@ export class BookingService implements IBookingService {
 
     if (
       newStatus === "en_route" &&
-      !isDriverRole(payload) &&
-      !isProviderRole(payload)
+      !isProviderRole(payload) &&
+      !isAdminRole(payload)
     ) {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
     }
@@ -212,18 +202,11 @@ export class BookingService implements IBookingService {
     }
 
     if (newStatus === "en_route") {
-      const simulationDriverId = isDriverRole(payload)
-        ? payload.sub
-        : booking.driver_id;
-
-      if (!simulationDriverId) {
-        throw new BookingStateError(ERROR_MESSAGES.NO_ASSIGNED_DRIVER);
+      if (!booking.ambulance_id) {
+        throw new BookingStateError(ERROR_MESSAGES.NO_ASSIGNED_AMBULANCE);
       }
 
-      const started = await this.simulation.startSimulationForBooking(
-        booking,
-        simulationDriverId,
-      );
+      const started = await this.simulation.startSimulationForBooking(booking);
       if (!started) {
         throw new BookingStateError("Failed to start route simulation");
       }
