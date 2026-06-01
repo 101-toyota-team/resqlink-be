@@ -3,6 +3,7 @@ import {
   NotFoundError,
   ForbiddenError,
   BookingStateError,
+  ValidationError,
 } from "../utils/errors";
 import { ERROR_MESSAGES, errorResponse } from "../utils/constants";
 import logger from "../utils/logger";
@@ -15,6 +16,9 @@ export const errorHandler: ErrorHandler = (err, c) => {
     return c.json(errorResponse(err.message), 403);
   }
   if (err instanceof BookingStateError) {
+    return c.json(errorResponse(err.message), 400);
+  }
+  if (err instanceof ValidationError) {
     return c.json(errorResponse(err.message), 400);
   }
 

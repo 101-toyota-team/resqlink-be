@@ -2,6 +2,7 @@ import { IBookingRepository } from "../../repositories/booking";
 import { SupabaseClientBase } from "./client";
 import { Booking, BookingData } from "../../types";
 import type { BookingStatus } from "../../utils/constants";
+import { BookingStateError } from "../../utils/errors";
 import {
   DatabaseSchemaDriftError,
   ERROR_MESSAGES,
@@ -98,9 +99,7 @@ export class BookingRepository
 
     if (error) {
       if (error.code === "PGRST116") {
-        throw new Error("Booking is no longer in draft status", {
-          cause: error,
-        });
+        throw new BookingStateError("Booking is no longer in draft status");
       }
       logger.error(error, "Supabase assignAmbulance error");
       throw new Error(ERROR_MESSAGES.INTERNAL_ERROR, { cause: error });
