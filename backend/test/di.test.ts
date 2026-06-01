@@ -37,7 +37,6 @@ vi.mock("../src/infrastructure/mapbox", () => ({
 
 describe("DI Middleware", () => {
   let app: Hono<{ Bindings: Bindings; Variables: AppVariables }>;
-  let createdInstances: Record<string, unknown[]>;
 
   const mockEnv: Bindings = {
     SUPABASE_URL: "https://test.supabase.co",
