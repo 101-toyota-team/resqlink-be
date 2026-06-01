@@ -12,12 +12,11 @@ import {
 import { UpstashRedisRepository } from "../infrastructure/upstash";
 import { MapboxRepository } from "../infrastructure/mapbox";
 import { Bindings } from "../schemas/env";
-import { AppVariables, ILogger } from "../types";
+import { AppVariables } from "../types";
 import { GeoService } from "../services/geo";
 import { DistanceService } from "../services/distance";
 import { ProviderService, IProviderService } from "../services/providers";
 import { HospitalService, IHospitalService } from "../services/hospitals";
-import { Logger } from "../utils/logger";
 
 export const diMiddleware: MiddlewareHandler<{
   Bindings: Bindings;
@@ -36,14 +35,6 @@ export const diMiddleware: MiddlewareHandler<{
   let mapsRepo: MapboxRepository | undefined;
   let cacheRepo: UpstashRedisRepository | undefined;
   let geoService: GeoService | undefined;
-  let logger: ILogger | undefined;
-
-  const getLogger = () => {
-    if (!logger) logger = new Logger();
-    return logger;
-  };
-
-  c.set("getLogger", getLogger);
 
   const getGeo = () => {
     if (!geoService) geoService = new GeoService();
@@ -99,15 +90,6 @@ export const diMiddleware: MiddlewareHandler<{
     }
     return realtimeRepo;
   });
-
-  // Backward-compatible combined repo getter
-  c.set("getSupabaseRepo", () => ({
-    ...c.get("getBookingRepo")(),
-    ...c.get("getAmbulanceRepo")(),
-    ...c.get("getProviderRepo")(),
-    ...c.get("getHospitalRepo")(),
-    ...c.get("getRealtimeRepo")(),
-  }));
 
   c.set("getSimulationService", () => {
     if (!simulationService) {

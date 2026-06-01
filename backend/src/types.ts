@@ -153,13 +153,7 @@ export interface AppVariables {
   getProviderRepo: () => IProviderRepository;
   getHospitalRepo: () => IHospitalRepository;
   getRealtimeRepo: () => IRealtimeBroadcaster;
-  getSupabaseRepo: () => IBookingRepository &
-    IAmbulanceRepository &
-    IProviderRepository &
-    IHospitalRepository &
-    IRealtimeBroadcaster;
   getMaps: () => IMapsRepository;
   getCache: () => IGenericCache & ICacheRepository;
-  getLogger: () => ILogger;
   jwtPayload: JwtPayload;
 }

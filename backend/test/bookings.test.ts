@@ -55,15 +55,6 @@ const createApp = (
 
   // Inject mocks
   app.use("*", async (c, next) => {
-    c.set(
-      "getSupabaseRepo",
-      () =>
-        dbMock as IBookingRepository &
-          IAmbulanceRepository &
-          IProviderRepository &
-          IHospitalRepository &
-          IRealtimeBroadcaster,
-    );
     c.set("jwtPayload", jwtPayloadMock);
 
     const buildSimulationService = () => {
@@ -552,7 +543,7 @@ describe("Bookings API", () => {
         mockEnv,
       );
 
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(400);
       expect(dbMock.updateBookingStatus).not.toHaveBeenCalled();
     });
 
