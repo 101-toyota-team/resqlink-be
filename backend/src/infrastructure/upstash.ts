@@ -2,6 +2,14 @@ import { Redis } from "@upstash/redis/cloudflare";
 import { IGenericCache } from "../repositories/generic-cache";
 import { ICacheRepository } from "../repositories/cache";
 import { AmbulanceLocation } from "../types";
+import logger from "../utils/logger";
+import type { z } from "zod";
+
+function isAmbulanceLocation(v: unknown): v is AmbulanceLocation {
+  if (v === null || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return typeof o.lat === "number" && typeof o.lng === "number";
+}
 
 export class UpstashRedisRepository implements IGenericCache, ICacheRepository {
   private client: Redis;
@@ -62,7 +70,14 @@ export class UpstashRedisRepository implements IGenericCache, ICacheRepository {
   }
 
   async getDriverLocation(driverId: string): Promise<AmbulanceLocation | null> {
-    return await this.client.get(`driver:loc:${driverId}`);
+    const raw = await this.client.get(`driver:loc:${driverId}`);
+    if (!isAmbulanceLocation(raw)) {
+      if (raw !== null && raw !== undefined) {
+        logger.warn(`Corrupt driver location data in Redis for ${driverId}`);
+      }
+      return null;
+    }
+    return raw;
   }
 
   async getDriverLocations(
@@ -70,7 +85,18 @@ export class UpstashRedisRepository implements IGenericCache, ICacheRepository {
   ): Promise<(AmbulanceLocation | null)[]> {
     if (driverIds.length === 0) return [];
     const keys = driverIds.map((id) => `driver:loc:${id}`);
-    return await this.client.mget<(AmbulanceLocation | null)[]>(keys);
+    const results = await this.client.mget<(AmbulanceLocation | null)[]>(keys);
+    return results.map((r, i) => {
+      if (!isAmbulanceLocation(r)) {
+        if (r !== null && r !== undefined) {
+          logger.warn(
+            `Corrupt driver location data in Redis for ${driverIds[i]}`,
+          );
+        }
+        return null;
+      }
+      return r;
+    });
   }
 
   async incr(key: string): Promise<number> {
@@ -93,17 +119,33 @@ export class UpstashRedisRepository implements IGenericCache, ICacheRepository {
     }
   }
 
-  async get<T>(key: string): Promise<T | null> {
+  async get<T>(key: string, schema?: z.ZodType<T>): Promise<T | null> {
     const data = await this.client.get(key);
     if (data === null || data === undefined) return null;
+    if (schema) {
+      const parsed = schema.safeParse(data);
+      if (!parsed.success) {
+        logger.warn(`Cache data validation failed for key ${key}`);
+        return null;
+      }
+      return parsed.data;
+    }
     return data as T;
   }
 
-  async mget<T>(keys: string[]): Promise<(T | null)[]> {
+  async mget<T>(keys: string[], schema?: z.ZodType<T>): Promise<(T | null)[]> {
     if (keys.length === 0) return [];
     const results = await this.client.mget<(T | null)[]>(keys);
-    return results.map((r) => {
+    return results.map((r, i) => {
       if (r === null || r === undefined) return null;
+      if (schema) {
+        const parsed = schema.safeParse(r);
+        if (!parsed.success) {
+          logger.warn(`Cache data validation failed for key ${keys[i]}`);
+          return null;
+        }
+        return parsed.data;
+      }
       return r as T;
     });
   }
