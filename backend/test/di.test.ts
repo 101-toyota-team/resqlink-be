@@ -46,7 +46,6 @@ describe("DI Middleware", () => {
     MAPBOX_ACCESS_TOKEN: "test-token",
     ALLOWED_ORIGINS: "*",
     RL_DEFAULT: { limit: vi.fn().mockResolvedValue({ success: true }) },
-    RL_DRIVER: { limit: vi.fn().mockResolvedValue({ success: true }) },
   };
 
   beforeEach(async () => {
