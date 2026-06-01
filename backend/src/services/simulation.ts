@@ -7,6 +7,7 @@ import { IMapsRepository } from "../repositories/maps";
 import { Booking } from "../types";
 import logger from "../utils/logger";
 import { decodePolyline } from "../utils/polyline";
+import { REDIS } from "../utils/constants";
 
 export interface ISimulationService {
   startSimulation(booking: Booking): Promise<boolean>;
@@ -69,13 +70,21 @@ export class SimulationService implements ISimulationService {
       return false;
     }
 
-    await this.cache.set(`sim:route:${booking.id}`, points, 3600);
-    await this.cache.set(`sim:step:${booking.id}`, 0, 3600);
+    await this.cache.rpush(
+      `${REDIS.PREFIXES.SIM_ROUTE}${booking.id}`,
+      ...points,
+    );
+    await this.cache.expire(
+      `${REDIS.PREFIXES.SIM_ROUTE}${booking.id}`,
+      REDIS.TTLS.SIMULATION,
+    );
     return true;
   }
 
   async advanceSimulation(driverId: string): Promise<void> {
-    const bookingId = await this.cache.get<string>(`sim:active:${driverId}`);
+    const bookingId = await this.cache.get<string>(
+      `${REDIS.PREFIXES.SIM_ACTIVE}${driverId}`,
+    );
     if (!bookingId) return;
 
     const booking = await this.bookingRepo.getBooking(bookingId);
@@ -94,32 +103,38 @@ export class SimulationService implements ISimulationService {
       return;
     }
 
-    const route = await this.cache.get<{ lat: number; lng: number }[]>(
-      `sim:route:${bookingId}`,
+    const nextCoord = await this.cache.lpop<{ lat: number; lng: number }>(
+      `${REDIS.PREFIXES.SIM_ROUTE}${bookingId}`,
     );
-    const step = await this.cache.get<number>(`sim:step:${bookingId}`);
 
-    if (!route || step === null || step >= route.length) {
-      if (step !== null && route && step >= route.length) {
-        await this.bookingRepo.updateBookingStatus(bookingId, "arrived");
-        await this.cleanupSimulation(bookingId, driverId);
-      }
+    if (!nextCoord) {
+      await this.bookingRepo.updateBookingStatus(bookingId, "arrived");
+      await this.cleanupSimulation(bookingId, driverId);
       return;
     }
-
-    const nextCoord = route[step];
 
     await this.realtime.broadcastTripLocation(bookingId, {
       lat: nextCoord.lat,
       lng: nextCoord.lng,
     });
 
-    await this.cache.set(`sim:step:${bookingId}`, step + 1, 3600);
-    await this.cache.expire(`sim:route:${bookingId}`, 3600);
-    await this.cache.expire(`sim:active:${driverId}`, 3600);
-    await this.cache.expire(`sim:booking_driver:${bookingId}`, 3600);
+    await this.cache.expire(
+      `${REDIS.PREFIXES.SIM_ROUTE}${bookingId}`,
+      REDIS.TTLS.SIMULATION,
+    );
+    await this.cache.expire(
+      `${REDIS.PREFIXES.SIM_ACTIVE}${driverId}`,
+      REDIS.TTLS.SIMULATION,
+    );
+    await this.cache.expire(
+      `${REDIS.PREFIXES.SIM_BOOKING_DRIVER}${bookingId}`,
+      REDIS.TTLS.SIMULATION,
+    );
 
-    if (step + 1 >= route.length) {
+    const remaining = await this.cache.llen(
+      `${REDIS.PREFIXES.SIM_ROUTE}${bookingId}`,
+    );
+    if (remaining === 0) {
       await this.bookingRepo.updateBookingStatus(bookingId, "arrived");
       await this.cleanupSimulation(bookingId, driverId);
     }
@@ -131,8 +146,16 @@ export class SimulationService implements ISimulationService {
   ): Promise<boolean> {
     const ok = await this.startSimulation(booking);
     if (!ok) return false;
-    await this.cache.set(`sim:active:${driverId}`, booking.id, 3600);
-    await this.cache.set(`sim:booking_driver:${booking.id}`, driverId, 3600);
+    await this.cache.set(
+      `${REDIS.PREFIXES.SIM_ACTIVE}${driverId}`,
+      booking.id,
+      REDIS.TTLS.SIMULATION,
+    );
+    await this.cache.set(
+      `${REDIS.PREFIXES.SIM_BOOKING_DRIVER}${booking.id}`,
+      driverId,
+      REDIS.TTLS.SIMULATION,
+    );
     return true;
   }
 
@@ -147,16 +170,16 @@ export class SimulationService implements ISimulationService {
     let driverId = driverIdFallback;
     if (!driverId) {
       driverId =
-        (await this.cache.get<string>(`sim:booking_driver:${bookingId}`)) ||
-        undefined;
+        (await this.cache.get<string>(
+          `${REDIS.PREFIXES.SIM_BOOKING_DRIVER}${bookingId}`,
+        )) || undefined;
     }
 
     if (driverId) {
-      await this.cache.del(`sim:active:${driverId}`);
+      await this.cache.del(`${REDIS.PREFIXES.SIM_ACTIVE}${driverId}`);
     }
 
-    await this.cache.del(`sim:booking_driver:${bookingId}`);
-    await this.cache.del(`sim:route:${bookingId}`);
-    await this.cache.del(`sim:step:${bookingId}`);
+    await this.cache.del(`${REDIS.PREFIXES.SIM_BOOKING_DRIVER}${bookingId}`);
+    await this.cache.del(`${REDIS.PREFIXES.SIM_ROUTE}${bookingId}`);
   }
 }

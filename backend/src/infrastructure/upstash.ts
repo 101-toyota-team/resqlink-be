@@ -111,4 +111,20 @@ export class UpstashRedisRepository implements IGenericCache, ICacheRepository {
   async del(key: string): Promise<void> {
     await this.client.del(key);
   }
+
+  async lpush<T>(key: string, ...values: T[]): Promise<number> {
+    return await this.client.lpush(key, ...values);
+  }
+
+  async rpush<T>(key: string, ...values: T[]): Promise<number> {
+    return await this.client.rpush(key, ...values);
+  }
+
+  async lpop<T>(key: string): Promise<T | null> {
+    return await this.client.lpop<T>(key);
+  }
+
+  async llen(key: string): Promise<number> {
+    return await this.client.llen(key);
+  }
 }

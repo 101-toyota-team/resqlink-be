@@ -23,6 +23,19 @@ export const UPSTASH = {
   MAX_LOCATION_CACHE_SIZE: 1000,
 };
 
+export const REDIS = {
+  PREFIXES: {
+    SIM_ROUTE: "sim:route:",
+    SIM_ACTIVE: "sim:active:",
+    SIM_BOOKING_DRIVER: "sim:booking_driver:",
+    DIST_CACHE: "dist_cache:",
+  },
+  TTLS: {
+    SIMULATION: 3600,
+    DISTANCE_CACHE: DISTANCE_SERVICE.CACHE_TTL_SECONDS,
+  },
+};
+
 // Dispatch Service
 export const DISPATCH = {
   MATCH_RADIUS_KM: 50,
@@ -38,7 +51,7 @@ export const DISCOVERY = {
 // Provider Search
 export const PROVIDER_SEARCH = {
   MAX_RING_DISTANCE: 30,
-  H3_BATCH_SIZE: 100,
+  H3_BATCH_SIZE: 500,
   MAX_RESULTS: 50,
 };
 
