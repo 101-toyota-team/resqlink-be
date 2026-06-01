@@ -1,5 +1,15 @@
 import { env } from "cloudflare:test";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const mockEnv = {
+  ...env,
+  ALLOWED_ORIGINS: "*",
+  UPSTASH_REDIS_REST_URL: "http://localhost",
+  UPSTASH_REDIS_REST_TOKEN: "test",
+  SUPABASE_URL: "http://localhost",
+  SUPABASE_SECRET_KEY: "test",
+  MAPBOX_ACCESS_TOKEN: "test",
+};
 import type { JwtPayload } from "../src/types";
 import {
   isDriverRole,
@@ -91,7 +101,7 @@ describe("Authentication & Authorization", () => {
   });
 
   it("should return 401 if Authorization header is missing on protected route", async () => {
-    const res = await app.request("/bookings", { method: "POST" }, env);
+    const res = await app.request("/bookings", { method: "POST" }, mockEnv);
     expect(res.status).toBe(401);
     expect(await res.json()).toMatchObject({ error: "Unauthorized access" });
   });
@@ -105,7 +115,7 @@ describe("Authentication & Authorization", () => {
         method: "POST",
         headers: { Authorization: "Bearer invalid-token" },
       },
-      env,
+      mockEnv,
     );
 
     expect(res.status).toBe(401);
@@ -137,7 +147,7 @@ describe("Authentication & Authorization", () => {
           destination_lng: 106.81,
         }),
       },
-      env,
+      mockEnv,
     );
 
     expect(res.status).toBe(201);
@@ -169,7 +179,7 @@ describe("Authentication & Authorization", () => {
           lng: 106.8,
         }),
       },
-      env,
+      mockEnv,
     );
 
     expect(res.status).toBe(403);
@@ -201,7 +211,7 @@ describe("Authentication & Authorization", () => {
           lng: 106.8,
         }),
       },
-      env,
+      mockEnv,
     );
 
     expect(res.status).toBe(403);
@@ -233,7 +243,7 @@ describe("Authentication & Authorization", () => {
           lng: 106.8,
         }),
       },
-      env,
+      mockEnv,
     );
 
     expect(res.status).toBe(200);
@@ -275,23 +285,40 @@ describe("canAccessBooking", () => {
     expect(canAccessBooking({ sub: "abc" }, "abc")).toBe(true);
   });
 
-  it("denies driver access without matching provider_id", () => {
+  it("denies driver access if driver_id does not match sub", () => {
     expect(
-      canAccessBooking({ sub: "abc", app_metadata: { role: "driver" } }, "xyz"),
+      canAccessBooking(
+        { sub: "driver-1", app_metadata: { role: "driver" } },
+        "user-1",
+        "prov-1",
+        "driver-2",
+      ),
     ).toBe(false);
   });
 
-  it("allows driver access with matching provider_id", () => {
+  it("allows driver access if driver_id matches sub", () => {
+    expect(
+      canAccessBooking(
+        { sub: "driver-1", app_metadata: { role: "driver" } },
+        "user-1",
+        "prov-1",
+        "driver-1",
+      ),
+    ).toBe(true);
+  });
+
+  it("denies driver access based on provider_id (strict isolation)", () => {
     expect(
       canAccessBooking(
         {
-          sub: "abc",
+          sub: "driver-1",
           app_metadata: { role: "driver", provider_id: "prov-123" },
         },
-        "xyz",
+        "user-1",
         "prov-123",
+        "driver-2",
       ),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("allows admin access to any booking", () => {
