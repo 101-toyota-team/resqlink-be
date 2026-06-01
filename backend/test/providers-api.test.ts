@@ -6,12 +6,9 @@ import { ERROR_MESSAGES } from "../src/utils/constants";
 import { AppVariables, Provider, JwtPayload } from "../src/types";
 import { Bindings } from "../src/schemas/env";
 import { IProviderService, ProviderService } from "../src/services/providers";
-import type { IProviderRepository } from "../src/repositories/provider";
+import { IProviderRepository } from "../src/repositories/db";
 import type { IGeoService } from "../src/services/geo";
-import type { IBookingRepository } from "../src/repositories/booking";
-import type { IAmbulanceRepository } from "../src/repositories/ambulance";
-import type { IHospitalRepository } from "../src/repositories/hospital";
-import type { IRealtimeBroadcaster } from "../src/repositories/realtime";
+import type { IBookingService } from "../src/services/bookings";
 import { env } from "cloudflare:test";
 import { verifyWithJwks } from "hono/jwt";
 
@@ -42,13 +39,11 @@ const createApp = (
     c.set("getProviderService", () => serviceMock as IProviderService);
     if (bookingRepoMock) {
       c.set(
-        "getSupabaseRepo",
+        "getBookingService",
         () =>
-          bookingRepoMock as unknown as IBookingRepository &
-            IAmbulanceRepository &
-            IProviderRepository &
-            IHospitalRepository &
-            IRealtimeBroadcaster,
+          ({
+            getBookingsByProvider: bookingRepoMock.getBookingsByProvider,
+          }) as unknown as IBookingService,
       );
     }
     if (jwtPayloadMock) {
@@ -325,9 +320,12 @@ describe("Providers API", () => {
       };
     });
 
+    const providerUuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    const otherProviderUuid = "00000000-0000-0000-0000-000000000001";
+
     it("returns 401 if missing Authorization header", async () => {
       const app = createApp(serviceMock, bookingRepoMock);
-      const res = await app.request("/providers/prov-123/bookings");
+      const res = await app.request(`/providers/${providerUuid}/bookings`);
 
       expect(res.status).toBe(401);
       expect(bookingRepoMock.getBookingsByProvider).not.toHaveBeenCalled();
@@ -342,7 +340,7 @@ describe("Providers API", () => {
       const app = createApp(serviceMock, bookingRepoMock, payload);
 
       const res = await app.request(
-        "/providers/prov-123/bookings",
+        `/providers/${providerUuid}/bookings`,
         {
           headers: { Authorization: "Bearer token" },
         },
@@ -356,13 +354,13 @@ describe("Providers API", () => {
     it("returns 403 if provider ID in token does not match route ID", async () => {
       const jwtPayload = {
         sub: "user-123",
-        app_metadata: { role: "provider", provider_id: "prov-999" },
+        app_metadata: { role: "provider", provider_id: otherProviderUuid },
       };
       vi.mocked(verifyWithJwks).mockResolvedValue(jwtPayload);
       const app = createApp(serviceMock, bookingRepoMock, jwtPayload);
 
       const res = await app.request(
-        "/providers/prov-123/bookings",
+        `/providers/${providerUuid}/bookings`,
         {
           headers: { Authorization: "Bearer token" },
         },
@@ -374,7 +372,7 @@ describe("Providers API", () => {
     });
 
     it("returns 200 and bookings when authorized correctly", async () => {
-      const providerId = "prov-123";
+      const providerId = providerUuid;
       const jwtPayload = {
         sub: "user-123",
         app_metadata: { role: "provider", provider_id: providerId },
@@ -406,7 +404,7 @@ describe("Providers API", () => {
     });
 
     it("returns 500 on repository error", async () => {
-      const providerId = "prov-123";
+      const providerId = providerUuid;
       const jwtPayload = {
         sub: "user-123",
         app_metadata: { role: "provider", provider_id: providerId },

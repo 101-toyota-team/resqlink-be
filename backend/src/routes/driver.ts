@@ -7,7 +7,6 @@ import {
   validatorHook,
 } from "../utils/constants";
 import { isDriverRole, getProviderId } from "../utils/auth";
-import logger from "../utils/logger";
 
 const driverApp = createRouteApp();
 
@@ -23,17 +22,12 @@ driverApp.get("/bookings", async (c) => {
   if (!providerId) {
     return c.json([], 200); // Or 403? Usually if they are a driver but have no provider, they see nothing.
   }
-  const bookingRepo = c.get("getBookingRepo")();
-  try {
-    const bookings = await bookingRepo.getConfirmedBookings(
-      providerId,
-      payload.sub,
-    );
-    return c.json(bookings);
-  } catch (error) {
-    logger.error(error, "Error fetching confirmed bookings");
-    return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);
-  }
+  const bookingService = c.get("getBookingService")();
+  const bookings = await bookingService.getConfirmedBookings(
+    providerId,
+    payload.sub,
+  );
+  return c.json(bookings);
 });
 
 driverApp.post(
