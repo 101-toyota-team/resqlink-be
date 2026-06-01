@@ -1,58 +1,37 @@
 import { zValidator } from "@hono/zod-validator";
-import { driverPingSchema } from "../schemas";
+import { adminSimulationAdvanceSchema } from "../schemas";
 import { createRouteApp } from "../utils/route";
 import {
   ERROR_MESSAGES,
   errorResponse,
   validatorHook,
 } from "../utils/constants";
-import { isDriverRole, getProviderId } from "../utils/auth";
+import { isAdminRole } from "../utils/auth";
 
 const driverApp = createRouteApp();
 
-driverApp.get("/bookings", async (c) => {
-  const payload = c.get("jwtPayload");
-  const isDriver = isDriverRole(payload);
-
-  if (!isDriver) {
-    return c.json(errorResponse(ERROR_MESSAGES.FORBIDDEN_ACCESS), 403);
-  }
-
-  const providerId = getProviderId(payload);
-  if (!providerId) {
-    return c.json([], 200); // Or 403? Usually if they are a driver but have no provider, they see nothing.
-  }
-  const bookingService = c.get("getBookingService")();
-  const bookings = await bookingService.getConfirmedBookings(
-    providerId,
-    payload.sub,
-  );
-  return c.json(bookings);
-});
-
+// POST /driver/ping - Admin-only simulation advancement
+// Originally used for driver location pings; now repurposed for internal test/admin simulation control
+// Accepts { bookingId: string, steps?: number (1-100) }
+// Returns { bookingId: string, steps: number }
 driverApp.post(
   "/ping",
-  zValidator("json", driverPingSchema, validatorHook),
+  zValidator("json", adminSimulationAdvanceSchema, validatorHook),
   async (c) => {
     const body = c.req.valid("json");
-    const { driver_id, lat, lng, h3_index, previous_h3_index } = body;
+    const { bookingId, steps } = body;
 
     const payload = c.get("jwtPayload");
-    const isDriver = isDriverRole(payload);
+    const isAdmin = isAdminRole(payload);
 
-    if (payload.sub !== driver_id || !isDriver) {
+    if (!isAdmin) {
       return c.json(errorResponse(ERROR_MESSAGES.FORBIDDEN_ACCESS), 403);
     }
 
     const dispatchService = c.get("getDispatchService")();
-    await dispatchService.updateDriverStatus(
-      driver_id,
-      { lat, lng },
-      h3_index,
-      previous_h3_index,
-    );
+    await dispatchService.advanceSimulation(bookingId, steps || 1);
 
-    return c.json({ driver_id, lat, lng, h3_index, previous_h3_index });
+    return c.json({ bookingId, steps: steps || 1 });
   },
 );
 

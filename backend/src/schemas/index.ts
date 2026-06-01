@@ -60,7 +60,6 @@ const bookingTypes = Object.keys(BOOKING_FEES) as [
 export const bookingSchema = z.object({
   ambulance_id: z.string().uuid().optional(),
   provider_id: z.string().uuid().optional(),
-  driver_id: z.string().uuid().optional(),
   booking_type: z.enum(bookingTypes),
   patient_condition: z.string(),
   pickup_address: z.string(),
@@ -72,14 +71,9 @@ export const bookingSchema = z.object({
   destination_lng: z.number().min(-180).max(180),
 });
 
-export const driverPingSchema = z.object({
-  driver_id: z.string().uuid(),
-  h3_index: h3IndexSchema,
-  previous_h3_index: h3IndexSchema.optional(),
-  lat: z.number().min(-90).max(90),
-  lng: z.number().min(-180).max(180),
-  heading: z.number().optional(),
-  speed: z.number().optional(),
+export const adminSimulationAdvanceSchema = z.object({
+  bookingId: z.string().uuid(),
+  steps: z.number().int().min(1).max(100).optional().default(1),
 });
 
 export const searchQuerySchema = z.object({

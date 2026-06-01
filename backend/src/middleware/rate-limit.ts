@@ -5,7 +5,7 @@ import { errorResponse } from "../utils/constants";
 import logger from "../utils/logger";
 
 export function rateLimiter(
-  bindingName: "RL_DEFAULT" | "RL_DRIVER" = "RL_DEFAULT",
+  bindingName: "RL_DEFAULT" = "RL_DEFAULT",
 ): MiddlewareHandler<{ Bindings: Bindings; Variables: AppVariables }> {
   return async (c, next) => {
     const ip =

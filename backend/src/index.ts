@@ -48,9 +48,7 @@ app.use("*", diMiddleware);
 app.use("/ambulances/*", rateLimiter("RL_DEFAULT"));
 app.use("/bookings/*", rateLimiter("RL_DEFAULT"));
 app.use("/bookings", rateLimiter("RL_DEFAULT"));
-app.use("/driver/*", rateLimiter("RL_DRIVER"));
-app.use("/providers/*", rateLimiter("RL_DEFAULT"));
-app.use("/hospitals/*", rateLimiter("RL_DEFAULT"));
+app.use("/driver/*", rateLimiter("RL_DEFAULT"));
 
 // 4. Auth Middleware
 app.use("/bookings", supabaseAuth);
