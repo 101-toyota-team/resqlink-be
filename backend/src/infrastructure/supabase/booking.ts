@@ -160,7 +160,6 @@ export class BookingRepository
 
   async getConfirmedBookings(
     providerId: string,
-    driverId?: string,
     limit?: number,
     offset?: number,
   ): Promise<Booking[]> {
@@ -170,10 +169,6 @@ export class BookingRepository
       .eq("status", "confirmed")
       .eq("provider_id", providerId)
       .order("created_at", { ascending: false });
-
-    if (driverId) {
-      query = query.eq("driver_id", driverId);
-    }
 
     if (limit !== undefined) {
       query = query.limit(limit);

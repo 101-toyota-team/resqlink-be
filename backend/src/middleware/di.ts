@@ -138,6 +138,8 @@ export const diMiddleware: MiddlewareHandler<{
 
   c.set("getDispatchService", () => {
     if (!dispatchService) {
+      // Cache is passed to DistanceService for distance matrix API caching,
+      // not to DispatchService (which no longer uses cache directly)
       const cache = c.get("getCache")();
       const ambulanceRepo = c.get("getAmbulanceRepo")();
       const maps = c.get("getMaps")();
@@ -145,7 +147,6 @@ export const diMiddleware: MiddlewareHandler<{
       const distanceService = new DistanceService(maps, cache, geo);
 
       dispatchService = new DispatchService(
-        cache,
         ambulanceRepo,
         geo,
         distanceService,
