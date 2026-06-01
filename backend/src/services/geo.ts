@@ -1,4 +1,6 @@
 import * as h3 from "h3-js";
+import logger from "../utils/logger";
+import { ValidationError } from "../utils/errors";
 
 export interface IGeoService {
   getNeighbors(h3Index: string, radius: number): string[];
@@ -23,7 +25,11 @@ export class GeoService implements IGeoService {
     if (radius === 0) return [h3Index];
     try {
       return h3.gridRingUnsafe(h3Index, radius);
-    } catch {
+    } catch (err) {
+      logger.warn(err, "gridRingUnsafe failed, falling back to gridDisk", {
+        h3Index,
+        radius,
+      });
       const disk = h3.gridDisk(h3Index, radius);
       const inner = h3.gridDisk(h3Index, radius - 1);
       return disk.filter((c) => !inner.includes(c));
@@ -36,14 +42,14 @@ export class GeoService implements IGeoService {
 
   parseLatLng(location: string): { lat: number; lng: number } {
     if (!location || typeof location !== "string") {
-      throw new Error(
+      throw new ValidationError(
         `Invalid coordinate string: expected "lat,lng", got "${String(location)}"`,
       );
     }
 
     const parts = location.split(",");
     if (parts.length !== 2) {
-      throw new Error(
+      throw new ValidationError(
         `Invalid coordinate string: "${location}" — expected 2 comma-separated values, got ${parts.length}`,
       );
     }
@@ -53,13 +59,13 @@ export class GeoService implements IGeoService {
     const lng = Number(lngStr);
 
     if (isNaN(lat) || isNaN(lng)) {
-      throw new Error(
+      throw new ValidationError(
         `Invalid coordinate values: lat="${latStr}", lng="${lngStr}"`,
       );
     }
 
     if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      throw new Error(
+      throw new ValidationError(
         `Coordinate out of range: lat=${lat} (valid: -90..90), lng=${lng} (valid: -180..180)`,
       );
     }
