@@ -3,7 +3,11 @@ import { IMapsRepository } from "../repositories/maps";
 import { AmbulanceLocation } from "../types";
 import { IGeoService } from "./geo";
 import logger from "../utils/logger";
-import { DISTANCE_SERVICE, GLOBAL_H3_RESOLUTION } from "../utils/constants";
+import {
+  DISTANCE_SERVICE,
+  GLOBAL_H3_RESOLUTION,
+  REDIS,
+} from "../utils/constants";
 
 export interface IDistanceService {
   getEnrichedDrivers<T extends AmbulanceLocation>(
@@ -48,7 +52,7 @@ export class DistanceService implements IDistanceService {
 
     const keys = drivers.map((d) => {
       const dIdx = this.geo.latLngToCell(d.lat, d.lng, GLOBAL_H3_RESOLUTION);
-      return `dist_cache:${dIdx}:${pIdx}`;
+      return `${REDIS.PREFIXES.DIST_CACHE}${dIdx}:${pIdx}`;
     });
 
     const cachedResults = await this.cache.mget<{
@@ -66,7 +70,25 @@ export class DistanceService implements IDistanceService {
     const uncached = resultsWithCache.filter((r) => !r.cached);
 
     if (uncached.length > 0) {
-      const origins = uncached.map((r) => `${r.driver.lat},${r.driver.lng}`);
+      uncached.sort((a, b) => {
+        const distA = this.geo.haversineDistance(
+          a.driver.lat,
+          a.driver.lng,
+          pickupLatLng.lat,
+          pickupLatLng.lng,
+        );
+        const distB = this.geo.haversineDistance(
+          b.driver.lat,
+          b.driver.lng,
+          pickupLatLng.lat,
+          pickupLatLng.lng,
+        );
+        return distA - distB;
+      });
+
+      const topUncached = uncached.slice(0, 15);
+
+      const origins = topUncached.map((r) => `${r.driver.lat},${r.driver.lng}`);
       const matrix = await this.maps.getDistanceMatrix(origins, [
         pickupLocation,
       ]);
@@ -86,7 +108,7 @@ export class DistanceService implements IDistanceService {
       }
 
       const writeResults = await Promise.allSettled(
-        uncached.map(async (r, i) => {
+        topUncached.map(async (r, i) => {
           const element = matrix.rows[i]?.elements?.[0];
           if (element?.status === "OK") {
             const cacheData = {
@@ -100,11 +122,11 @@ export class DistanceService implements IDistanceService {
               r.driver.lng,
               GLOBAL_H3_RESOLUTION,
             );
-            const cacheKey = `dist_cache:${dIdx}:${pIdx}`;
+            const cacheKey = `${REDIS.PREFIXES.DIST_CACHE}${dIdx}:${pIdx}`;
             await this.cache.set(
               cacheKey,
               cacheData,
-              DISTANCE_SERVICE.CACHE_TTL_SECONDS,
+              REDIS.TTLS.DISTANCE_CACHE,
             );
             r.cached = cacheData;
           }

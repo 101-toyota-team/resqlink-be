@@ -6,4 +6,8 @@ export interface IGenericCache {
   incr(key: string): Promise<number>;
   expire(key: string, ttl: number): Promise<void>;
   ttl(key: string): Promise<number>;
+  lpush<T>(key: string, ...values: T[]): Promise<number>;
+  rpush<T>(key: string, ...values: T[]): Promise<number>;
+  lpop<T>(key: string): Promise<T | null>;
+  llen(key: string): Promise<number>;
 }
