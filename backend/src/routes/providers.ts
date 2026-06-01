@@ -42,6 +42,7 @@ providersApp.get(
 providersApp.get(
   "/:id/bookings",
   supabaseAuth,
+  zValidator("param", z.object({ id: z.string().uuid() }), validatorHook),
   zValidator(
     "query",
     z.object({
@@ -53,16 +54,16 @@ providersApp.get(
   ),
   async (c) => {
     const payload = c.get("jwtPayload");
-    const providerId = c.req.param("id");
+    const { id: providerId } = c.req.valid("param");
 
     if (!isProviderRole(payload) || getProviderId(payload) !== providerId) {
       return c.json(errorResponse(ERROR_MESSAGES.FORBIDDEN_ACCESS), 403);
     }
 
     const { status, limit, offset } = c.req.valid("query");
-    const bookingRepo = c.get("getSupabaseRepo")();
+    const bookingService = c.get("getBookingService")();
 
-    const bookings = await bookingRepo.getBookingsByProvider(
+    const bookings = await bookingService.getBookingsByProvider(
       providerId,
       status,
       limit,
