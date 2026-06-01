@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { AppVariables } from "./types";
 import { envSchema, Bindings } from "./schemas/env";
 import logger from "./utils/logger";
@@ -17,7 +18,20 @@ import providersApp from "./routes/providers";
 
 const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
 
-// 0. Environment Validation Middleware
+// 0. CORS Middleware (Must be before Auth and Env Validation to handle preflight)
+app.use(
+  "*",
+  cors({
+    origin: (origin, c) => {
+      const allowed = c.env.ALLOWED_ORIGINS || "*";
+      if (allowed === "*") return "*";
+      const origins = allowed.split(",");
+      return origins.includes(origin) ? origin : null;
+    },
+  }),
+);
+
+// 1. Environment Validation Middleware
 app.use("*", async (c, next) => {
   const result = envSchema.safeParse(c.env);
   if (!result.success) {
@@ -27,10 +41,10 @@ app.use("*", async (c, next) => {
   await next();
 });
 
-// 1. Dependency Injection Middleware
+// 2. Dependency Injection Middleware
 app.use("*", diMiddleware);
 
-// 2. Rate Limiting Middleware (after DI, before auth)
+// 3. Rate Limiting Middleware (after DI, before auth)
 app.use("/ambulances/*", rateLimiter("RL_DEFAULT"));
 app.use("/bookings/*", rateLimiter("RL_DEFAULT"));
 app.use("/bookings", rateLimiter("RL_DEFAULT"));
@@ -38,7 +52,7 @@ app.use("/driver/*", rateLimiter("RL_DRIVER"));
 app.use("/providers/*", rateLimiter("RL_DEFAULT"));
 app.use("/hospitals/*", rateLimiter("RL_DEFAULT"));
 
-// 3. Auth Middleware
+// 4. Auth Middleware
 app.use("/bookings", supabaseAuth);
 app.use("/bookings/*", supabaseAuth);
 app.use("/driver/*", supabaseAuth);

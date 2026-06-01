@@ -76,6 +76,7 @@ export class BookingService implements IBookingService {
         payload,
         booking.user_id,
         booking.provider_id || undefined,
+        booking.driver_id,
       )
     ) {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
@@ -106,6 +107,7 @@ export class BookingService implements IBookingService {
         payload,
         booking.user_id,
         booking.provider_id || undefined,
+        booking.driver_id,
       )
     ) {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
@@ -151,6 +153,7 @@ export class BookingService implements IBookingService {
         payload,
         booking.user_id,
         booking.provider_id || undefined,
+        booking.driver_id,
       )
     ) {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
