@@ -1,6 +1,5 @@
-import { ICacheRepository } from "../repositories/cache";
 import { IAmbulanceRepository } from "../repositories/ambulance";
-import { AmbulanceDetails, AmbulanceLocation } from "../types";
+import { AmbulanceDetails } from "../types";
 import { IGeoService } from "./geo";
 import { IDistanceService } from "./distance";
 import { ISimulationService } from "./simulation";
@@ -12,17 +11,11 @@ export interface IDispatchService {
     radius?: number,
     pickupLocation?: string,
   ): Promise<AmbulanceDetails[]>;
-  updateDriverStatus(
-    driverId: string,
-    locationData: AmbulanceLocation,
-    h3Index: string,
-    previousH3Index?: string,
-  ): Promise<void>;
+  advanceSimulation(bookingId: string, steps: number): Promise<void>;
 }
 
 export class DispatchService implements IDispatchService {
   constructor(
-    private cache: ICacheRepository,
     private ambulanceRepo: IAmbulanceRepository,
     private geo: IGeoService,
     private distance: IDistanceService,
@@ -56,19 +49,7 @@ export class DispatchService implements IDispatchService {
     return drivers;
   }
 
-  async updateDriverStatus(
-    driverId: string,
-    locationData: AmbulanceLocation,
-    h3Index: string,
-    previousH3Index?: string,
-  ): Promise<void> {
-    await this.cache.updateDriverLocation(
-      driverId,
-      locationData,
-      h3Index,
-      300,
-      previousH3Index,
-    );
-    await this.simulation.advanceSimulation(driverId);
+  async advanceSimulation(bookingId: string, steps: number = 1): Promise<void> {
+    await this.simulation.advanceSimulation(bookingId, steps);
   }
 }
