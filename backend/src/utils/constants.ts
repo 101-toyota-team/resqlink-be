@@ -26,8 +26,6 @@ export const UPSTASH = {
 export const REDIS = {
   PREFIXES: {
     SIM_ROUTE: "sim:route:",
-    SIM_ACTIVE: "sim:active:",
-    SIM_BOOKING_DRIVER: "sim:booking_driver:",
     DIST_CACHE: "dist_cache:",
   },
   TTLS: {
@@ -115,7 +113,7 @@ export const ERROR_MESSAGES = {
   AMBULANCE_PROVIDER_MISMATCH:
     "Ambulance does not belong to the selected provider",
   INVALID_BOOKING_TRANSITION: "Invalid booking status transition",
-  NO_ASSIGNED_DRIVER: "Booking has no assigned driver",
+  NO_ASSIGNED_AMBULANCE: "Booking has no assigned ambulance",
 };
 
 /**

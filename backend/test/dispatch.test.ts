@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, Mocked } from "vitest";
 import { DispatchService } from "../src/services/dispatch";
-import { ICacheRepository } from "../src/repositories/cache";
 import { IAmbulanceRepository } from "../src/repositories/ambulance";
 import { IGeoService } from "../src/services/geo";
 import { IDistanceService } from "../src/services/distance";
@@ -8,7 +7,6 @@ import { ISimulationService } from "../src/services/simulation";
 import { AmbulanceLocation } from "../src/types";
 
 describe("DispatchService", () => {
-  let mockCache: Mocked<ICacheRepository>;
   let mockAmbulanceRepo: Mocked<IAmbulanceRepository>;
   let mockGeo: Mocked<IGeoService>;
   let mockDistance: Mocked<IDistanceService>;
@@ -16,21 +14,6 @@ describe("DispatchService", () => {
   let service: DispatchService;
 
   beforeEach(() => {
-    mockCache = {
-      set: vi.fn(),
-      get: vi.fn(),
-      mget: vi.fn(),
-      getDriversInBucket: vi.fn(),
-      updateDriverLocation: vi.fn(),
-      getDriverLocation: vi.fn(),
-      getDriverLocations: vi.fn(),
-      addDriverToBucket: vi.fn(),
-      removeDriverFromBucket: vi.fn(),
-      expire: vi.fn(),
-      ttl: vi.fn(),
-      incr: vi.fn(),
-      del: vi.fn(),
-    } as Mocked<ICacheRepository>;
     mockAmbulanceRepo = {
       getAmbulance: vi.fn(),
       findAvailableAmbulances: vi.fn(),
@@ -54,7 +37,6 @@ describe("DispatchService", () => {
       stopSimulation: vi.fn().mockResolvedValue(undefined),
     } as Mocked<ISimulationService>;
     service = new DispatchService(
-      mockCache,
       mockAmbulanceRepo,
       mockGeo,
       mockDistance,
@@ -139,21 +121,15 @@ describe("DispatchService", () => {
     expect(mockDistance.getEnrichedDrivers).not.toHaveBeenCalled();
   });
 
-  describe("updateDriverStatus", () => {
-    it("should advance simulation when pinged", async () => {
-      const mockDriverId = "driver-123";
+  describe("advanceSimulation", () => {
+    it("should advance simulation by bookingId", async () => {
+      const mockBookingId = "booking-123";
 
-      await service.updateDriverStatus(mockDriverId, { lat: 0, lng: 0 }, "h3");
+      await service.advanceSimulation(mockBookingId, 2);
 
-      expect(mockCache.updateDriverLocation).toHaveBeenCalledWith(
-        mockDriverId,
-        { lat: 0, lng: 0 },
-        "h3",
-        300,
-        undefined,
-      );
       expect(mockSimulation.advanceSimulation).toHaveBeenCalledWith(
-        mockDriverId,
+        mockBookingId,
+        2,
       );
     });
   });

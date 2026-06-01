@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, Mocked } from "vitest";
 import { SimulationService } from "../src/services/simulation";
-import { ICacheRepository } from "../src/repositories/cache";
 import { IGenericCache } from "../src/repositories/generic-cache";
 import { IBookingRepository } from "../src/repositories/booking";
 import { IAmbulanceRepository } from "../src/repositories/ambulance";
@@ -9,7 +8,7 @@ import { IMapsRepository } from "../src/repositories/maps";
 import { Booking } from "../src/types";
 
 describe("SimulationService", () => {
-  let mockCache: Mocked<IGenericCache & ICacheRepository>;
+  let mockCache: Mocked<IGenericCache>;
   let mockBookingRepo: Mocked<IBookingRepository>;
   let mockAmbulanceRepo: Mocked<IAmbulanceRepository>;
   let mockRealtime: Mocked<IRealtimeBroadcaster>;
@@ -51,7 +50,7 @@ describe("SimulationService", () => {
       rpush: vi.fn(),
       lpop: vi.fn(),
       llen: vi.fn(),
-    } as unknown as Mocked<IGenericCache & ICacheRepository>;
+    } as unknown as Mocked<IGenericCache>;
     mockBookingRepo = {
       createBooking: vi.fn(),
       getBooking: vi.fn(),
@@ -129,21 +128,7 @@ describe("SimulationService", () => {
     expect(mockCache.rpush).not.toHaveBeenCalled();
   });
 
-  it("should stop simulation gracefully if cache is missing route or step", async () => {
-    const mockDriverId = "driver_1";
-    mockCache.get.mockImplementation(async (key: string) => {
-      if (key === `sim:active:${mockDriverId}`) return "booking_1";
-      return null;
-    });
-
-    await service.advanceSimulation(mockDriverId);
-
-    expect(mockRealtime.broadcastTripLocation).not.toHaveBeenCalled();
-    expect(mockBookingRepo.updateBookingStatus).not.toHaveBeenCalled();
-  });
-
   it("should advance simulation and broadcast location", async () => {
-    const mockDriverId = "driver_1";
     const mockBookingId = "booking_1";
     const mockRoute = [
       { lat: -6.05, lng: 106.75 },
@@ -156,14 +141,10 @@ describe("SimulationService", () => {
       ambulance_id: "amb_1",
     } as Booking);
 
-    mockCache.get.mockImplementation(async (key: string) => {
-      if (key === `sim:active:${mockDriverId}`) return mockBookingId;
-      return null;
-    });
     mockCache.lpop.mockResolvedValue(mockRoute[0]);
     mockCache.llen.mockResolvedValue(1);
 
-    await service.advanceSimulation(mockDriverId);
+    await service.advanceSimulation(mockBookingId);
 
     expect(mockRealtime.broadcastTripLocation).toHaveBeenCalledWith(
       mockBookingId,
@@ -176,7 +157,6 @@ describe("SimulationService", () => {
   });
 
   it("should update status to arrived when simulation reaches end", async () => {
-    const mockDriverId = "driver_1";
     const mockBookingId = "booking_1";
     const mockRoute = [{ lat: -6.1, lng: 106.8 }];
     mockBookingRepo.getBooking.mockResolvedValue({
@@ -186,23 +166,19 @@ describe("SimulationService", () => {
       ambulance_id: "amb_1",
     } as Booking);
 
-    mockCache.get.mockImplementation(async (key: string) => {
-      if (key === `sim:active:${mockDriverId}`) return mockBookingId;
-      return null;
-    });
     mockCache.lpop.mockResolvedValue(mockRoute[0]);
     mockCache.llen.mockResolvedValue(0);
 
-    await service.advanceSimulation(mockDriverId);
+    await service.advanceSimulation(mockBookingId);
 
     expect(mockBookingRepo.updateBookingStatus).toHaveBeenCalledWith(
       mockBookingId,
       "arrived",
     );
-    expect(mockCache.del).toHaveBeenCalledWith(`sim:active:${mockDriverId}`);
+    expect(mockCache.del).toHaveBeenCalledWith(`sim:route:${mockBookingId}`);
   });
 
-  it("should not set sim:active when startSimulation fails", async () => {
+  it("should not set any simulation keys when startSimulation fails", async () => {
     mockMaps.getDirections.mockResolvedValue({
       status: "NOT_FOUND",
       routes: [],
@@ -212,54 +188,18 @@ describe("SimulationService", () => {
       lng: 106.7,
     });
 
-    await service.startSimulationForBooking(mockBooking, "driver_1");
+    await service.startSimulationForBooking(mockBooking);
 
-    expect(mockCache.set).not.toHaveBeenCalledWith(
-      "sim:active:driver_1",
-      expect.any(String),
-      expect.any(Number),
-    );
-  });
-
-  it("should start simulation using driver location as origin", async () => {
-    const mockDriverId = "driver_1";
-    const bookingWithDriver: Booking = {
-      ...mockBooking,
-      driver_id: mockDriverId,
-    };
-    const driverLoc = { lat: -6.05, lng: 106.75 };
-
-    mockCache.getDriverLocation.mockResolvedValue(driverLoc);
-    mockMaps.getDirections.mockResolvedValue({
-      status: "OK",
-      routes: [
-        {
-          overview_polyline: { points: "a~l~Fjk_uO~clMmhwD" },
-        },
-      ],
-    });
-
-    await service.startSimulation(bookingWithDriver);
-
-    expect(mockCache.getDriverLocation).toHaveBeenCalledWith(mockDriverId);
-    expect(mockMaps.getDirections).toHaveBeenCalledWith(
-      "-6.05,106.75",
-      "-6.1,106.8",
-    );
+    expect(mockCache.set).not.toHaveBeenCalled();
   });
 
   it("should clean up simulation keys when booking is null", async () => {
-    const mockDriverId = "driver_1";
-    mockCache.get.mockImplementation(async (key: string) => {
-      if (key === `sim:active:${mockDriverId}`) return "booking_1";
-      return null;
-    });
+    const mockBookingId = "booking_1";
     mockBookingRepo.getBooking.mockResolvedValue(null);
     mockCache.del.mockResolvedValue(undefined);
 
-    await service.advanceSimulation(mockDriverId);
+    await service.advanceSimulation(mockBookingId);
 
-    expect(mockCache.del).toHaveBeenCalledWith("sim:active:driver_1");
     expect(mockCache.del).toHaveBeenCalledWith("sim:route:booking_1");
     expect(mockRealtime.broadcastTripLocation).not.toHaveBeenCalled();
   });
