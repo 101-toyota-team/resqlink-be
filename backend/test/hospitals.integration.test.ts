@@ -1,5 +1,15 @@
 import { env } from "cloudflare:test";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const mockEnv = {
+  ...env,
+  ALLOWED_ORIGINS: "*",
+  UPSTASH_REDIS_REST_URL: "http://localhost",
+  UPSTASH_REDIS_REST_TOKEN: "test",
+  SUPABASE_URL: "http://localhost",
+  SUPABASE_SECRET_KEY: "test",
+  MAPBOX_ACCESS_TOKEN: "test",
+};
 import app from "../src/index";
 
 const mockSearchHospitals = vi.fn().mockResolvedValue([]);
@@ -56,7 +66,7 @@ describe("Hospitals Integration", () => {
       const res = await app.request(
         "/hospitals/search?q=rumah",
         { method: "GET" },
-        env,
+        mockEnv,
       );
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual([]);
@@ -66,7 +76,7 @@ describe("Hospitals Integration", () => {
       const res = await app.request(
         "/hospitals/search?q=a",
         { method: "GET" },
-        env,
+        mockEnv,
       );
       expect(res.status).toBe(400);
       expect(await res.json()).toMatchObject({ error: "Validation failed" });
@@ -76,7 +86,7 @@ describe("Hospitals Integration", () => {
       const res = await app.request(
         "/hospitals/search",
         { method: "GET" },
-        env,
+        mockEnv,
       );
       expect(res.status).toBe(400);
       expect(await res.json()).toMatchObject({ error: "Validation failed" });
@@ -88,7 +98,7 @@ describe("Hospitals Integration", () => {
       const res = await app.request(
         "/hospitals/search?q=rumah",
         { method: "GET" },
-        env,
+        mockEnv,
       );
       expect(res.status).toBe(500);
       expect(await res.json()).toMatchObject({
@@ -102,7 +112,7 @@ describe("Hospitals Integration", () => {
       const res = await app.request(
         "/hospitals/nearby?h3_index=878c106a4ffffff",
         { method: "GET" },
-        env,
+        mockEnv,
       );
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual([]);
@@ -112,7 +122,7 @@ describe("Hospitals Integration", () => {
       const res = await app.request(
         "/hospitals/nearby",
         { method: "GET" },
-        env,
+        mockEnv,
       );
       expect(res.status).toBe(400);
       expect(await res.json()).toMatchObject({ error: "Validation failed" });
@@ -122,7 +132,7 @@ describe("Hospitals Integration", () => {
       const res = await app.request(
         "/hospitals/nearby?h3_index=invalid",
         { method: "GET" },
-        env,
+        mockEnv,
       );
       expect(res.status).toBe(400);
       expect(await res.json()).toMatchObject({ error: "Validation failed" });

@@ -1,6 +1,16 @@
 import { env } from "cloudflare:test";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+const mockEnv = {
+  ...env,
+  ALLOWED_ORIGINS: "*",
+  UPSTASH_REDIS_REST_URL: "http://localhost",
+  UPSTASH_REDIS_REST_TOKEN: "test",
+  SUPABASE_URL: "http://localhost",
+  SUPABASE_SECRET_KEY: "test",
+  MAPBOX_ACCESS_TOKEN: "test",
+};
+
 const { mockSearchProviders, mockFindProvidersByH3Indexes } = vi.hoisted(
   () => ({
     mockSearchProviders: vi.fn(),
@@ -74,7 +84,7 @@ describe("Providers Integration", () => {
       const mockProviders = [{ id: "1", name: "Rumah Sakit A" }];
       mockSearchProviders.mockResolvedValue(mockProviders);
 
-      const res = await app.request("/providers/search?q=rumah", {}, env);
+      const res = await app.request("/providers/search?q=rumah", {}, mockEnv);
 
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual(mockProviders);
@@ -84,19 +94,19 @@ describe("Providers Integration", () => {
       const res = await app.request(
         "/providers/search?q=rumah&limit=5",
         {},
-        env,
+        mockEnv,
       );
       expect(res.status).toBe(200);
     });
 
     it("should return 400 if query is too short", async () => {
-      const res = await app.request("/providers/search?q=a", {}, env);
+      const res = await app.request("/providers/search?q=a", {}, mockEnv);
       expect(res.status).toBe(400);
       expect(await res.json()).toMatchObject({ error: "Validation failed" });
     });
 
     it("should return 400 if query is missing", async () => {
-      const res = await app.request("/providers/search", {}, env);
+      const res = await app.request("/providers/search", {}, mockEnv);
       expect(res.status).toBe(400);
       expect(await res.json()).toMatchObject({ error: "Validation failed" });
     });
@@ -104,7 +114,7 @@ describe("Providers Integration", () => {
     it("should return 500 if the service throws an error", async () => {
       mockSearchProviders.mockRejectedValue(new Error("DB Error"));
 
-      const res = await app.request("/providers/search?q=rumah", {}, env);
+      const res = await app.request("/providers/search?q=rumah", {}, mockEnv);
 
       expect(res.status).toBe(500);
       expect(await res.json()).toMatchObject({
@@ -123,7 +133,7 @@ describe("Providers Integration", () => {
       const res = await app.request(
         "/providers/nearby?h3_index=878c106a4ffffff",
         {},
-        env,
+        mockEnv,
       );
 
       expect(res.status).toBe(200);
@@ -135,13 +145,13 @@ describe("Providers Integration", () => {
       const res = await app.request(
         "/providers/nearby?h3_index=878c106a4ffffff&lat=-6.2&lng=106.8",
         {},
-        env,
+        mockEnv,
       );
       expect(res.status).toBe(200);
     });
 
     it("should return 400 if h3_index is missing", async () => {
-      const res = await app.request("/providers/nearby", {}, env);
+      const res = await app.request("/providers/nearby", {}, mockEnv);
       expect(res.status).toBe(400);
       expect(await res.json()).toMatchObject({ error: "Validation failed" });
     });
@@ -150,7 +160,7 @@ describe("Providers Integration", () => {
       const res = await app.request(
         "/providers/nearby?h3_index=invalid",
         {},
-        env,
+        mockEnv,
       );
       expect(res.status).toBe(400);
       expect(await res.json()).toMatchObject({ error: "Validation failed" });
@@ -160,7 +170,7 @@ describe("Providers Integration", () => {
       const res = await app.request(
         "/providers/nearby?h3_index=878c106a4ffffff&lat=999",
         {},
-        env,
+        mockEnv,
       );
       expect(res.status).toBe(400);
       expect(await res.json()).toMatchObject({ error: "Validation failed" });

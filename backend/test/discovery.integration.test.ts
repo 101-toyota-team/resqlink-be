@@ -1,6 +1,16 @@
 import { env } from "cloudflare:test";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+const mockEnv = {
+  ...env,
+  ALLOWED_ORIGINS: "*",
+  UPSTASH_REDIS_REST_URL: "http://localhost",
+  UPSTASH_REDIS_REST_TOKEN: "test",
+  SUPABASE_URL: "http://localhost",
+  SUPABASE_SECRET_KEY: "test",
+  MAPBOX_ACCESS_TOKEN: "test",
+};
+
 vi.mock("../src/infrastructure/upstash", () => ({
   UpstashRedisRepository: vi.fn().mockImplementation(function () {
     return {
@@ -94,7 +104,7 @@ describe("Discovery Integration", () => {
     const res = await app.request(
       "/ambulances/nearby?h3_index=878c106a4ffffff",
       {},
-      env,
+      mockEnv,
     );
 
     expect(res.status).toBe(200);
@@ -135,7 +145,7 @@ describe("Discovery Integration", () => {
     const res = await app.request(
       "/ambulances/nearby?h3_index=878c106a4ffffff&pickup=-6.2,106.8",
       {},
-      env,
+      mockEnv,
     );
 
     expect(res.status).toBe(200);
@@ -156,7 +166,7 @@ describe("Discovery Integration", () => {
   });
 
   it("Missing h3_index: GET /ambulances/nearby", async () => {
-    const res = await app.request("/ambulances/nearby", {}, env);
+    const res = await app.request("/ambulances/nearby", {}, mockEnv);
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ error: "Validation failed" });
   });
@@ -165,7 +175,7 @@ describe("Discovery Integration", () => {
     const res = await app.request(
       "/ambulances/nearby?h3_index=invalid",
       {},
-      env,
+      mockEnv,
     );
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ error: "Validation failed" });
@@ -175,7 +185,7 @@ describe("Discovery Integration", () => {
     const res = await app.request(
       "/ambulances/nearby?h3_index=878c106a4ffffff&pickup=not-a-coord",
       {},
-      env,
+      mockEnv,
     );
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ error: "Validation failed" });
@@ -195,7 +205,7 @@ describe("Discovery Integration", () => {
     const res = await app.request(
       "/ambulances/nearby?h3_index=878c106a4ffffff",
       {},
-      env,
+      mockEnv,
     );
     expect(res.status).toBe(500);
     expect(await res.json()).toMatchObject({ error: "Internal server error" });

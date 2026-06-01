@@ -1,5 +1,15 @@
 import { env } from "cloudflare:test";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const mockEnv = {
+  ...env,
+  ALLOWED_ORIGINS: "*",
+  UPSTASH_REDIS_REST_URL: "http://localhost",
+  UPSTASH_REDIS_REST_TOKEN: "test",
+  SUPABASE_URL: "http://localhost",
+  SUPABASE_SECRET_KEY: "test",
+  MAPBOX_ACCESS_TOKEN: "test",
+};
 import type { JwtPayload } from "../src/types";
 
 vi.mock("hono/jwt", async (importOriginal) => {
@@ -93,7 +103,7 @@ describe("Driver Integration Tests", () => {
           method: "GET",
           headers: { Authorization: "Bearer valid-token" },
         },
-        env,
+        mockEnv,
       );
 
       expect(res.status).toBe(200);
@@ -110,7 +120,7 @@ describe("Driver Integration Tests", () => {
           method: "GET",
           headers: { Authorization: "Bearer valid-token" },
         },
-        env,
+        mockEnv,
       );
 
       expect(res.status).toBe(403);
@@ -120,7 +130,11 @@ describe("Driver Integration Tests", () => {
     });
 
     it("should return 401 if Authorization header is missing", async () => {
-      const res = await app.request("/driver/bookings", { method: "GET" }, env);
+      const res = await app.request(
+        "/driver/bookings",
+        { method: "GET" },
+        mockEnv,
+      );
 
       expect(res.status).toBe(401);
       expect(await res.json()).toMatchObject({ error: "Unauthorized access" });
@@ -149,7 +163,7 @@ describe("Driver Integration Tests", () => {
             lng: 106.8,
           }),
         },
-        env,
+        mockEnv,
       );
 
       expect(res.status).toBe(400);
@@ -178,7 +192,7 @@ describe("Driver Integration Tests", () => {
             lng: 106.8,
           }),
         },
-        env,
+        mockEnv,
       );
 
       expect(res.status).toBe(400);
@@ -207,7 +221,7 @@ describe("Driver Integration Tests", () => {
             lng: 106.8,
           }),
         },
-        env,
+        mockEnv,
       );
 
       expect(res.status).toBe(400);

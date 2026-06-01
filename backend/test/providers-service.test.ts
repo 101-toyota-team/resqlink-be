@@ -152,10 +152,10 @@ describe("ProviderService", () => {
       expect(result[0].id).toBe("p5");
     });
 
-    it("batches H3 cells when ring has >100 cells", async () => {
+    it("batches H3 cells when ring has >500 cells", async () => {
       const h3Index = "center";
       mockGeo.cellToLatLng.mockReturnValue({ lat: 0, lng: 0 });
-      const manyCells = Array.from({ length: 150 }, (_, i) => `cell-${i}`);
+      const manyCells = Array.from({ length: 600 }, (_, i) => `cell-${i}`);
       mockGeo.getRing.mockImplementation((_, r) => (r === 1 ? manyCells : []));
       mockRepo.findProvidersByH3Indexes.mockResolvedValue([]);
 
@@ -164,10 +164,10 @@ describe("ProviderService", () => {
       expect(mockRepo.findProvidersByH3Indexes).toHaveBeenCalledTimes(2);
       expect(mockRepo.findProvidersByH3Indexes).toHaveBeenCalledWith([
         "center",
-        ...manyCells.slice(0, 99),
+        ...manyCells.slice(0, 499),
       ]);
       expect(mockRepo.findProvidersByH3Indexes).toHaveBeenCalledWith(
-        manyCells.slice(99, 150),
+        manyCells.slice(499, 600),
       );
     });
 
