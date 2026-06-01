@@ -2,9 +2,14 @@
 
 -- 1. Harden Security DEFINER on rls_auto_enable
 -- Revoke execution privileges from public/anon/authenticated to prevent unauthorized use.
-REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM anon;
-REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM authenticated;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'rls_auto_enable' AND pronamespace = 'public'::regnamespace) THEN
+        REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC;
+        REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM anon;
+        REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM authenticated;
+    END IF;
+END $$;
 
 -- 2. Fix Mutable Search Paths
 -- Explicitly set search_path to 'public' for functions to prevent search path hijacking.
