@@ -100,10 +100,16 @@ export class SupabaseRepository
 
   getConfirmedBookings(
     providerId: string,
+    driverId?: string,
     limit?: number,
     offset?: number,
   ): Promise<Booking[]> {
-    return this.bookingRepo.getConfirmedBookings(providerId, limit, offset);
+    return this.bookingRepo.getConfirmedBookings(
+      providerId,
+      driverId,
+      limit,
+      offset,
+    );
   }
 
   getBookingsByProvider(

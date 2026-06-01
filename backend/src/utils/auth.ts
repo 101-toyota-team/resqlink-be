@@ -43,13 +43,20 @@ export function getProviderId(payload: JwtPayload): string | undefined {
 
 export function canAccessBooking(
   payload: JwtPayload,
-  bookingUserId: string | undefined,
-  bookingProviderId?: string | undefined,
+  bookingUserId?: string,
+  bookingProviderId?: string,
+  bookingDriverId?: string | null,
 ): boolean {
   if (isAdminRole(payload)) return true;
   if (bookingUserId && bookingUserId === payload.sub) return true;
-  if ((isProviderRole(payload) || isDriverRole(payload)) && bookingProviderId) {
+
+  if (isDriverRole(payload)) {
+    return payload.sub === bookingDriverId;
+  }
+
+  if (isProviderRole(payload) && bookingProviderId) {
     return getProviderId(payload) === bookingProviderId;
   }
+
   return false;
 }

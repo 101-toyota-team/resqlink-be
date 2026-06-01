@@ -17,6 +17,7 @@ export interface IBookingRepository {
   ): Promise<Booking[]>;
   getConfirmedBookings(
     providerId: string,
+    driverId?: string,
     limit?: number,
     offset?: number,
   ): Promise<Booking[]>;

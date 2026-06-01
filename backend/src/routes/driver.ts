@@ -25,7 +25,10 @@ driverApp.get("/bookings", async (c) => {
   }
   const bookingRepo = c.get("getBookingRepo")();
   try {
-    const bookings = await bookingRepo.getConfirmedBookings(providerId);
+    const bookings = await bookingRepo.getConfirmedBookings(
+      providerId,
+      payload.sub,
+    );
     return c.json(bookings);
   } catch (error) {
     logger.error(error, "Error fetching confirmed bookings");
