@@ -110,6 +110,12 @@ export const ERROR_MESSAGES = {
   CONFIGURATION_ERROR: "Configuration error",
   VALIDATION_FAILED: "Validation failed",
   MAPS_API_FAILURE: "Maps API request failed",
+  AMBULANCE_NOT_FOUND: "Ambulance not found",
+  BOOKING_NOT_DRAFT: "Booking is not in draft status",
+  AMBULANCE_PROVIDER_MISMATCH:
+    "Ambulance does not belong to the selected provider",
+  INVALID_BOOKING_TRANSITION: "Invalid booking status transition",
+  NO_ASSIGNED_DRIVER: "Booking has no assigned driver",
 };
 
 /**

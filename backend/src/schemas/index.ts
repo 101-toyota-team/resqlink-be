@@ -60,6 +60,7 @@ const bookingTypes = Object.keys(BOOKING_FEES) as [
 export const bookingSchema = z.object({
   ambulance_id: z.string().uuid().optional(),
   provider_id: z.string().uuid().optional(),
+  driver_id: z.string().uuid().optional(),
   booking_type: z.enum(bookingTypes),
   patient_condition: z.string(),
   pickup_address: z.string(),

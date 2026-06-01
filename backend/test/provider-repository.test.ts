@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
-import { SupabaseRepository } from "../src/infrastructure/supabase";
+import { ProviderRepository } from "../src/infrastructure/supabase";
 import { DatabaseSchemaDriftError } from "../src/utils/constants";
 
 const mockFrom = vi.fn();
@@ -16,8 +16,8 @@ vi.mock("@supabase/supabase-js", () => ({
   })),
 }));
 
-describe("SupabaseRepository provider methods", () => {
-  let repository: SupabaseRepository;
+describe("ProviderRepository", () => {
+  let repository: ProviderRepository;
   const url = "https://test.supabase.co";
   const key = "test-key";
 
@@ -35,7 +35,7 @@ describe("SupabaseRepository provider methods", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    repository = new SupabaseRepository(url, key);
+    repository = new ProviderRepository(url, key);
   });
 
   describe("searchProviders", () => {

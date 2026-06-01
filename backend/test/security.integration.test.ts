@@ -207,6 +207,8 @@ describe("Security Integration Tests", () => {
       expect(mockBookingRepo.getConfirmedBookings).toHaveBeenCalledWith(
         providerId,
         driverAId,
+        undefined,
+        undefined,
       );
     });
 

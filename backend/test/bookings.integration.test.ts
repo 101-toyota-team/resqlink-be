@@ -41,15 +41,6 @@ const createApp = (
   const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
 
   app.use("*", async (c, next) => {
-    c.set(
-      "getSupabaseRepo",
-      () =>
-        dbMock as IBookingRepository &
-          IAmbulanceRepository &
-          IProviderRepository &
-          IHospitalRepository &
-          IRealtimeBroadcaster,
-    );
     c.set("jwtPayload", jwtPayloadMock);
 
     const buildSimulationService = () => {

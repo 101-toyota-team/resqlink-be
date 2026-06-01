@@ -6,6 +6,7 @@ import { Booking, BookingData, JwtPayload } from "../types";
 import type { BookingStatus } from "../utils/constants";
 import { BOOKING_FEES, ERROR_MESSAGES } from "../utils/constants";
 import { canAccessBooking, isDriverRole, isProviderRole } from "../utils/auth";
+import logger from "../utils/logger";
 import {
   NotFoundError,
   ForbiddenError,
@@ -40,6 +41,18 @@ export interface IBookingService {
     status: BookingStatus,
     payload: JwtPayload,
   ): Promise<Booking>;
+  getConfirmedBookings(
+    providerId: string,
+    driverId?: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<Booking[]>;
+  getBookingsByProvider(
+    providerId: string,
+    status?: BookingStatus,
+    limit?: number,
+    offset?: number,
+  ): Promise<Booking[]>;
 }
 
 export class BookingService implements IBookingService {
@@ -59,7 +72,7 @@ export class BookingService implements IBookingService {
       await this.realtime
         .broadcastNewBooking(booking.provider_id, booking)
         .catch((err) => {
-          console.error("Failed to broadcast new booking to provider:", err);
+          logger.error(err, "Failed to broadcast new booking to provider");
         });
     }
 
@@ -92,6 +105,34 @@ export class BookingService implements IBookingService {
     return this.bookingRepo.getUserBookings(userId, limit, offset);
   }
 
+  async getConfirmedBookings(
+    providerId: string,
+    driverId?: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<Booking[]> {
+    return this.bookingRepo.getConfirmedBookings(
+      providerId,
+      driverId,
+      limit,
+      offset,
+    );
+  }
+
+  async getBookingsByProvider(
+    providerId: string,
+    status?: BookingStatus,
+    limit?: number,
+    offset?: number,
+  ): Promise<Booking[]> {
+    return this.bookingRepo.getBookingsByProvider(
+      providerId,
+      status,
+      limit,
+      offset,
+    );
+  }
+
   async assignAmbulance(
     id: string,
     ambulanceId: string,
@@ -114,19 +155,17 @@ export class BookingService implements IBookingService {
     }
 
     if (booking.status !== "draft") {
-      throw new BookingStateError("Booking is not in draft status");
+      throw new BookingStateError(ERROR_MESSAGES.BOOKING_NOT_DRAFT);
     }
 
     const ambulance = await this.ambulanceRepo.getAmbulance(ambulanceId);
     if (!ambulance) {
-      throw new NotFoundError("Ambulance not found");
+      throw new NotFoundError(ERROR_MESSAGES.AMBULANCE_NOT_FOUND);
     }
 
     if (booking.provider_id) {
       if (ambulance.provider_id !== booking.provider_id) {
-        throw new ForbiddenError(
-          "Ambulance does not belong to the selected provider",
-        );
+        throw new ForbiddenError(ERROR_MESSAGES.AMBULANCE_PROVIDER_MISMATCH);
       }
       return this.bookingRepo.assignAmbulance(id, ambulanceId);
     }
@@ -169,9 +208,7 @@ export class BookingService implements IBookingService {
 
     const allowedTransitions = VALID_TRANSITIONS[booking.status];
     if (!allowedTransitions || !allowedTransitions.includes(newStatus)) {
-      throw new BookingStateError(
-        `Cannot transition from ${booking.status} to ${newStatus}`,
-      );
+      throw new BookingStateError(ERROR_MESSAGES.INVALID_BOOKING_TRANSITION);
     }
 
     if (newStatus === "en_route") {
@@ -180,9 +217,7 @@ export class BookingService implements IBookingService {
         : booking.driver_id;
 
       if (!simulationDriverId) {
-        throw new BookingStateError(
-          "Cannot start simulation: booking has no assigned driver",
-        );
+        throw new BookingStateError(ERROR_MESSAGES.NO_ASSIGNED_DRIVER);
       }
 
       const started = await this.simulation.startSimulationForBooking(
@@ -190,7 +225,7 @@ export class BookingService implements IBookingService {
         simulationDriverId,
       );
       if (!started) {
-        throw new Error("Failed to start route simulation");
+        throw new BookingStateError("Failed to start route simulation");
       }
     }
 
