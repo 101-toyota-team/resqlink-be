@@ -29,7 +29,14 @@ export class MapboxRepository implements IMapsRepository {
   constructor(private accessToken: string) {}
 
   private async handleResponse<T>(response: Response): Promise<T> {
-    const data = (await response.json()) as T;
+    let data: unknown;
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error(
+        `Mapbox API error: ${response.status} - non-JSON response`,
+      );
+    }
     if (!response.ok) {
       const errorData = data as MapboxErrorResponse;
       throw new Error(
@@ -38,7 +45,7 @@ export class MapboxRepository implements IMapsRepository {
         }`,
       );
     }
-    return data;
+    return data as T;
   }
 
   private swapCoords(latLng: string): string {
