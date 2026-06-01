@@ -344,7 +344,7 @@ paths:
       summary: Update Booking Status
       description: >-
         Update the status of a booking. Changing status to "en_route" triggers
-        the driver simulation.
+        the ambulance simulation.
       tags:
         - Bookings
       security:
@@ -385,39 +385,16 @@ paths:
           $ref: '#/components/responses/TooManyRequestsError'
         '500':
           $ref: '#/components/responses/InternalError'
-  /driver/bookings:
-    get:
-      operationId: getDriverQueue
-      summary: Get Confirmed Bookings (Driver Queue)
-      description: Retrieve a list of all currently confirmed bookings.
-      tags:
-        - Driver
-      security:
-        - BearerAuth: []
-      responses:
-        '200':
-          description: List of confirmed bookings
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Booking'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '429':
-          $ref: '#/components/responses/TooManyRequestsError'
-        '500':
-          $ref: '#/components/responses/InternalError'
   /driver/ping:
     post:
-      operationId: driverPing
-      summary: Driver Ping (Telemetry)
+      operationId: advanceSimulation
+      summary: Advance Booking Simulation (Admin only)
       description: >-
-        Simulate movement by pinging the driver's location. Advances the
-        pre-calculated simulation route (calculated via Mapbox).
+        Simulate movement along the route by popping coordinates for the given booking ID.
+        This is an admin-only endpoint used to control simulations.
       tags:
-        - Driver
+        - Admin
+        - Simulation
       security:
         - BearerAuth: []
       requestBody:
@@ -427,52 +404,28 @@ paths:
             schema:
               type: object
               properties:
-                driver_id:
+                bookingId:
                   type: string
                   format: uuid
-                h3_index:
-                  type: string
-                  minLength: 15
-                  maxLength: 15
-                  pattern: ^[0-9a-f]+$
-                previous_h3_index:
-                  type: string
-                  minLength: 15
-                  maxLength: 15
-                  pattern: ^[0-9a-f]+$
-                lat:
-                  $ref: '#/components/schemas/Latitude'
-                lng:
-                  $ref: '#/components/schemas/Longitude'
-                heading:
-                  type: number
-                speed:
-                  type: number
+                steps:
+                  type: integer
+                  minimum: 1
+                  maximum: 100
               required:
-                - driver_id
-                - h3_index
-                - lat
-                - lng
+                - bookingId
       responses:
         '200':
-          description: Ping successful
+          description: Simulation successfully advanced
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  driver_id:
+                  bookingId:
                     type: string
                     format: uuid
-                  lat:
-                    $ref: '#/components/schemas/Latitude'
-                  lng:
-                    $ref: '#/components/schemas/Longitude'
-                  h3_index:
-                    type: string
-                  previous_h3_index:
-                    type: string
-                    nullable: true
+                  steps:
+                    type: integer
         '400':
           $ref: '#/components/responses/ValidationError'
         '403':
