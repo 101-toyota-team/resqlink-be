@@ -22,6 +22,29 @@ jobs:
         working-directory: ./backend
         run: npm install
 
+      - name: Verify Secrets
+        run: |
+          if [ -z "${{ secrets.SUPABASE_PROJECT_ID }}" ]; then echo "❌ SUPABASE_PROJECT_ID is missing"; exit 1; fi
+          if [ -z "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ]; then echo "❌ SUPABASE_ACCESS_TOKEN is missing"; exit 1; fi
+          if [ -z "${{ secrets.SUPABASE_DB_PASSWORD }}" ]; then echo "❌ SUPABASE_DB_PASSWORD is missing"; exit 1; fi
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then echo "❌ CLOUDFLARE_API_TOKEN is missing"; exit 1; fi
+          if [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then echo "❌ CLOUDFLARE_ACCOUNT_ID is missing"; exit 1; fi
+          if [ -z "${{ secrets.UPSTASH_REDIS_REST_URL }}" ]; then echo "❌ UPSTASH_REDIS_REST_URL is missing"; exit 1; fi
+          if [ -z "${{ secrets.UPSTASH_REDIS_REST_TOKEN }}" ]; then echo "❌ UPSTASH_REDIS_REST_TOKEN is missing"; exit 1; fi
+          if [ -z "${{ secrets.SUPABASE_SECRET_KEY }}" ]; then echo "❌ SUPABASE_SECRET_KEY is missing"; exit 1; fi
+          if [ -z "${{ secrets.MAPBOX_ACCESS_TOKEN }}" ]; then echo "❌ MAPBOX_ACCESS_TOKEN is missing"; exit 1; fi
+
+      - name: Create .dev.vars for integration tests
+        working-directory: ./backend
+        run: |
+          cat <<EOF > .dev.vars
+          SUPABASE_URL=https://${{ secrets.SUPABASE_PROJECT_ID }}.supabase.co
+          SUPABASE_SECRET_KEY=${{ secrets.SUPABASE_SECRET_KEY }}
+          UPSTASH_REDIS_REST_URL=${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN=${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }}
+          EOF
+
       - name: Verify Code Quality
         working-directory: ./backend
         run: |
@@ -29,24 +52,17 @@ jobs:
           npx tsc --noEmit
           npm test
 
+
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
           version: latest
 
-      - name: Verify Secrets
-        run: |
-          if [ -z "${{ secrets.SUPABASE_PROJECT_ID }}" ]; then echo "❌ SUPABASE_PROJECT_ID is missing"; exit 1; fi
-          if [ -z "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ]; then echo "❌ SUPABASE_ACCESS_TOKEN is missing"; exit 1; fi
-          if [ -z "${{ secrets.SUPABASE_DB_PASSWORD }}" ]; then echo "❌ SUPABASE_DB_PASSWORD is missing"; exit 1; fi
-          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then echo "❌ CLOUDFLARE_API_TOKEN is missing"; exit 1; fi
-          if [ -z "${{ secrets.UPSTASH_REDIS_REST_URL }}" ]; then echo "❌ UPSTASH_REDIS_REST_URL is missing"; exit 1; fi
-          if [ -z "${{ secrets.UPSTASH_REDIS_REST_TOKEN }}" ]; then echo "❌ UPSTASH_REDIS_REST_TOKEN is missing"; exit 1; fi
-          if [ -z "${{ secrets.SUPABASE_SECRET_KEY }}" ]; then echo "❌ SUPABASE_SECRET_KEY is missing"; exit 1; fi
-
       - name: Deploy Supabase Migrations
         run: |
           supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_ID }} --password ${{ secrets.SUPABASE_DB_PASSWORD }}
+          supabase migration repair --status reverted 20260601090000 --password ${{ secrets.SUPABASE_DB_PASSWORD }} || true
+          supabase migration repair --status applied 20260601091242 --password ${{ secrets.SUPABASE_DB_PASSWORD }} || true
           supabase db push --include-all --password ${{ secrets.SUPABASE_DB_PASSWORD }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
