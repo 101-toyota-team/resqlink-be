@@ -9,6 +9,7 @@ export interface IBookingRepository {
     id: string,
     ambulanceId: string,
     providerId?: string,
+    routeGeometry?: any,
   ): Promise<Booking>;
   getUserBookings(
     userId: string,
