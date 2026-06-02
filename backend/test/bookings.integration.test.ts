@@ -11,6 +11,7 @@ import {
 } from "../src/repositories/db";
 import { BookingService } from "../src/services/bookings";
 import { ISimulationService } from "../src/services/simulation";
+import { IDistanceService } from "../src/services/distance";
 
 interface MockDb {
   createBooking: ReturnType<typeof vi.fn>;
@@ -67,7 +68,7 @@ const createApp = (
             encoded_polyline: "mock_polyline",
             viewport: { low: { lat: 0, lng: 0 }, high: { lat: 1, lng: 1 } },
           }),
-        } as unknown as any,
+        } as unknown as IDistanceService,
       );
     });
 

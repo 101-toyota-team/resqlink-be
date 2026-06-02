@@ -1,6 +1,6 @@
 import { IBookingRepository } from "../../repositories/booking";
 import { SupabaseClientBase } from "./client";
-import { Booking, BookingData } from "../../types";
+import { Booking, BookingData, RouteGeometry } from "../../types";
 import type { BookingStatus } from "../../utils/constants";
 import { BookingStateError } from "../../utils/errors";
 import {
@@ -80,9 +80,9 @@ export class BookingRepository
     id: string,
     ambulanceId: string,
     providerId?: string,
-    routeGeometry?: any,
+    routeGeometry?: RouteGeometry,
   ): Promise<Booking> {
-    const updateData: Record<string, any> = {
+    const updateData: Record<string, unknown> = {
       ambulance_id: ambulanceId,
       status: "confirmed",
     };
