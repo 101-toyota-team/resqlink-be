@@ -35,12 +35,6 @@ export function getProviderId(payload: JwtPayload): string | undefined {
 
   return undefined;
 }
-
-export function isDriverRole(payload: JwtPayload): boolean {
-  const metadataRole = getRoleFromMetadata(payload.app_metadata);
-  return payload.role === "driver" || metadataRole === "driver";
-}
-
 export function canAccessBooking(
   payload: JwtPayload,
   bookingUserId?: string,

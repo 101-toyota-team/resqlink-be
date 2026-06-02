@@ -27,6 +27,6 @@ This is the Cloudflare Workers backend for the vehicle routing app.
 ## 🛠 Backend logic notes
 *   **H3 Neighbor Expansion**: The backend is responsible for expanding the search radius using `h3.gridDisk(h3Index, 1)` (hospitals) and progressive `gridRingUnsafe` up to radius 30 (providers). Resolution **7** (15-character hex) is the enforced standard.
 *   **Matchmaking**: Discovery queries **Supabase** (using H3 indices) to find available providers and hospitals.
-*   **Presence**: Driver location keys in Redis have a 300-second (5-minute) TTL. The backend prunes stale drivers from sorted sets after 60 seconds of inactivity (`zremrangebyscore`).
+*   **Presence**: Ambulance location keys in Redis have a 300-second (5-minute) TTL. The backend prunes stale ambulances from sorted sets after 60 seconds of inactivity (`zremrangebyscore`).
 *   **Simulation**: Active trip state is stored in Redis (`sim:route`, `sim:step`) with a 1-hour TTL.
 
