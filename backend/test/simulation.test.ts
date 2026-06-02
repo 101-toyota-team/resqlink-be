@@ -4,7 +4,6 @@ import { IGenericCache } from "../src/repositories/generic-cache";
 import { IBookingRepository } from "../src/repositories/booking";
 import { IAmbulanceRepository } from "../src/repositories/ambulance";
 import { IRealtimeBroadcaster } from "../src/repositories/realtime";
-import { IMapsRepository } from "../src/repositories/maps";
 import { Booking } from "../src/types";
 
 describe("SimulationService", () => {
@@ -12,7 +11,6 @@ describe("SimulationService", () => {
   let mockBookingRepo: Mocked<IBookingRepository>;
   let mockAmbulanceRepo: Mocked<IAmbulanceRepository>;
   let mockRealtime: Mocked<IRealtimeBroadcaster>;
-  let mockMaps: Mocked<IMapsRepository>;
   let service: SimulationService;
 
   const mockBooking: Booking = {
@@ -69,39 +67,33 @@ describe("SimulationService", () => {
       broadcastTripLocation: vi.fn(),
       broadcastNewBooking: vi.fn(),
     } as Mocked<IRealtimeBroadcaster>;
-    mockMaps = {
-      getDirections: vi.fn(),
-      getDistanceMatrix: vi.fn(),
-    } as Mocked<IMapsRepository>;
     service = new SimulationService(
       mockCache,
       mockBookingRepo,
       mockAmbulanceRepo,
       mockRealtime,
-      mockMaps,
     );
   });
 
-  it("should start simulation by fetching directions and storing in cache", async () => {
-    mockAmbulanceRepo.getAmbulanceProviderLocation.mockResolvedValue({
-      lat: -6.0,
-      lng: 106.7,
-    });
-    mockMaps.getDirections.mockResolvedValue({
-      status: "OK",
-      routes: [
-        {
-          overview_polyline: { points: "a~l~Fjk_uO~clMmhwD" },
+  it("should start simulation by pushing points to cache", async () => {
+    const bookingWithRoute: Booking = {
+      ...mockBooking,
+      route_geometry: {
+        total_distance_meters: 1000,
+        total_duration_seconds: 100,
+        combined_viewport: {
+          low: { lat: 0, lng: 0 },
+          high: { lat: 1, lng: 1 },
         },
-      ],
-    });
+        legs: [{ sequence: 1, encoded_polyline: "a~l~Fjk_uO~clMmhwD" }],
+      },
+    };
 
-    await service.startSimulation(mockBooking);
+    await service.startSimulation(bookingWithRoute);
 
-    expect(mockAmbulanceRepo.getAmbulanceProviderLocation).toHaveBeenCalledWith(
-      "amb_1",
-    );
-    expect(mockMaps.getDirections).toHaveBeenCalled();
+    expect(
+      mockAmbulanceRepo.getAmbulanceProviderLocation,
+    ).not.toHaveBeenCalled();
     expect(mockCache.rpush).toHaveBeenCalled();
     const [key, ...args] = mockCache.rpush.mock.calls[0];
     expect(key).toBe("sim:route:booking_1");
@@ -109,20 +101,7 @@ describe("SimulationService", () => {
     expect(mockCache.expire).toHaveBeenCalledWith("sim:route:booking_1", 3600);
   });
 
-  it("should not start simulation if directions are empty", async () => {
-    mockAmbulanceRepo.getAmbulanceProviderLocation.mockResolvedValue({
-      lat: -6.0,
-      lng: 106.7,
-    });
-    mockMaps.getDirections.mockResolvedValue({
-      status: "OK",
-      routes: [
-        {
-          overview_polyline: { points: "" },
-        },
-      ],
-    });
-
+  it("should not start simulation if route_geometry is missing", async () => {
     await service.startSimulation(mockBooking);
 
     expect(mockCache.rpush).not.toHaveBeenCalled();
@@ -178,17 +157,10 @@ describe("SimulationService", () => {
     expect(mockCache.del).toHaveBeenCalledWith(`sim:route:${mockBookingId}`);
   });
 
-  it("should not set any simulation keys when startSimulation fails", async () => {
-    mockMaps.getDirections.mockResolvedValue({
-      status: "NOT_FOUND",
-      routes: [],
-    });
-    mockAmbulanceRepo.getAmbulanceProviderLocation.mockResolvedValue({
-      lat: -6.0,
-      lng: 106.7,
-    });
+  it("should not set any simulation keys when booking is invalid", async () => {
+    const invalidBooking = { ...mockBooking, route_geometry: undefined };
 
-    await service.startSimulationForBooking(mockBooking);
+    await service.startSimulationForBooking(invalidBooking);
 
     expect(mockCache.set).not.toHaveBeenCalled();
   });
