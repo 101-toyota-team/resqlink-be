@@ -54,12 +54,16 @@ export interface IBookingService {
   ): Promise<Booking[]>;
 }
 
+import { IDistanceService } from "./distance";
+import { RouteGeometry } from "../types";
+// ...
 export class BookingService implements IBookingService {
   constructor(
     private bookingRepo: IBookingRepository,
     private ambulanceRepo: IAmbulanceRepository,
     private realtime: IRealtimeBroadcaster,
     private simulation: ISimulationService,
+    private distanceService: IDistanceService,
   ) {}
 
   async createBooking(data: BookingData, userId: string): Promise<Booking> {
@@ -154,18 +158,70 @@ export class BookingService implements IBookingService {
       throw new NotFoundError(ERROR_MESSAGES.AMBULANCE_NOT_FOUND);
     }
 
-    if (booking.provider_id) {
-      if (ambulance.provider_id !== booking.provider_id) {
-        throw new ForbiddenError(ERROR_MESSAGES.AMBULANCE_PROVIDER_MISMATCH);
-      }
-      return this.bookingRepo.assignAmbulance(id, ambulanceId);
+    if (booking.provider_id && ambulance.provider_id !== booking.provider_id) {
+      throw new ForbiddenError(ERROR_MESSAGES.AMBULANCE_PROVIDER_MISMATCH);
     }
 
-    return this.bookingRepo.assignAmbulance(
-      id,
-      ambulanceId,
-      ambulance.provider_id,
-    );
+    try {
+      const providerLoc =
+        await this.ambulanceRepo.getAmbulanceProviderLocation(ambulanceId);
+      const ambLat = providerLoc ? providerLoc.lat : booking.pickup_lat;
+      const ambLng = providerLoc ? providerLoc.lng : booking.pickup_lng;
+
+      const leg1 = await this.distanceService.getRouteLeg(
+        { lat: ambLat, lng: ambLng },
+        { lat: booking.pickup_lat, lng: booking.pickup_lng },
+      );
+
+      const leg2 = await this.distanceService.getRouteLeg(
+        { lat: booking.pickup_lat, lng: booking.pickup_lng },
+        { lat: booking.destination_lat, lng: booking.destination_lng },
+      );
+
+      const routeGeometry: RouteGeometry = {
+        total_distance_meters: leg1.distance + leg2.distance,
+        total_duration_seconds: leg1.duration + leg2.duration,
+        combined_viewport: {
+          low: {
+            lat: Math.min(leg1.viewport.low.lat, leg2.viewport.low.lat),
+            lng: Math.min(leg1.viewport.low.lng, leg2.viewport.low.lng),
+          },
+          high: {
+            lat: Math.max(leg1.viewport.high.lat, leg2.viewport.high.lat),
+            lng: Math.max(leg1.viewport.high.lng, leg2.viewport.high.lng),
+          },
+        },
+        legs: [
+          { sequence: 1, encoded_polyline: leg1.encoded_polyline },
+          { sequence: 2, encoded_polyline: leg2.encoded_polyline },
+        ],
+      };
+
+      const finalProviderId = booking.provider_id
+        ? undefined
+        : ambulance.provider_id;
+      console.log(
+        "Booking provider_id:",
+        booking.provider_id,
+        "Ambulance provider_id:",
+        ambulance.provider_id,
+        "Final:",
+        finalProviderId,
+      );
+      return await this.bookingRepo.assignAmbulance(
+        id,
+        ambulanceId,
+        finalProviderId,
+        routeGeometry,
+      );
+    } catch (error: any) {
+      if (error.message && error.message.startsWith("ROUTING_FAILED")) {
+        throw new BookingStateError(
+          "Cannot find a valid road route for this assignment.",
+        );
+      }
+      throw error;
+    }
   }
 
   async updateStatus(
