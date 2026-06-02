@@ -1,0 +1,1 @@
+ALTER TABLE bookings ADD COLUMN route_geometry JSONB;

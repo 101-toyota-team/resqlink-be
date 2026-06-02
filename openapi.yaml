@@ -188,6 +188,44 @@ paths:
                   $ref: '#/components/schemas/Latitude'
                 destination_lng:
                   $ref: '#/components/schemas/Longitude'
+                route_geometry:
+                  type: object
+                  nullable: true
+                  description: >-
+                    Populated only after the booking is assigned an ambulance (status >= confirmed). 
+                    Contains the lightweight encoded polylines for UI rendering.
+                  properties:
+                    total_distance_meters:
+                      type: integer
+                    total_duration_seconds:
+                      type: integer
+                    combined_viewport:
+                      type: object
+                      properties:
+                        low:
+                          type: object
+                          properties:
+                            lat:
+                              $ref: '#/components/schemas/Latitude'
+                            lng:
+                              $ref: '#/components/schemas/Longitude'
+                        high:
+                          type: object
+                          properties:
+                            lat:
+                              $ref: '#/components/schemas/Latitude'
+                            lng:
+                              $ref: '#/components/schemas/Longitude'
+                    legs:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          sequence:
+                            type: integer
+                            description: 1 for Ambulance->Pickup, 2 for Pickup->Hospital
+                          encoded_polyline:
+                            type: string
               required:
                 - booking_type
                 - patient_condition
