@@ -29,7 +29,8 @@ describe("DispatchService", () => {
     } as Mocked<IGeoService>;
     mockDistance = {
       getEnrichedDrivers: vi.fn(),
-    } as Mocked<IDistanceService>;
+      getRouteLeg: vi.fn(),
+    } as unknown as Mocked<IDistanceService>;
     mockSimulation = {
       startSimulation: vi.fn(),
       advanceSimulation: vi.fn(),

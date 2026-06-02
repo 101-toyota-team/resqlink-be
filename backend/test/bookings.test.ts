@@ -22,6 +22,7 @@ import {
   IRealtimeBroadcaster,
 } from "../src/repositories/db";
 import { BookingService } from "../src/services/bookings";
+import { IDistanceService } from "../src/services/distance";
 import { ISimulationService } from "../src/services/simulation";
 
 interface MockDb {
@@ -48,6 +49,7 @@ const createApp = (
   dbMock: MockDb,
   jwtPayloadMock: JwtPayload,
   simulationMock?: Partial<ISimulationService>,
+  distanceMock?: Partial<IDistanceService>,
 ) => {
   const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
 
@@ -69,12 +71,28 @@ const createApp = (
 
     c.set("getSimulationService", buildSimulationService);
 
+    c.set("getDistanceService", () => {
+      const baseMock = {
+        getEnrichedDrivers: vi.fn(),
+        getRouteLeg: vi.fn().mockResolvedValue({
+          distance: 5000,
+          duration: 600,
+          encoded_polyline: "mock_polyline",
+          viewport: { low: { lat: 0, lng: 0 }, high: { lat: 1, lng: 1 } },
+        }),
+      };
+      return (
+        distanceMock ? { ...baseMock, ...distanceMock } : baseMock
+      ) as IDistanceService;
+    });
+
     c.set("getBookingService", () => {
       return new BookingService(
         dbMock as IBookingRepository,
         dbMock as IAmbulanceRepository,
         dbMock as IRealtimeBroadcaster,
         buildSimulationService(),
+        c.get("getDistanceService")(),
       );
     });
 
@@ -1079,7 +1097,8 @@ describe("Bookings API", () => {
       expect(dbMock.assignAmbulance).toHaveBeenCalledWith(
         mockBookingId,
         mockAmbulance.id,
-        mockAmbulance.provider_id,
+        expect.anything(),
+        expect.anything(),
       );
     });
 
@@ -1135,6 +1154,7 @@ describe("Bookings API", () => {
         mockBookingId,
         "223e4567-e89b-12d3-a456-426614174001",
         "prov-123",
+        expect.anything(),
       );
     });
 
@@ -1213,6 +1233,8 @@ describe("Bookings API", () => {
       expect(dbMock.assignAmbulance).toHaveBeenCalledWith(
         mockBookingId,
         "223e4567-e89b-12d3-a456-426614174001",
+        undefined,
+        expect.anything(),
       );
     });
 

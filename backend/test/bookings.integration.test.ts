@@ -59,6 +59,15 @@ const createApp = (
         dbMock as IAmbulanceRepository,
         dbMock as IRealtimeBroadcaster,
         buildSimulationService(),
+        {
+          getEnrichedDrivers: vi.fn(),
+          getRouteLeg: vi.fn().mockResolvedValue({
+            distance: 5000,
+            duration: 600,
+            encoded_polyline: "mock_polyline",
+            viewport: { low: { lat: 0, lng: 0 }, high: { lat: 1, lng: 1 } },
+          }),
+        } as unknown as any,
       );
     });
 

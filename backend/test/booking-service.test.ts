@@ -4,6 +4,7 @@ import { IBookingRepository } from "../src/repositories/booking";
 import { IAmbulanceRepository } from "../src/repositories/ambulance";
 import { IRealtimeBroadcaster } from "../src/repositories/realtime";
 import { ISimulationService } from "../src/services/simulation";
+import { IDistanceService } from "../src/services/distance";
 import { Booking } from "../src/types";
 import {
   NotFoundError,
@@ -17,6 +18,7 @@ describe("BookingService", () => {
   let mockAmbulanceRepo: Mocked<IAmbulanceRepository>;
   let mockRealtime: Mocked<IRealtimeBroadcaster>;
   let mockSimulation: Mocked<ISimulationService>;
+  let mockDistanceService: Mocked<IDistanceService>;
   let service: BookingService;
 
   const mockUserPayload = {
@@ -84,11 +86,22 @@ describe("BookingService", () => {
       stopSimulation: vi.fn(),
     } as Mocked<ISimulationService>;
 
+    mockDistanceService = {
+      getEnrichedDrivers: vi.fn(),
+      getRouteLeg: vi.fn().mockResolvedValue({
+        distance: 5000,
+        duration: 600,
+        encoded_polyline: "mock_polyline",
+        viewport: { low: { lat: 0, lng: 0 }, high: { lat: 1, lng: 1 } },
+      }),
+    } as Mocked<IDistanceService>;
+
     service = new BookingService(
       mockBookingRepo,
       mockAmbulanceRepo,
       mockRealtime,
       mockSimulation,
+      mockDistanceService,
     );
   });
 
@@ -368,6 +381,8 @@ describe("BookingService", () => {
       expect(mockBookingRepo.assignAmbulance).toHaveBeenCalledWith(
         "booking_1",
         "amb_1",
+        undefined,
+        expect.anything(),
       );
       expect(result).toEqual(assignedBooking);
     });
@@ -403,6 +418,7 @@ describe("BookingService", () => {
         "booking_1",
         "amb_1",
         "provider_1",
+        expect.anything(),
       );
       expect(result).toEqual(assignedBooking);
     });
