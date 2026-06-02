@@ -26,6 +26,23 @@ export const PROVIDER_TYPES = [
 
 export type ProviderType = (typeof PROVIDER_TYPES)[number];
 
+export interface Viewport {
+  low: { lat: number; lng: number };
+  high: { lat: number; lng: number };
+}
+
+export interface RouteLeg {
+  sequence: number;
+  encoded_polyline: string;
+}
+
+export interface RouteGeometry {
+  total_distance_meters: number;
+  total_duration_seconds: number;
+  combined_viewport: Viewport;
+  legs: RouteLeg[];
+}
+
 export interface Provider {
   id: string;
   name: string;
@@ -93,6 +110,7 @@ export interface BookingData {
   destination_lng: number;
   user_id?: string;
   estimated_price?: number;
+  route_geometry?: RouteGeometry | null;
 }
 
 export interface Booking extends BookingData {
@@ -127,6 +145,8 @@ export interface DistanceMatrixResponse {
 
 export interface DirectionsRoute {
   overview_polyline: { points: string };
+  distance?: number;
+  duration?: number;
 }
 
 export interface DirectionsResponse {
@@ -153,5 +173,6 @@ export interface AppVariables {
   getRealtimeRepo: () => IRealtimeBroadcaster;
   getMaps: () => IMapsRepository;
   getCache: () => IGenericCache;
+  getDistanceService: () => import("./services/distance").IDistanceService;
   jwtPayload: JwtPayload;
 }

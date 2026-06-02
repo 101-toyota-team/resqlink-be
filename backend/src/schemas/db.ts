@@ -13,6 +13,23 @@ const nullToUndefined = <T extends z.ZodTypeAny>(schema: T) =>
     .optional()
     .transform((v) => v ?? undefined);
 
+const dbViewportSchema = z.object({
+  low: z.object({ lat: z.number(), lng: z.number() }),
+  high: z.object({ lat: z.number(), lng: z.number() }),
+});
+
+const dbRouteLegSchema = z.object({
+  sequence: z.number(),
+  encoded_polyline: z.string(),
+});
+
+const dbRouteGeometrySchema = z.object({
+  total_distance_meters: z.number(),
+  total_duration_seconds: z.number(),
+  combined_viewport: dbViewportSchema,
+  legs: z.array(dbRouteLegSchema),
+});
+
 export const dbProviderSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
@@ -52,6 +69,7 @@ export const dbBookingSchema = z.object({
   destination_address: z.string(),
   destination_lat: z.coerce.number(),
   destination_lng: z.coerce.number(),
+  route_geometry: nullToUndefined(dbRouteGeometrySchema),
   user_id: z.string(),
   status: z.enum(BOOKING_STATUSES),
   created_at: z.string(),
