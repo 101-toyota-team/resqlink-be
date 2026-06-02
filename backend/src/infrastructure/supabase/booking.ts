@@ -80,13 +80,17 @@ export class BookingRepository
     id: string,
     ambulanceId: string,
     providerId?: string,
+    routeGeometry?: any,
   ): Promise<Booking> {
-    const updateData: Record<string, string> = {
+    const updateData: Record<string, any> = {
       ambulance_id: ambulanceId,
       status: "confirmed",
     };
     if (providerId) {
       updateData.provider_id = providerId;
+    }
+    if (routeGeometry) {
+      updateData.route_geometry = routeGeometry;
     }
 
     const { data, error } = await this.client

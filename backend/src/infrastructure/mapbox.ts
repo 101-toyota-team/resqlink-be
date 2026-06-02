@@ -11,6 +11,8 @@ interface MapboxDirectionsResponse {
   code: string;
   routes: Array<{
     geometry: string;
+    distance: number;
+    duration: number;
   }>;
 }
 
@@ -84,6 +86,8 @@ export class MapboxRepository implements IMapsRepository {
     return {
       status: this.mapStatus(data.code),
       routes: (data.routes || []).map((route) => ({
+        distance: route.distance,
+        duration: route.duration,
         overview_polyline: {
           points: route.geometry,
         },

@@ -1,9 +1,11 @@
 import { IGenericCache } from "../repositories/generic-cache";
 import { IMapsRepository } from "../repositories/maps";
-import { AmbulanceLocation } from "../types";
+import { AmbulanceLocation, RouteGeometry } from "../types";
 import { IGeoService } from "./geo";
 import logger from "../utils/logger";
 import { GLOBAL_H3_RESOLUTION, REDIS } from "../utils/constants";
+import { decodePolyline } from "../utils/polyline";
+import { normalizeCoordinate, calculateViewport } from "../utils/route";
 
 export interface IDistanceService {
   getEnrichedDrivers<T extends AmbulanceLocation>(
@@ -17,6 +19,18 @@ export interface IDistanceService {
       distance_value: number | undefined;
     })[]
   >;
+  getRouteLeg(
+    origin: { lat: number; lng: number },
+    dest: { lat: number; lng: number },
+  ): Promise<{
+    distance: number;
+    duration: number;
+    encoded_polyline: string;
+    viewport: {
+      low: { lat: number; lng: number };
+      high: { lat: number; lng: number };
+    };
+  }>;
 }
 
 export class DistanceService implements IDistanceService {
@@ -25,6 +39,41 @@ export class DistanceService implements IDistanceService {
     private cache: IGenericCache,
     private geo: IGeoService,
   ) {}
+
+  async getRouteLeg(
+    origin: { lat: number; lng: number },
+    dest: { lat: number; lng: number },
+  ) {
+    const cacheKey = `route_leg:${normalizeCoordinate(origin.lat)},${normalizeCoordinate(origin.lng)}:${normalizeCoordinate(dest.lat)},${normalizeCoordinate(dest.lng)}`;
+
+    const cached = await this.cache.get<any>(cacheKey);
+    if (cached) return cached;
+
+    const directions = await this.maps.getDirections(
+      `${origin.lat},${origin.lng}`,
+      `${dest.lat},${dest.lng}`,
+    );
+
+    if (directions.status !== "OK" || !directions.routes[0]) {
+      throw new Error(`ROUTING_FAILED:${directions.status}`);
+    }
+
+    const route = directions.routes[0];
+    const encoded = route.overview_polyline.points;
+    const points = decodePolyline(encoded);
+    const viewport = calculateViewport(points);
+
+    const legData = {
+      distance: route.distance || 0,
+      duration: route.duration || 0,
+      encoded_polyline: encoded,
+      viewport: viewport,
+    };
+
+    // 7-day TTL (604800 seconds)
+    await this.cache.set(cacheKey, legData, 604800);
+    return legData;
+  }
 
   async getEnrichedDrivers<T extends AmbulanceLocation>(
     drivers: T[],
