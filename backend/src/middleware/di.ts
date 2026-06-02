@@ -25,6 +25,7 @@ export const diMiddleware: MiddlewareHandler<{
   let bookingService: IBookingService | undefined;
   let simulationService: ISimulationService | undefined;
   let dispatchService: IDispatchService | undefined;
+  let distanceService: DistanceService | undefined;
   let providerService: IProviderService | undefined;
   let hospitalService: IHospitalService | undefined;
   let bookingRepo: BookingRepository | undefined;
@@ -91,6 +92,34 @@ export const diMiddleware: MiddlewareHandler<{
     return realtimeRepo;
   });
 
+  c.set("getMaps", () => {
+    if (!mapsRepo) {
+      mapsRepo = new MapboxRepository(c.env.MAPBOX_ACCESS_TOKEN);
+    }
+    return mapsRepo;
+  });
+
+  c.set("getCache", () => {
+    if (!cacheRepo) {
+      cacheRepo = new UpstashRedisRepository(
+        c.env.UPSTASH_REDIS_REST_URL,
+        c.env.UPSTASH_REDIS_REST_TOKEN,
+      );
+    }
+    return cacheRepo;
+  });
+
+  c.set("getDistanceService", () => {
+    if (!distanceService) {
+      distanceService = new DistanceService(
+        c.get("getMaps")(),
+        c.get("getCache")(),
+        getGeo(),
+      );
+    }
+    return distanceService;
+  });
+
   c.set("getSimulationService", () => {
     if (!simulationService) {
       simulationService = new SimulationService(
@@ -98,7 +127,6 @@ export const diMiddleware: MiddlewareHandler<{
         c.get("getBookingRepo")(),
         c.get("getAmbulanceRepo")(),
         c.get("getRealtimeRepo")(),
-        c.get("getMaps")(),
       );
     }
     return simulationService;
@@ -111,6 +139,7 @@ export const diMiddleware: MiddlewareHandler<{
         c.get("getAmbulanceRepo")(),
         c.get("getRealtimeRepo")(),
         c.get("getSimulationService")(),
+        c.get("getDistanceService")(),
       );
     }
     return bookingService;
@@ -138,39 +167,14 @@ export const diMiddleware: MiddlewareHandler<{
 
   c.set("getDispatchService", () => {
     if (!dispatchService) {
-      // Cache is passed to DistanceService for distance matrix API caching,
-      // not to DispatchService (which no longer uses cache directly)
-      const cache = c.get("getCache")();
-      const ambulanceRepo = c.get("getAmbulanceRepo")();
-      const maps = c.get("getMaps")();
-      const geo = getGeo();
-      const distanceService = new DistanceService(maps, cache, geo);
-
       dispatchService = new DispatchService(
-        ambulanceRepo,
-        geo,
-        distanceService,
+        c.get("getAmbulanceRepo")(),
+        getGeo(),
+        c.get("getDistanceService")(),
         c.get("getSimulationService")(),
       );
     }
     return dispatchService;
-  });
-
-  c.set("getMaps", () => {
-    if (!mapsRepo) {
-      mapsRepo = new MapboxRepository(c.env.MAPBOX_ACCESS_TOKEN);
-    }
-    return mapsRepo;
-  });
-
-  c.set("getCache", () => {
-    if (!cacheRepo) {
-      cacheRepo = new UpstashRedisRepository(
-        c.env.UPSTASH_REDIS_REST_URL,
-        c.env.UPSTASH_REDIS_REST_TOKEN,
-      );
-    }
-    return cacheRepo;
   });
 
   await next();

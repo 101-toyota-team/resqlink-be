@@ -2,7 +2,6 @@ import { IGenericCache } from "../repositories/generic-cache";
 import { IBookingRepository } from "../repositories/booking";
 import { IAmbulanceRepository } from "../repositories/ambulance";
 import { IRealtimeBroadcaster } from "../repositories/realtime";
-import { IMapsRepository } from "../repositories/maps";
 import { Booking } from "../types";
 import logger from "../utils/logger";
 import { decodePolyline } from "../utils/polyline";
@@ -21,7 +20,6 @@ export class SimulationService implements ISimulationService {
     private bookingRepo: IBookingRepository,
     private ambulanceRepo: IAmbulanceRepository,
     private realtime: IRealtimeBroadcaster,
-    private maps: IMapsRepository,
   ) {}
 
   async startSimulation(booking: Booking): Promise<boolean> {
@@ -30,27 +28,22 @@ export class SimulationService implements ISimulationService {
       return false;
     }
 
-    let origin: string | null = null;
-
-    const providerLoc = await this.ambulanceRepo.getAmbulanceProviderLocation(
-      booking.ambulance_id,
-    );
-    origin = providerLoc
-      ? `${providerLoc.lat},${providerLoc.lng}`
-      : `${booking.pickup_lat},${booking.pickup_lng}`;
-
-    const directions = await this.maps.getDirections(
-      origin,
-      `${booking.pickup_lat},${booking.pickup_lng}`,
-    );
-
-    if (directions.status !== "OK" || !directions.routes[0]) {
-      logger.error("Directions API failed for simulation:", directions.status);
+    if (
+      !booking.route_geometry ||
+      !booking.route_geometry.legs ||
+      booking.route_geometry.legs.length === 0
+    ) {
+      logger.error(
+        "Cannot start simulation: no route_geometry found for booking:",
+        booking.id,
+      );
       return false;
     }
 
-    const encodedPolyline = directions.routes[0].overview_polyline.points;
-    const points = decodePolyline(encodedPolyline);
+    const points: { lat: number; lng: number }[] = [];
+    for (const leg of booking.route_geometry.legs) {
+      points.push(...decodePolyline(leg.encoded_polyline));
+    }
 
     if (points.length === 0) {
       logger.error("Decoded polyline for booking is empty:", booking.id);
