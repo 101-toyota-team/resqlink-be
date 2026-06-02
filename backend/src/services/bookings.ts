@@ -214,8 +214,11 @@ export class BookingService implements IBookingService {
         finalProviderId,
         routeGeometry,
       );
-    } catch (error: any) {
-      if (error.message && error.message.startsWith("ROUTING_FAILED")) {
+    } catch (error: unknown) {
+      if (
+        error instanceof Error &&
+        error.message.startsWith("ROUTING_FAILED")
+      ) {
         throw new BookingStateError(
           "Cannot find a valid road route for this assignment.",
         );

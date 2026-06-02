@@ -1,4 +1,4 @@
-import { Booking, BookingData } from "../types";
+import { Booking, BookingData, RouteGeometry } from "../types";
 import type { BookingStatus } from "../utils/constants";
 
 export interface IBookingRepository {
@@ -9,7 +9,7 @@ export interface IBookingRepository {
     id: string,
     ambulanceId: string,
     providerId?: string,
-    routeGeometry?: any,
+    routeGeometry?: RouteGeometry,
   ): Promise<Booking>;
   getUserBookings(
     userId: string,

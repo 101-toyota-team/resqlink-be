@@ -1,6 +1,6 @@
 import { IGenericCache } from "../repositories/generic-cache";
 import { IMapsRepository } from "../repositories/maps";
-import { AmbulanceLocation, RouteGeometry } from "../types";
+import { AmbulanceLocation } from "../types";
 import { IGeoService } from "./geo";
 import logger from "../utils/logger";
 import { GLOBAL_H3_RESOLUTION, REDIS } from "../utils/constants";
@@ -46,7 +46,15 @@ export class DistanceService implements IDistanceService {
   ) {
     const cacheKey = `route_leg:${normalizeCoordinate(origin.lat)},${normalizeCoordinate(origin.lng)}:${normalizeCoordinate(dest.lat)},${normalizeCoordinate(dest.lng)}`;
 
-    const cached = await this.cache.get<any>(cacheKey);
+    const cached = await this.cache.get<{
+      distance: number;
+      duration: number;
+      encoded_polyline: string;
+      viewport: {
+        low: { lat: number; lng: number };
+        high: { lat: number; lng: number };
+      };
+    }>(cacheKey);
     if (cached) return cached;
 
     const directions = await this.maps.getDirections(
