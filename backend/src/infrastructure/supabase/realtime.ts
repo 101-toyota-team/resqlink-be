@@ -1,6 +1,6 @@
 import { IRealtimeBroadcaster } from "../../repositories/realtime";
 import { SupabaseClientBase } from "./client";
-import { AmbulanceLocation, Booking } from "../../types";
+import { DriverLocation, Booking } from "../../types";
 
 export class RealtimeBroadcaster
   extends SupabaseClientBase
@@ -8,7 +8,7 @@ export class RealtimeBroadcaster
 {
   async broadcastTripLocation(
     bookingId: string,
-    location: AmbulanceLocation,
+    location: DriverLocation,
   ): Promise<void> {
     const channel = this.client.channel(`trip:${bookingId}`);
     try {
