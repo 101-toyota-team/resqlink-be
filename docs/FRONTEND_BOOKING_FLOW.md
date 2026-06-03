@@ -1,176 +1,380 @@
-# Booking Flow
+# Booking Flow — Frontend Integration Guide
 
-> All endpoints require `Authorization: Bearer <JWT>` header. User identity is derived from the JWT payload.
+## 1. Overview
+The Booking API uses a **provider-directed dispatch model**.
+- **Two-step flow:** User requests booking (status `draft`) → Provider assigns ambulance → `confirmed`.
+- **One-step flow:** User provides `ambulance_id` during creation → `confirmed` immediately.
+- **Key constraint:** `en_route` status can only be set by a provider or admin.
 
-## Overview
-The Booking API uses a **provider-directed dispatch model**:
-1. **Step 1 (User Request):** The user selects a nearby provider (`GET /providers/nearby`), then submits their booking request with `provider_id` to create a `draft` booking locked to that provider.
-2. **Step 2 (Provider Assignment):** The chosen provider's dispatch system sees the draft request and calls `PUT /bookings/{id}/assign` with an `ambulance_id` to accept and confirm it. Only ambulances belonging to the locked provider can be assigned — other providers cannot interfere.
+## 2. Authentication & Roles
 
-This ensures the user has full control over which provider they contact, and providers manage their own fleet assignments in a directed manner rather than competing for requests.
+### 2.1 Header format
+`Authorization: Bearer <JWT>`
 
-> **Note on Discovery**: The endpoint `GET /ambulances/nearby` is deprecated for direct frontend use. Frontends should exclusively use `GET /providers/nearby`.
+### 2.2 JWT Payload fields available to frontend
+- `sub`: string → user_id (maps to `booking.user_id`)
+- `role`: string | undefined → "provider" | "admin" | undefined
+- `app_metadata.role`: string
+- `app_metadata.provider_id`: string → present for provider accounts
 
-### 1. Local State Accumulation (UI Flow)
-The frontend should implement a state machine or multi-step wizard. The backend endpoints are called at the appropriate steps rather than in a single final submission.
+### 2.3 Role checks
+- **Is Provider:** `payload.role === "provider" || payload.app_metadata?.role === "provider"`
+- **Is Admin:** `payload.role === "admin" || payload.app_metadata?.role === "admin"`
 
-```mermaid
-stateDiagram-v2
-    [*] --> GatheringPickup : User starts booking
-    
-    GatheringPickup --> GatheringDestination : Save Pickup<br>(address, lat, lng, h3)
-    GatheringDestination --> GatheringPatientInfo : Save Destination<br>(address, lat, lng)
-    GatheringPatientInfo --> DiscoverProviders : Submit POST /bookings<br>(draft, no ambulance_id)
-    
-    DiscoverProviders --> SelectingProvider : GET /providers/nearby<br>(list of nearby providers)
-    SelectingProvider --> SubmittingRequest : User selects provider
-    
-    SubmittingRequest --> DraftCreated : POST /bookings<br>(includes provider_id)
-    
-    DraftCreated --> WaitingForProvider : User sees "Waiting for provider" screen
-    WaitingForProvider --> BookingConfirmed : Provider calls PUT /bookings/{id}/assign<br>(attaches ambulance_id, status → confirmed)
-    WaitingForProvider --> WaitingForProvider : Poll GET /bookings/{id}<br>until status changes from draft
-    
-    BookingConfirmed --> [...] : continued...<br>(see footnote 1)
+### 2.4 Unauthenticated endpoints (no token needed)
+- `GET /providers/nearby`
+- `GET /providers/search`
+- `GET /hospitals/nearby`
+- `GET /hospitals/search`
+
+## 3. API Reference
+
+### 3.1 Provider Discovery
+#### GET /providers/nearby — public, no rate limit
+- **Query:** `h3_index` (required, H3-7), `lat` (optional), `lng` (optional)
+- **Response:** `ProviderDetails[]` (includes `provider_type`, `distance`, `distance_value`)
+- **Logic:** Expanding H3 rings, up to 50 results, sorted by `distance_value` (meters) ascending.
+
+#### GET /providers/search?q=...&limit=... — public, no rate limit
+- **Response:** `Provider[]`
+
+#### GET /providers/:id/bookings — auth required (provider/admin only)
+- **Query:** `status` (filter), `limit` (default 10), `offset` (default 0)
+- **Response:** `Booking[]`
+- **Notes:** Provider must match `:id` from JWT.
+
+### 3.2 Booking CRUD
+#### POST /bookings — auth, RL: 30/min
+- **Body (required fields):**
+  - `booking_type`: `"medis"` | `"sosial"` | `"jenazah"` | `"darurat"`
+  - `patient_condition`: string
+  - `pickup_address`: string
+  - `pickup_lat`: number [-90, 90]
+  - `pickup_lng`: number [-180, 180]
+  - `pickup_h3`: string (H3 resolution 7, 15 hex chars, validated via h3-js)
+  - `destination_address`: string
+  - `destination_lat`: number [-90, 90]
+  - `destination_lng`: number [-180, 180]
+- **Body (optional fields):**
+  - `provider_id`: uuid — locks draft booking to a provider
+  - `ambulance_id`: uuid — if set, booking is created as `confirmed` (skips draft)
+- **Validation errors:**
+   - Latitude outside [-90,90] → `400` `details.pickup_lat._errors`
+   - Longitude outside [-180,180] → `400` `details.pickup_lng._errors`
+   - Invalid H3 index → `400` `details.pickup_h3._errors`
+   - Invalid `booking_type` → `400` `details.booking_type._errors`
+- **Notes:**
+  - `user_id` is injected from JWT — do NOT send it.
+  - `estimated_price` auto-calculated: `medis`=50k, `sosial`=0, `jenazah`=50k, `darurat`=100k.
+  - If draft + `provider_id` set: backend broadcasts `new_booking` on `provider:{providerId}`.
+- **Response:** 201 full `Booking` object.
+- **Errors:** 400 (validation), 401 (missing/invalid token), 429 (rate limit), 500 (server error).
+
+#### GET /bookings — auth, RL: 30/min
+- **Query:** `limit`? (1—100), `offset`? (min 0)
+- **Response:** 200 `Booking[]` (ordered `created_at DESC`, filtered by JWT `sub`).
+- **Errors:** 401, 429.
+
+#### GET /bookings/:id — auth, RL: 30/min
+- **Path:** `id` (uuid)
+- **Response:** 200 full `Booking` object.
+- **Errors:** 401, 403 (not owner/provider/admin), 404 (not found), 429.
+
+### 3.3 Assignment & Status
+#### PUT /bookings/:id/assign — auth, RL: 30/min
+- **Body:** `{ ambulance_id: uuid }`
+- **Logic:**
+    1. Status must be `draft`.
+    2. Ambulance must exist and belong to the correct provider (if booking locked to provider).
+    3. Calculates `route_geometry` (Leg 1: amb-to-pickup, Leg 2: pickup-to-destination).
+    4. Transitions to `confirmed`.
+- **Response:** 200 `Booking` (with `route_geometry`).
+- **Errors:** 400 (not draft), 403 (provider mismatch), 404 (ambulance not found), 400 (routing failed).
+
+#### PUT /bookings/:id/status — auth, RL: 30/min
+- **Body:** `{ status: BookingStatus }`
+- **Constraint:** `en_route` requires `isProviderRole` or `isAdminRole` (403 for regular users).
+- **Logic:** Validates transitions, primes simulation (if `en_route`), cleans up simulation (if `cancelled`).
+- **Response:** 200 `Booking` object.
+
+### 3.4 Simulation (Admin)
+#### POST /driver/ping — auth, RL: 30/min, admin-only
+- **Body:** `{ bookingId: uuid, steps?: 1-100 }` (defaults to 1)
+- **Logic:** Pops `steps` coordinates from Redis, broadcasts LAST one via realtime. Auto-sets `arrived` status if route exhausted.
+
+## 4. Booking State Machine
+
+### 4.1 Status Transitions (PUT /bookings/:id/status)
+The diagram shows only `PUT /bookings/:id/status` transitions. `draft → confirmed` is done via `PUT /bookings/:id/assign` (see §4.2).
+
+```
+draft ───────────────────────────────────────────────────→ cancelled
+
+confirmed ──→ en_route ──→ arrived ──→ to_hospital ──→ completed
+  │              │            │  │             │
+  │              │            │  └──→ completed │
+  └── cancelled   └── cancelled  └──→ cancelled  └──→ cancelled
 ```
 
-> **Footnote 1:** After confirmation the booking progresses through `en_route` → `arrived` → `to_hospital` → `completed`. Track live status via `GET /bookings/{id}`.
+### 4.2 Assignment Transition
+```
+draft ──(PUT /bookings/:id/assign)──→ confirmed
+```
 
-### 2. API Submission & Lifecycle
+### 4.3 Access Matrix (Status Endpoint)
+| Current → New Status | User (owner) | Provider | Admin |
+|---------------------|:------------:|:--------:|:-----:|
+| draft → cancelled | ✓ | ✓ | ✓ |
+| confirmed → en_route | ❌ | ✓ | ✓ |
+| confirmed → cancelled | ✓ | ✓ | ✓ |
+| en_route → arrived | ✓ | ✓ | ✓ |
+| en_route → cancelled | ✓ | ✓ | ✓ |
+| arrived → to_hospital | ✓ | ✓ | ✓ |
+| arrived → completed | ✓ | ✓ | ✓ |
+| arrived → cancelled | ✓ | ✓ | ✓ |
+| to_hospital → completed | ✓ | ✓ | ✓ |
+| to_hospital → cancelled | ✓ | ✓ | ✓ |
+
+**Note:** `draft → confirmed` is performed via `PUT /bookings/:id/assign`, not the status endpoint. Any user who can access the booking (owner, provider, admin) may call assign.
+
+## 5. Real-Time Integration
+
+### 5.1 Trip Location Channel
+- **Channel:** `trip:{bookingId}`
+- **Event:** `location_update`
+- **Payload:** `{ lat: number, lng: number }` (ephemeral broadcast)
+
+```js
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const channel = supabase
+  .channel(`trip:${bookingId}`)
+  .on("broadcast", { event: "location_update" }, (msg) => {
+    const { lat, lng } = msg.payload;
+    animateAmbulanceMarker(lat, lng);
+  })
+  .subscribe();
+// Clean up on unmount: supabase.removeChannel(channel)
+```
+
+### 5.2 Provider New Booking Channel
+- **Channel:** `provider:{providerId}`
+- **Event:** `new_booking`
+- **Payload:** Full `Booking` object
+
+### 5.3 Polling Strategy
+Use polling as fallback when Realtime is unavailable.
+
+| Booking status | Poll interval | Stop when |
+|---------------|:------------:|:---------:|
+| `draft` | 5–10s | Status changes away from `draft` |
+| `confirmed` | 5–10s | Status changes away from `confirmed` |
+| `en_route` | 3–5s | Status is `arrived`, `completed`, or `cancelled` |
+| `arrived` / `to_hospital` | 10s | Status is `completed` or `cancelled` |
+| `completed` / `cancelled` | Stop polling | — |
+
+
+## 6. Error Handling
+
+### 6.1 Standard Error
+```json
+{ "error": "Human-readable message", "details": {} }
+```
+- **Zod Validation Error (400):** `details` contains per-field errors: `details[field]._errors[0]`
+
+### 6.2 HTTP Codes
+- **400:** Validation or business rule (invalid status transition, not draft, routing failed)
+- **401:** Missing/invalid `Authorization` header
+- **403:** Permission denied (role mismatch)
+- **404:** Resource not found
+- **429:** Rate limit exceeded (30 req/min)
+
+## 7. End-to-End Flow Sequence
 
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant F as Frontend App
+    participant F as Frontend
     participant B as Backend API
-    participant P as Provider Dispatch
-    
-    Note over U, F: Gather pickup, destination, and patient info
-    
-    U->>F: Clicks "Find Nearby Providers"
-    F->>B: GET /providers/nearby?h3_index=...&lat=...&lng=...
-    Note right of F: Returns list of nearby providers sorted by distance
-    B-->>F: 200 OK (List of ProviderDetails)
-    F-->>U: Shows list of providers
-    
-    U->>F: Selects a provider from the list
-    Note over F: Construct payload WITH provider_id, WITHOUT ambulance_id
-    
-    F->>B: POST /bookings { provider_id, ...other fields }
-    Note right of F: Payload includes:<br/>- provider_id<br/>- booking_type, patient_condition<br/>- pickup_address, pickup_lat, pickup_lng, pickup_h3<br/>- destination_address, destination_lat, destination_lng
-    
-    alt Validation / Server Error
-        B-->>F: 400 Bad Request / 500 Internal Error
-        F-->>U: Show Error Message & Allow Retry
-    else Success
-        B-->>F: 201 Created (Returns Booking Object with status: "draft", provider_id set)
-        Note over F: Booking is locked to the chosen provider
+    participant R as Supabase Realtime
+    participant P as Provider
+
+    U->>F: Find nearby providers
+    F->>B: GET /providers/nearby?h3_index=...
+    B-->>F: 200 (ProviderDetails[])
+
+    U->>F: Select a provider
+    F->>B: POST /bookings { provider_id, booking_type, pickup_*, destination_* }
+    B-->>F: 201 Booking { status: "draft" }
+    B->>R: broadcast "new_booking" on provider:{id}
+
+    F->>U: "Waiting for provider"
+
+    loop Poll GET /bookings/:id
+        F->>B: GET /bookings/:id
+        B-->>F: Booking { status: "draft" }
     end
-    
-    Note over F: Transition to "Waiting for Provider" screen
-    
-    loop Poll until status != "draft"
-        F->>B: GET /bookings/{id}
-        B-->>F: 200 OK (current booking status)
+
+    P->>B: PUT /bookings/:id/assign { ambulance_id }
+    alt 404 — ambulance not found
+        B-->>P: 404
+    else 403 — provider mismatch
+        B-->>P: 403
+    else 400 — routing failed (no road)
+        B-->>P: 400
+    else 200 — success
+        B-->>P: 200 Booking { status: "confirmed", route_geometry: {...} }
     end
-    
-    Note over P: Provider acknowledges the request
-    P->>B: PUT /bookings/{id}/assign { "ambulance_id": "uuid" }
-    Note right of P: Only ambulances belonging to the locked provider are accepted
-    alt Provider Mismatch
-        B-->>P: 403 Forbidden (Ambulance does not belong to the selected provider)
-    else Success
-        B-->>P: 200 OK (Full booking object, status: "confirmed")
-    end
-    
-    Note over F: Next poll detects status = "confirmed"
-    F-->>U: Shows "Provider accepted — ambulance en route"
+
+    F->>B: GET /bookings/:id (next poll)
+    B-->>F: 200 Booking { status: "confirmed", route_geometry }
+    F->>U: Draw route on map
+
+    P->>B: PUT /bookings/:id/status { status: "en_route" }
+    Note over B: Primes simulation (decodes route to Redis)
+    B-->>P: 200 Booking { status: "en_route" }
+
+    F->>R: Subscribe to channel "trip:{bookingId}"
+    Note over U: Admin triggers simulation
+    Admin->>B: POST /driver/ping { bookingId, steps: N }
+    B->>B: LPOP N coords, broadcast LAST one
+    B->>R: broadcast "location_update" { lat, lng }
+    R-->>F: { lat, lng }
+    F->>U: Animate marker along polyline
+
+    Note over B: When route exhausted
+    B->>B: auto-set status → "arrived"
+    F->>B: GET /bookings/:id
+    B-->>F: 200 Booking { status: "arrived" }
 ```
 
-### 3. Required Payload Structure Reference
+## 8. Map Integration — Route Geometry
 
-**Step 1 — Create Draft Booking (`POST /bookings`):**
-
-Values for `booking_type`: `"medis"`, `"sosial"`, `"jenazah"`, `"darurat"`.
-
-Validation bounds: latitude ∈ `[-90, 90]`, longitude ∈ `[-180, 180]`. H3 indices must be at **Resolution 7** (15-character hex string). Invalid values return 400.
-
-```json
-{
-  "provider_id": "uuid-string",
-  "booking_type": "medis",
-  "patient_condition": "String description of condition",
-  "pickup_address": "String address",
-  "pickup_lat": -6.200000,
-  "pickup_lng": 106.816666,
-  "pickup_h3": "876526b33ffffff",
-  "destination_address": "String address",
-  "destination_lat": -6.210000,
-  "destination_lng": 106.820000
-}
+### 8.1 Null guard
+```js
+if (!booking.route_geometry) return; // still in draft status
 ```
-*(Note: Pass `provider_id` to lock the draft booking to a specific healthcare facility. `provider_id` is technically optional in the schema but strongly recommended for provider-directed dispatch. Omit `ambulance_id` to create a `draft` booking. If `ambulance_id` is also provided, the booking is created in `confirmed` status. Do not send `user_id`; it is resolved from the JWT payload).*
 
-**Step 2 — Assign Ambulance (Provider-only, `PUT /bookings/{id}/assign`):**
-
+### 8.2 Shape
 ```json
 {
-  "ambulance_id": "uuid-string"
-}
-```
-*(Note: This endpoint is intended to be called by the **provider's dispatch system**. The assigned ambulance must belong to the provider the booking is locked to — otherwise the request is rejected with `403 Forbidden`).*
-
-**Response:**
-
-```json
-{
-  "id": "uuid-string",
-  "status": "confirmed",
-  "ambulance_id": "uuid-string",
-  "provider_id": "uuid-string",
-  "booking_type": "medis",
-  "patient_condition": "String",
-  "pickup_address": "String",
-  "pickup_lat": -6.2,
-  "pickup_lng": 106.8,
-  "pickup_h3": "876526b33ffffff",
-  "destination_address": "String",
-  "destination_lat": -6.21,
-  "destination_lng": 106.82,
-  "user_id": "uuid-string",
-  "created_at": "ISO-8601 timestamp"
+  "total_distance_meters": 12450,
+  "total_duration_seconds": 1800,
+  "combined_viewport": {
+    "low": { "lat": -6.3644, "lng": 106.8272 },
+    "high": { "lat": -6.1754, "lng": 106.8286 }
+  },
+  "legs": [
+    { "sequence": 1, "encoded_polyline": "}x|eFnp~iVq@o@u..." },
+    { "sequence": 2, "encoded_polyline": "a~zdMvv_jV_Bc@s..." }
+  ]
 }
 ```
 
-### 4. Booking Statuses
+### 8.3 Decode polylines (Mapbox polyline6)
+```js
+import polyline from "@mapbox/polyline";
 
-| Status | Description |
-|--------|-------------|
-| `draft` | Initial state, no ambulance assigned, locked to a provider |
-| `confirmed` | Ambulance assigned, awaiting dispatch |
-| `en_route` | Ambulance en route to pickup |
-| `arrived` | Ambulance arrived at pickup location |
-| `to_hospital` | Ambulance transporting patient to hospital |
-| `completed` | Trip finished |
-| `cancelled` | Booking cancelled |
-
-**Valid transitions:** `draft` → `cancelled`; `confirmed` → `en_route` | `cancelled`; `en_route` → `arrived` | `cancelled`; `arrived` → `to_hospital` | `completed` | `cancelled`; `to_hospital` → `completed` | `cancelled`. The backend enforces this ordering — invalid transitions return a `BookingStateError`.
-
-### 5. Error Responses
-
-All endpoints return errors in this shape:
-
-```json
-{
-  "error": "Human-readable error message",
-  "details": {}
+const allPoints = [];
+for (const leg of booking.route_geometry.legs) {
+  const points = polyline.decode(leg.encoded_polyline, 6);
+  allPoints.push(...points);
 }
+// allPoints → [lat, lng][] for drawing on map
 ```
 
-Common HTTP statuses: `400` (validation), `403` (unauthorized), `404` (not found), `500` (internal error).
+### 8.4 Fit map to combined viewport
+```js
+const vp = booking.route_geometry.combined_viewport;
+map.fitBounds(
+  [
+    [vp.low.lng, vp.low.lat],
+    [vp.high.lng, vp.high.lat],
+  ],
+  { padding: 50 },
+);
+```
 
-### 6. Provider Discovery
+## 9. TypeScript Interfaces Reference
 
-**`GET /providers/nearby?h3_index=...&lat=...&lng=...`**
+```typescript
+// ── Booking Status ──
+type BookingStatus =
+  | "draft" | "confirmed" | "en_route" | "arrived"
+  | "to_hospital" | "completed" | "cancelled";
 
-Returns up to 50 providers within an expanding H3 ring search (up to ~60 km radius), ordered by distance ascending. Use `GET /providers/search?q=...` for text-based provider search.
+// ── Booking (full response shape) ──
+interface Booking {
+  id: string;
+  status: BookingStatus;
+  ambulance_id: string | null;
+  provider_id: string | null;
+  booking_type: "medis" | "sosial" | "jenazah" | "darurat";
+  patient_condition: string;
+  pickup_address: string;
+  pickup_lat: number;
+  pickup_lng: number;
+  pickup_h3: string;
+  destination_address: string;
+  destination_lat: number;
+  destination_lng: number;
+  user_id: string;
+  estimated_price: number;
+  route_geometry: RouteGeometry | null;
+  created_at: string; // ISO-8601
+}
+
+// ── Route Geometry (present only when status ≥ confirmed) ──
+interface RouteGeometry {
+  total_distance_meters: number;
+  total_duration_seconds: number;
+  combined_viewport: {
+    low: { lat: number; lng: number };
+    high: { lat: number; lng: number };
+  };
+  legs: RouteLeg[];
+}
+interface RouteLeg {
+  sequence: number;         // 1 = ambulance → pickup, 2 = pickup → destination
+  encoded_polyline: string; // Mapbox polyline6
+}
+
+// ── Provider (discovery response) ──
+type ProviderType =
+  | "rumah_sakit" | "klinik" | "komunitas" | "rt_rw"
+  | "yayasan" | "masjid" | "lainnya";
+
+interface Provider {
+  id: string;
+  name: string;
+  h3_index: string;
+  latitude: number;
+  longitude: number;
+  provider_type: ProviderType;
+  address?: string;
+  phone?: string;
+  created_at: string;
+}
+
+interface ProviderDetails extends Provider {
+  distance?: string;       // human-readable, e.g. "1.23 km"
+  distance_value?: number; // meters
+}
+
+// ── Error Response (all endpoints) ──
+interface ApiError {
+  error: string;
+  details: Record<string, unknown>;
+  // On validation failure:
+  // details = { fieldName: { _errors: ["message"] } }
+}
+
+// ── Realtime Location Update ──
+interface AmbulanceLocation {
+  lat: number;
+  lng: number;
+  heading?: number;
+  speed?: number;
+}
+```
