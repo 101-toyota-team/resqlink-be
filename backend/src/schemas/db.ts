@@ -74,6 +74,10 @@ export const dbBookingSchema = z.object({
   driver_id: z.string().uuid().nullable().optional(),
   status: z.enum(BOOKING_STATUSES),
   created_at: z.string(),
+  estimated_price: nullToUndefined(z.number().int()),
+  needs_paramedic: z.boolean().nullable().optional().default(false),
+  final_price: nullToUndefined(z.number().int()),
+  completed_at: nullToUndefined(z.string()),
 });
 
 export const dbAmbulanceDiscoverySchema = z.object({

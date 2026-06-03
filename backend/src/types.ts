@@ -2,16 +2,16 @@ import { IDispatchService } from "./services/dispatch";
 import { IBookingService } from "./services/bookings";
 import { IProviderService } from "./services/providers";
 import { IHospitalService } from "./services/hospitals";
-import {
-  IBookingRepository,
-  IAmbulanceRepository,
-  IProviderRepository,
-  IHospitalRepository,
-  IRealtimeBroadcaster,
-} from "./repositories/db";
+import { IBookingRepository } from "./repositories/booking";
+import { IAmbulanceRepository } from "./repositories/ambulance";
+import { IProviderRepository } from "./repositories/provider";
+import { IHospitalRepository } from "./repositories/hospital";
+import { IRealtimeBroadcaster } from "./repositories/realtime";
 import { IMapsRepository } from "./repositories/maps";
 import { IGenericCache } from "./repositories/generic-cache";
 import type { BookingStatus } from "./utils/constants";
+import type { IDistanceService } from "./services/distance";
+import type { IDriverRepository } from "./repositories/driver";
 
 export interface DriverLocation {
   lat: number;
@@ -132,6 +132,9 @@ export interface BookingData {
   destination_lng: number;
   user_id?: string;
   estimated_price?: number;
+  needs_paramedic?: boolean | null;
+  final_price?: number;
+  completed_at?: string;
   route_geometry?: RouteGeometry | null;
 }
 
@@ -197,9 +200,9 @@ export interface AppVariables {
   getRealtimeRepo: () => IRealtimeBroadcaster;
   getMaps: () => IMapsRepository;
   getCache: () => IGenericCache;
-  getDistanceService: () => import("./services/distance").IDistanceService;
+  getDistanceService: () => IDistanceService;
   getDriverService: () => IDriverService;
   getDriverLocationRepo: () => IDriverLocationRepository;
-  getDriverRepo: () => import("./repositories/driver").IDriverRepository;
+  getDriverRepo: () => IDriverRepository;
   jwtPayload: JwtPayload;
 }
