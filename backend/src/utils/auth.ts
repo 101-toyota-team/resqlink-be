@@ -15,6 +15,11 @@ export function isProviderRole(payload: JwtPayload): boolean {
   return payload.role === "provider" || metadataRole === "provider";
 }
 
+export function isDriverRole(payload: JwtPayload): boolean {
+  const metadataRole = getRoleFromMetadata(payload.app_metadata);
+  return payload.role === "driver" || metadataRole === "driver";
+}
+
 export function isAdminRole(payload: JwtPayload): boolean {
   const metadataRole = getRoleFromMetadata(payload.app_metadata);
   return payload.role === "admin" || metadataRole === "admin";
@@ -39,12 +44,20 @@ export function canAccessBooking(
   payload: JwtPayload,
   bookingUserId?: string,
   bookingProviderId?: string,
+  bookingDriverId?: string,
 ): boolean {
   if (isAdminRole(payload)) return true;
   if (bookingUserId && bookingUserId === payload.sub) return true;
 
   if (isProviderRole(payload) && bookingProviderId) {
     return getProviderId(payload) === bookingProviderId;
+  }
+  if (
+    isDriverRole(payload) &&
+    bookingDriverId &&
+    bookingDriverId === payload.sub
+  ) {
+    return true;
   }
 
   return false;

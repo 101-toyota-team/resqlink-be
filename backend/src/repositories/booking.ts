@@ -10,6 +10,7 @@ export interface IBookingRepository {
     ambulanceId: string,
     providerId?: string,
     routeGeometry?: RouteGeometry,
+    driverId?: string,
   ): Promise<Booking>;
   getUserBookings(
     userId: string,
@@ -26,5 +27,9 @@ export interface IBookingRepository {
     status?: BookingStatus,
     limit?: number,
     offset?: number,
+  ): Promise<Booking[]>;
+  getDriverAssignments(
+    driverId: string,
+    status?: BookingStatus[],
   ): Promise<Booking[]>;
 }

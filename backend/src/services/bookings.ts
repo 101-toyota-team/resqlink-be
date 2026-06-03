@@ -1,8 +1,7 @@
 import { IBookingRepository } from "../repositories/booking";
 import { IAmbulanceRepository } from "../repositories/ambulance";
 import { IRealtimeBroadcaster } from "../repositories/realtime";
-import { ISimulationService } from "./simulation";
-import { Booking, BookingData, JwtPayload } from "../types";
+import { Booking, BookingData, JwtPayload, RouteGeometry } from "../types";
 import type { BookingStatus } from "../utils/constants";
 import { BOOKING_FEES, ERROR_MESSAGES } from "../utils/constants";
 import { canAccessBooking, isAdminRole, isProviderRole } from "../utils/auth";
@@ -35,6 +34,7 @@ export interface IBookingService {
     id: string,
     ambulanceId: string,
     payload: JwtPayload,
+    driverId?: string,
   ): Promise<Booking>;
   updateStatus(
     id: string,
@@ -55,14 +55,12 @@ export interface IBookingService {
 }
 
 import { IDistanceService } from "./distance";
-import { RouteGeometry } from "../types";
 // ...
 export class BookingService implements IBookingService {
   constructor(
     private bookingRepo: IBookingRepository,
     private ambulanceRepo: IAmbulanceRepository,
     private realtime: IRealtimeBroadcaster,
-    private simulation: ISimulationService,
     private distanceService: IDistanceService,
   ) {}
 
@@ -92,6 +90,7 @@ export class BookingService implements IBookingService {
         payload,
         booking.user_id,
         booking.provider_id || undefined,
+        booking.driver_id || undefined,
       )
     ) {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
@@ -133,6 +132,7 @@ export class BookingService implements IBookingService {
     id: string,
     ambulanceId: string,
     payload: JwtPayload,
+    driverId?: string,
   ): Promise<Booking> {
     const booking = await this.bookingRepo.getBooking(id);
     if (!booking) {
@@ -144,6 +144,7 @@ export class BookingService implements IBookingService {
         payload,
         booking.user_id,
         booking.provider_id || undefined,
+        booking.driver_id || undefined,
       )
     ) {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
@@ -200,19 +201,12 @@ export class BookingService implements IBookingService {
       const finalProviderId = booking.provider_id
         ? undefined
         : ambulance.provider_id;
-      console.log(
-        "Booking provider_id:",
-        booking.provider_id,
-        "Ambulance provider_id:",
-        ambulance.provider_id,
-        "Final:",
-        finalProviderId,
-      );
       return await this.bookingRepo.assignAmbulance(
         id,
         ambulanceId,
         finalProviderId,
         routeGeometry,
+        driverId,
       );
     } catch (error: unknown) {
       if (
@@ -242,6 +236,7 @@ export class BookingService implements IBookingService {
         payload,
         booking.user_id,
         booking.provider_id || undefined,
+        booking.driver_id || undefined,
       )
     ) {
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
@@ -264,15 +259,6 @@ export class BookingService implements IBookingService {
       if (!booking.ambulance_id) {
         throw new BookingStateError(ERROR_MESSAGES.NO_ASSIGNED_AMBULANCE);
       }
-
-      const started = await this.simulation.startSimulationForBooking(booking);
-      if (!started) {
-        throw new BookingStateError("Failed to start route simulation");
-      }
-    }
-
-    if (newStatus === "cancelled") {
-      await this.simulation.stopSimulation(id);
     }
 
     await this.bookingRepo.updateBookingStatus(id, newStatus);

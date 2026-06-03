@@ -69,8 +69,6 @@ describe("DI Middleware", () => {
         hospitalRepoInstance: typeof c.get("getHospitalRepo")(),
         realtimeRepo: typeof c.get("getRealtimeRepo"),
         realtimeRepoInstance: typeof c.get("getRealtimeRepo")(),
-        simulationService: typeof c.get("getSimulationService"),
-        simulationServiceInstance: typeof c.get("getSimulationService")(),
         bookingService: typeof c.get("getBookingService"),
         bookingServiceInstance: typeof c.get("getBookingService")(),
         providerService: typeof c.get("getProviderService"),
@@ -98,7 +96,6 @@ describe("DI Middleware", () => {
       "providerRepo",
       "hospitalRepo",
       "realtimeRepo",
-      "simulationService",
       "bookingService",
       "providerService",
       "hospitalService",
@@ -169,12 +166,10 @@ describe("DI Middleware", () => {
   it("should construct service with correct dependency chain", async () => {
     app.get("/chain", (c) => {
       const bookingSvc = c.get("getBookingService")();
-      const simulationSvc = c.get("getSimulationService")();
       const dispatchSvc = c.get("getDispatchService")();
 
       return c.json({
         bookingOk: typeof bookingSvc === "object",
-        simulationOk: typeof simulationSvc === "object",
         dispatchOk: typeof dispatchSvc === "object",
       });
     });
@@ -184,7 +179,6 @@ describe("DI Middleware", () => {
 
     const body = await res.json<Record<string, boolean>>();
     expect(body.bookingOk).toBe(true);
-    expect(body.simulationOk).toBe(true);
     expect(body.dispatchOk).toBe(true);
   });
 });

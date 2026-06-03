@@ -81,6 +81,7 @@ export class BookingRepository
     ambulanceId: string,
     providerId?: string,
     routeGeometry?: RouteGeometry,
+    driverId?: string,
   ): Promise<Booking> {
     const updateData: Record<string, unknown> = {
       ambulance_id: ambulanceId,
@@ -91,6 +92,9 @@ export class BookingRepository
     }
     if (routeGeometry) {
       updateData.route_geometry = routeGeometry;
+    }
+    if (driverId) {
+      updateData.driver_id = driverId;
     }
 
     const { data, error } = await this.client
@@ -236,6 +240,35 @@ export class BookingRepository
         err,
         "Database schema drift detected in getBookingsByProvider",
       );
+      throw new DatabaseSchemaDriftError("Booking", err);
+    }
+  }
+
+  async getDriverAssignments(
+    driverId: string,
+    status?: BookingStatus[],
+  ): Promise<Booking[]> {
+    let query = this.client
+      .from("bookings")
+      .select("*")
+      .eq("driver_id", driverId)
+      .order("created_at", { ascending: false });
+
+    if (status && status.length > 0) {
+      query = query.in("status", status);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      logger.error(error, "Supabase getDriverAssignments error");
+      throw new Error(ERROR_MESSAGES.INTERNAL_ERROR, { cause: error });
+    }
+
+    try {
+      return this.parseBookingList(data);
+    } catch (err) {
+      logger.error(err, "Database schema drift in getDriverAssignments");
       throw new DatabaseSchemaDriftError("Booking", err);
     }
   }

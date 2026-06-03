@@ -8,6 +8,7 @@ export const envSchema = z.object({
   MAPBOX_ACCESS_TOKEN: z.string().min(1),
   ALLOWED_ORIGINS: z.string().min(1),
   RL_DEFAULT: z.any().optional(),
+  RL_DRIVER: z.any().optional(),
 });
 
 export type Bindings = z.infer<typeof envSchema>;

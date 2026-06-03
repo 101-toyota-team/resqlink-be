@@ -1,7 +1,6 @@
 import { MiddlewareHandler } from "hono";
 import { BookingService, IBookingService } from "../services/bookings";
 import { DispatchService, IDispatchService } from "../services/dispatch";
-import { SimulationService, ISimulationService } from "../services/simulation";
 import {
   BookingRepository,
   AmbulanceRepository,
@@ -17,17 +16,20 @@ import { GeoService } from "../services/geo";
 import { DistanceService } from "../services/distance";
 import { ProviderService, IProviderService } from "../services/providers";
 import { HospitalService, IHospitalService } from "../services/hospitals";
+import { DriverService, IDriverService } from "../services/driver";
+import { DriverLocationRepository } from "../infrastructure/driver-location";
+import { DriverRepository } from "../infrastructure/driver-repo";
 
 export const diMiddleware: MiddlewareHandler<{
   Bindings: Bindings;
   Variables: AppVariables;
 }> = async (c, next) => {
   let bookingService: IBookingService | undefined;
-  let simulationService: ISimulationService | undefined;
   let dispatchService: IDispatchService | undefined;
   let distanceService: DistanceService | undefined;
   let providerService: IProviderService | undefined;
   let hospitalService: IHospitalService | undefined;
+  let driverService: IDriverService | undefined;
   let bookingRepo: BookingRepository | undefined;
   let ambulanceRepo: AmbulanceRepository | undefined;
   let providerRepo: ProviderRepository | undefined;
@@ -36,6 +38,8 @@ export const diMiddleware: MiddlewareHandler<{
   let mapsRepo: MapboxRepository | undefined;
   let cacheRepo: UpstashRedisRepository | undefined;
   let geoService: GeoService | undefined;
+  let driverLocationRepo: DriverLocationRepository | undefined;
+  let driverRepo: DriverRepository | undefined;
 
   const getGeo = () => {
     if (!geoService) geoService = new GeoService();
@@ -120,16 +124,25 @@ export const diMiddleware: MiddlewareHandler<{
     return distanceService;
   });
 
-  c.set("getSimulationService", () => {
-    if (!simulationService) {
-      simulationService = new SimulationService(
+  c.set("getDriverLocationRepo", () => {
+    if (!driverLocationRepo) {
+      driverLocationRepo = new DriverLocationRepository(
+        c.env.SUPABASE_URL,
+        c.env.SUPABASE_SECRET_KEY,
         c.get("getCache")(),
-        c.get("getBookingRepo")(),
-        c.get("getAmbulanceRepo")(),
-        c.get("getRealtimeRepo")(),
       );
     }
-    return simulationService;
+    return driverLocationRepo;
+  });
+
+  c.set("getDriverRepo", () => {
+    if (!driverRepo) {
+      driverRepo = new DriverRepository(
+        c.env.SUPABASE_URL,
+        c.env.SUPABASE_SECRET_KEY,
+      );
+    }
+    return driverRepo;
   });
 
   c.set("getBookingService", () => {
@@ -138,7 +151,6 @@ export const diMiddleware: MiddlewareHandler<{
         c.get("getBookingRepo")(),
         c.get("getAmbulanceRepo")(),
         c.get("getRealtimeRepo")(),
-        c.get("getSimulationService")(),
         c.get("getDistanceService")(),
       );
     }
@@ -171,10 +183,21 @@ export const diMiddleware: MiddlewareHandler<{
         c.get("getAmbulanceRepo")(),
         getGeo(),
         c.get("getDistanceService")(),
-        c.get("getSimulationService")(),
       );
     }
     return dispatchService;
+  });
+
+  c.set("getDriverService", () => {
+    if (!driverService) {
+      driverService = new DriverService(
+        c.get("getDriverRepo")(),
+        c.get("getDriverLocationRepo")(),
+        c.get("getBookingRepo")(),
+        c.get("getRealtimeRepo")(),
+      );
+    }
+    return driverService;
   });
 
   await next();

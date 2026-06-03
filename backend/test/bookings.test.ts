@@ -23,7 +23,6 @@ import {
 } from "../src/repositories/db";
 import { BookingService } from "../src/services/bookings";
 import { IDistanceService } from "../src/services/distance";
-import { ISimulationService } from "../src/services/simulation";
 
 interface MockDb {
   createBooking: ReturnType<typeof vi.fn>;
@@ -42,13 +41,13 @@ interface MockDb {
   searchHospitals: ReturnType<typeof vi.fn>;
   findHospitalsByH3Indexes: ReturnType<typeof vi.fn>;
   broadcastNewBooking: ReturnType<typeof vi.fn>;
+  getDriverAssignments: ReturnType<typeof vi.fn>;
 }
 
 // A minimal app wrapper to inject dependencies and middleware for testing
 const createApp = (
   dbMock: MockDb,
   jwtPayloadMock: JwtPayload,
-  simulationMock?: Partial<ISimulationService>,
   distanceMock?: Partial<IDistanceService>,
 ) => {
   const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
@@ -56,20 +55,6 @@ const createApp = (
   // Inject mocks
   app.use("*", async (c, next) => {
     c.set("jwtPayload", jwtPayloadMock);
-
-    const buildSimulationService = () => {
-      const baseMock = {
-        startSimulation: vi.fn(),
-        advanceSimulation: vi.fn(),
-        startSimulationForBooking: vi.fn(),
-        stopSimulation: vi.fn().mockResolvedValue(undefined),
-      };
-      return (
-        simulationMock ? { ...baseMock, ...simulationMock } : baseMock
-      ) as ISimulationService;
-    };
-
-    c.set("getSimulationService", buildSimulationService);
 
     c.set("getDistanceService", () => {
       const baseMock = {
@@ -91,7 +76,6 @@ const createApp = (
         dbMock as IBookingRepository,
         dbMock as IAmbulanceRepository,
         dbMock as IRealtimeBroadcaster,
-        buildSimulationService(),
         c.get("getDistanceService")(),
       );
     });
@@ -129,6 +113,7 @@ describe("Bookings API", () => {
       findHospitalsByH3Indexes: vi.fn(),
       getBookingsByProvider: vi.fn(),
       broadcastNewBooking: vi.fn(),
+      getDriverAssignments: vi.fn(),
     };
   });
 
@@ -495,16 +480,10 @@ describe("Bookings API", () => {
       dbMock.getBooking.mockResolvedValue(mockBooking);
       dbMock.updateBookingStatus.mockResolvedValue(undefined);
 
-      const startSimulationForBooking = vi.fn().mockResolvedValue(true);
-      const dispatchMock = { startSimulationForBooking };
-      const app = createApp(
-        dbMock,
-        {
-          sub: "provider-1",
-          app_metadata: { role: "provider", provider_id: "prov-123" },
-        },
-        dispatchMock,
-      );
+      const app = createApp(dbMock, {
+        sub: "provider-1",
+        app_metadata: { role: "provider", provider_id: "prov-123" },
+      });
       const res = await app.request(
         `/bookings/${mockBookingId}/status`,
         {
@@ -520,41 +499,6 @@ describe("Bookings API", () => {
         mockBookingId,
         "en_route",
       );
-      expect(startSimulationForBooking).toHaveBeenCalledWith(mockBooking);
-    });
-
-    it("should return 500 when simulation setup fails", async () => {
-      const mockBooking = {
-        id: mockBookingId,
-        user_id: mockUserId,
-        provider_id: "prov-123",
-        status: "confirmed",
-      };
-      dbMock.getBooking.mockResolvedValue(mockBooking);
-
-      const startSimulationForBooking = vi.fn().mockResolvedValue(false);
-      const dispatchMock = { startSimulationForBooking };
-      const app = createApp(
-        dbMock,
-        {
-          sub: "provider-1",
-          app_metadata: { role: "provider", provider_id: "prov-123" },
-        },
-        dispatchMock,
-      );
-      const res = await app.request(
-        `/bookings/${mockBookingId}/status`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "en_route" }),
-        },
-        mockEnv,
-      );
-
-      // Simulation failure returns BookingStateError (mapped to 400)
-      expect(res.status).toBe(400);
-      expect(dbMock.updateBookingStatus).not.toHaveBeenCalled();
     });
 
     it("should return 403 when non-provider sets en_route", async () => {
@@ -591,16 +535,10 @@ describe("Bookings API", () => {
       dbMock.getBooking.mockResolvedValue(mockBooking);
       dbMock.updateBookingStatus.mockResolvedValue(undefined);
 
-      const startSimulationForBooking = vi.fn().mockResolvedValue(true);
-      const dispatchMock = { startSimulationForBooking };
-      const app = createApp(
-        dbMock,
-        {
-          sub: mockOtherUserId,
-          app_metadata: { role: "provider", provider_id: "prov-123" },
-        },
-        dispatchMock,
-      );
+      const app = createApp(dbMock, {
+        sub: mockOtherUserId,
+        app_metadata: { role: "provider", provider_id: "prov-123" },
+      });
       const res = await app.request(
         `/bookings/${mockBookingId}/status`,
         {
@@ -616,7 +554,6 @@ describe("Bookings API", () => {
         mockBookingId,
         "en_route",
       );
-      expect(startSimulationForBooking).toHaveBeenCalledWith(mockBooking);
     });
 
     it("should return 400 when provider sets en_route without assigned ambulance", async () => {
@@ -628,16 +565,10 @@ describe("Bookings API", () => {
       };
       dbMock.getBooking.mockResolvedValue(mockBooking);
 
-      const startSimulationForBooking = vi.fn().mockResolvedValue(true);
-      const simulationServiceMock = { startSimulationForBooking };
-      const app = createApp(
-        dbMock,
-        {
-          sub: mockOtherUserId,
-          app_metadata: { role: "provider", provider_id: "prov-123" },
-        },
-        simulationServiceMock,
-      );
+      const app = createApp(dbMock, {
+        sub: mockOtherUserId,
+        app_metadata: { role: "provider", provider_id: "prov-123" },
+      });
 
       const res = await app.request(
         `/bookings/${mockBookingId}/status`,
@@ -650,7 +581,6 @@ describe("Bookings API", () => {
       );
 
       expect(res.status).toBe(400);
-      expect(startSimulationForBooking).not.toHaveBeenCalled();
       expect(dbMock.updateBookingStatus).not.toHaveBeenCalled();
     });
 
@@ -819,15 +749,10 @@ describe("Bookings API", () => {
     };
     dbMock.getBooking.mockResolvedValue(mockBooking);
     dbMock.updateBookingStatus.mockResolvedValue(undefined);
-    const dispatchMock = { startSimulationForBooking: vi.fn() };
-    const app = createApp(
-      dbMock,
-      {
-        sub: "provider-1",
-        app_metadata: { role: "provider", provider_id: "prov-123" },
-      },
-      dispatchMock,
-    );
+    const app = createApp(dbMock, {
+      sub: "provider-1",
+      app_metadata: { role: "provider", provider_id: "prov-123" },
+    });
     const res = await app.request(`/bookings/${mockBookingId}/status`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -941,30 +866,6 @@ describe("Bookings API", () => {
       mockBookingId,
       "cancelled",
     );
-  });
-
-  it("should return 500 and not update booking if stopSimulation fails on cancellation", async () => {
-    const mockBooking = {
-      id: mockBookingId,
-      user_id: mockUserId,
-      status: "confirmed",
-    };
-    dbMock.getBooking.mockResolvedValue(mockBooking);
-
-    const stopSimulation = vi
-      .fn()
-      .mockRejectedValue(new Error("Redis timeout during cleanup"));
-
-    const app = createApp(dbMock, { sub: mockUserId }, { stopSimulation });
-    const res = await app.request(`/bookings/${mockBookingId}/status`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "cancelled" }),
-    });
-
-    expect(res.status).toBe(500);
-    expect(stopSimulation).toHaveBeenCalledWith(mockBookingId);
-    expect(dbMock.updateBookingStatus).not.toHaveBeenCalled();
   });
 
   it("should return 200 for en_route to cancelled transition", async () => {
@@ -1098,7 +999,8 @@ describe("Bookings API", () => {
         mockBookingId,
         mockAmbulance.id,
         expect.anything(),
-        expect.anything(),
+        expect.any(Object),
+        undefined,
       );
     });
 
@@ -1154,7 +1056,8 @@ describe("Bookings API", () => {
         mockBookingId,
         "223e4567-e89b-12d3-a456-426614174001",
         "prov-123",
-        expect.anything(),
+        expect.any(Object),
+        undefined,
       );
     });
 
@@ -1234,7 +1137,8 @@ describe("Bookings API", () => {
         mockBookingId,
         "223e4567-e89b-12d3-a456-426614174001",
         undefined,
-        expect.anything(),
+        expect.any(Object),
+        undefined,
       );
     });
 

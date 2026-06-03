@@ -12,5 +12,6 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
   },
-  "include": ["src/**/*", "test/**/*"]
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["src/archive/**/*"]
 }

@@ -3,7 +3,6 @@ import { BookingService } from "../src/services/bookings";
 import { IBookingRepository } from "../src/repositories/booking";
 import { IAmbulanceRepository } from "../src/repositories/ambulance";
 import { IRealtimeBroadcaster } from "../src/repositories/realtime";
-import { ISimulationService } from "../src/services/simulation";
 import { IDistanceService } from "../src/services/distance";
 import { Booking } from "../src/types";
 import {
@@ -17,7 +16,6 @@ describe("BookingService", () => {
   let mockBookingRepo: Mocked<IBookingRepository>;
   let mockAmbulanceRepo: Mocked<IAmbulanceRepository>;
   let mockRealtime: Mocked<IRealtimeBroadcaster>;
-  let mockSimulation: Mocked<ISimulationService>;
   let mockDistanceService: Mocked<IDistanceService>;
   let service: BookingService;
 
@@ -46,6 +44,7 @@ describe("BookingService", () => {
     destination_lat: -6.3,
     destination_lng: 106.9,
     user_id: "user_1",
+    driver_id: null,
     estimated_price: 50000,
     status: "draft",
     created_at: "2026-06-01T00:00:00.000Z",
@@ -66,6 +65,7 @@ describe("BookingService", () => {
       getUserBookings: vi.fn(),
       getConfirmedBookings: vi.fn(),
       getBookingsByProvider: vi.fn(),
+      getDriverAssignments: vi.fn(),
     } as Mocked<IBookingRepository>;
 
     mockAmbulanceRepo = {
@@ -78,13 +78,6 @@ describe("BookingService", () => {
       broadcastTripLocation: vi.fn().mockResolvedValue(undefined),
       broadcastNewBooking: vi.fn().mockResolvedValue(undefined),
     } as Mocked<IRealtimeBroadcaster>;
-
-    mockSimulation = {
-      startSimulation: vi.fn(),
-      advanceSimulation: vi.fn(),
-      startSimulationForBooking: vi.fn(),
-      stopSimulation: vi.fn(),
-    } as Mocked<ISimulationService>;
 
     mockDistanceService = {
       getEnrichedDrivers: vi.fn(),
@@ -100,7 +93,6 @@ describe("BookingService", () => {
       mockBookingRepo,
       mockAmbulanceRepo,
       mockRealtime,
-      mockSimulation,
       mockDistanceService,
     );
   });
@@ -304,7 +296,12 @@ describe("BookingService", () => {
       mockBookingRepo.getBooking.mockResolvedValue(null);
 
       await expect(
-        service.assignAmbulance("booking_1", "amb_1", mockProviderPayload),
+        service.assignAmbulance(
+          "booking_1",
+          "amb_1",
+          mockProviderPayload,
+          undefined,
+        ),
       ).rejects.toThrow(NotFoundError);
     });
 
@@ -325,10 +322,20 @@ describe("BookingService", () => {
       mockBookingRepo.getBooking.mockResolvedValue(mockConfirmedBooking);
 
       await expect(
-        service.assignAmbulance("booking_1", "amb_1", mockProviderPayload),
+        service.assignAmbulance(
+          "booking_1",
+          "amb_1",
+          mockProviderPayload,
+          undefined,
+        ),
       ).rejects.toThrow(BookingStateError);
       await expect(
-        service.assignAmbulance("booking_1", "amb_1", mockProviderPayload),
+        service.assignAmbulance(
+          "booking_1",
+          "amb_1",
+          mockProviderPayload,
+          undefined,
+        ),
       ).rejects.toThrow(ERROR_MESSAGES.BOOKING_NOT_DRAFT);
     });
 
@@ -337,10 +344,20 @@ describe("BookingService", () => {
       mockAmbulanceRepo.getAmbulance.mockResolvedValue(null);
 
       await expect(
-        service.assignAmbulance("booking_1", "amb_1", mockProviderPayload),
+        service.assignAmbulance(
+          "booking_1",
+          "amb_1",
+          mockProviderPayload,
+          undefined,
+        ),
       ).rejects.toThrow(NotFoundError);
       await expect(
-        service.assignAmbulance("booking_1", "amb_1", mockProviderPayload),
+        service.assignAmbulance(
+          "booking_1",
+          "amb_1",
+          mockProviderPayload,
+          undefined,
+        ),
       ).rejects.toThrow(ERROR_MESSAGES.AMBULANCE_NOT_FOUND);
     });
 
@@ -352,10 +369,20 @@ describe("BookingService", () => {
       });
 
       await expect(
-        service.assignAmbulance("booking_1", "amb_1", mockProviderPayload),
+        service.assignAmbulance(
+          "booking_1",
+          "amb_1",
+          mockProviderPayload,
+          undefined,
+        ),
       ).rejects.toThrow(ForbiddenError);
       await expect(
-        service.assignAmbulance("booking_1", "amb_1", mockProviderPayload),
+        service.assignAmbulance(
+          "booking_1",
+          "amb_1",
+          mockProviderPayload,
+          undefined,
+        ),
       ).rejects.toThrow(ERROR_MESSAGES.AMBULANCE_PROVIDER_MISMATCH);
     });
 
@@ -383,6 +410,7 @@ describe("BookingService", () => {
         "amb_1",
         undefined,
         expect.anything(),
+        undefined,
       );
       expect(result).toEqual(assignedBooking);
     });
@@ -419,6 +447,7 @@ describe("BookingService", () => {
         "amb_1",
         "provider_1",
         expect.anything(),
+        undefined,
       );
       expect(result).toEqual(assignedBooking);
     });
@@ -471,45 +500,6 @@ describe("BookingService", () => {
       await expect(
         service.updateStatus("booking_1", "en_route", mockProviderPayload),
       ).rejects.toThrow(ERROR_MESSAGES.NO_ASSIGNED_AMBULANCE);
-    });
-
-    // Simulation tests are covered in simulation.test.ts
-
-    it("should stop simulation on cancelled", async () => {
-      mockBookingRepo.getBooking.mockResolvedValue(mockConfirmedBooking);
-
-      const result = await service.updateStatus(
-        "booking_1",
-        "cancelled",
-        mockUserPayload,
-      );
-
-      expect(mockSimulation.stopSimulation).toHaveBeenCalledWith("booking_1");
-      expect(mockBookingRepo.updateBookingStatus).toHaveBeenCalledWith(
-        "booking_1",
-        "cancelled",
-      );
-      expect(result.status).toBe("cancelled");
-    });
-
-    it("should use provider sub when provider sets en_route", async () => {
-      const bookingWithDriver = {
-        ...mockConfirmedBooking,
-        provider_id: "prov-1",
-      };
-      mockBookingRepo.getBooking.mockResolvedValue(bookingWithDriver);
-      mockSimulation.startSimulationForBooking.mockResolvedValue(true);
-
-      const mockProviderPayload = {
-        sub: "provider_1",
-        role: "provider",
-        app_metadata: { role: "provider", provider_id: "prov-1" },
-      };
-      await service.updateStatus("booking_1", "en_route", mockProviderPayload);
-
-      expect(mockSimulation.startSimulationForBooking).toHaveBeenCalledWith(
-        bookingWithDriver,
-      );
     });
   });
 });

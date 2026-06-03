@@ -71,13 +71,14 @@ bookingsApp.put(
   zValidator("json", bookingAssignSchema, validatorHook),
   async (c) => {
     const { id } = c.req.valid("param");
-    const { ambulance_id } = c.req.valid("json");
+    const { ambulance_id, driver_id } = c.req.valid("json");
     const payload = c.get("jwtPayload");
     const bookingService = c.get("getBookingService")();
     const booking = await bookingService.assignAmbulance(
       id,
       ambulance_id,
       payload,
+      driver_id,
     );
     return c.json(booking, 200);
   },

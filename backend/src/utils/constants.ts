@@ -25,11 +25,9 @@ export const UPSTASH = {
 
 export const REDIS = {
   PREFIXES: {
-    SIM_ROUTE: "sim:route:",
     DIST_CACHE: "dist_cache:",
   },
   TTLS: {
-    SIMULATION: 3600,
     DISTANCE_CACHE: DISTANCE_SERVICE.CACHE_TTL_SECONDS,
   },
 };

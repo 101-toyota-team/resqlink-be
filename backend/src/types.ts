@@ -1,6 +1,5 @@
 import { IDispatchService } from "./services/dispatch";
 import { IBookingService } from "./services/bookings";
-import { ISimulationService } from "./services/simulation";
 import { IProviderService } from "./services/providers";
 import { IHospitalService } from "./services/hospitals";
 import {
@@ -13,6 +12,28 @@ import {
 import { IMapsRepository } from "./repositories/maps";
 import { IGenericCache } from "./repositories/generic-cache";
 import type { BookingStatus } from "./utils/constants";
+
+export interface DriverLocation {
+  lat: number;
+  lng: number;
+  heading?: number;
+  speed?: number;
+  accuracy?: number;
+  captured_at: string;
+  booking_id?: string;
+}
+
+export interface Driver {
+  id: string;
+  provider_id: string;
+  name: string;
+  phone: string;
+  license_number: string;
+  is_available: boolean;
+  current_ambulance_id?: string;
+  rating: number;
+  is_active: boolean;
+}
 
 export const PROVIDER_TYPES = [
   "rumah_sakit",
@@ -99,6 +120,7 @@ export interface AmbulanceDetails extends AmbulanceLocation {
 export interface BookingData {
   ambulance_id?: string | null;
   provider_id?: string | null;
+  driver_id?: string | null;
   booking_type: "medis" | "sosial" | "jenazah" | "darurat";
   patient_condition: string;
   pickup_address: string;
@@ -160,9 +182,11 @@ export interface ILogger {
   warn(...args: unknown[]): void;
 }
 
+import type { IDriverService } from "./services/driver";
+import type { IDriverLocationRepository } from "./repositories/driver-location";
+
 export interface AppVariables {
   getBookingService: () => IBookingService;
-  getSimulationService: () => ISimulationService;
   getDispatchService: () => IDispatchService;
   getProviderService: () => IProviderService;
   getHospitalService: () => IHospitalService;
@@ -174,5 +198,8 @@ export interface AppVariables {
   getMaps: () => IMapsRepository;
   getCache: () => IGenericCache;
   getDistanceService: () => import("./services/distance").IDistanceService;
+  getDriverService: () => IDriverService;
+  getDriverLocationRepo: () => IDriverLocationRepository;
+  getDriverRepo: () => import("./repositories/driver").IDriverRepository;
   jwtPayload: JwtPayload;
 }

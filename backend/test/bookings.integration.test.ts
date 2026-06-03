@@ -10,7 +10,6 @@ import {
   IRealtimeBroadcaster,
 } from "../src/repositories/db";
 import { BookingService } from "../src/services/bookings";
-import { ISimulationService } from "../src/services/simulation";
 import { IDistanceService } from "../src/services/distance";
 
 interface MockDb {
@@ -30,36 +29,20 @@ interface MockDb {
   findProvidersByH3Indexes: ReturnType<typeof vi.fn>;
   searchHospitals: ReturnType<typeof vi.fn>;
   findHospitalsByH3Indexes: ReturnType<typeof vi.fn>;
+  getDriverAssignments: ReturnType<typeof vi.fn>;
 }
 
-const createApp = (
-  dbMock: MockDb,
-  jwtPayloadMock: JwtPayload,
-  simulationMock: Partial<ISimulationService>,
-) => {
+const createApp = (dbMock: MockDb, jwtPayloadMock: JwtPayload) => {
   const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
 
   app.use("*", async (c, next) => {
     c.set("jwtPayload", jwtPayloadMock);
-
-    const buildSimulationService = () => {
-      return {
-        startSimulation: vi.fn(),
-        advanceSimulation: vi.fn(),
-        startSimulationForBooking: vi.fn(),
-        stopSimulation: vi.fn(),
-        ...simulationMock,
-      } as ISimulationService;
-    };
-
-    c.set("getSimulationService", buildSimulationService);
 
     c.set("getBookingService", () => {
       return new BookingService(
         dbMock as IBookingRepository,
         dbMock as IAmbulanceRepository,
         dbMock as IRealtimeBroadcaster,
-        buildSimulationService(),
         {
           getEnrichedDrivers: vi.fn(),
           getRouteLeg: vi.fn().mockResolvedValue({
@@ -104,13 +87,12 @@ describe("Bookings Integration Lifecycle", () => {
       findProvidersByH3Indexes: vi.fn(),
       searchHospitals: vi.fn(),
       findHospitalsByH3Indexes: vi.fn(),
+      getDriverAssignments: vi.fn(),
     };
   });
 
-  it("should complete full lifecycle (Create -> Assign -> Cancel) and cleanup simulation", async () => {
-    const stopSimulation = vi.fn().mockResolvedValue(undefined);
-    const simulationMock = { stopSimulation };
-    const app = createApp(dbMock, { sub: mockUserId }, simulationMock);
+  it("should complete full lifecycle (Create -> Assign -> Cancel)", async () => {
+    const app = createApp(dbMock, { sub: mockUserId });
 
     // 1. Create Draft Booking
     const draftPayload = {
@@ -176,8 +158,5 @@ describe("Bookings Integration Lifecycle", () => {
       body: JSON.stringify({ status: "cancelled" }),
     });
     expect(resCancel.status).toBe(200);
-
-    // 4. Verify cleanup — simulation.stopSimulation was called with bookingId only
-    expect(stopSimulation).toHaveBeenCalledWith(mockBookingId);
   });
 });

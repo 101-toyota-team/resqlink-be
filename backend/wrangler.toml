@@ -12,6 +12,13 @@ namespace_id = "1001"
 limit = 30
 period = 60
 
+[[ratelimits]]
+name = "RL_DRIVER"
+namespace_id = "1001"
+[ratelimits.simple]
+limit = 60
+period = 60
+
 [env.staging]
 name = "staging"
 

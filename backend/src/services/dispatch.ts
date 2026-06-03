@@ -2,7 +2,6 @@ import { IAmbulanceRepository } from "../repositories/ambulance";
 import { AmbulanceDetails } from "../types";
 import { IGeoService } from "./geo";
 import { IDistanceService } from "./distance";
-import { ISimulationService } from "./simulation";
 import { DISTANCE_SERVICE } from "../utils/constants";
 
 export interface IDispatchService {
@@ -11,7 +10,6 @@ export interface IDispatchService {
     radius?: number,
     pickupLocation?: string,
   ): Promise<AmbulanceDetails[]>;
-  advanceSimulation(bookingId: string, steps: number): Promise<void>;
 }
 
 export class DispatchService implements IDispatchService {
@@ -19,7 +17,6 @@ export class DispatchService implements IDispatchService {
     private ambulanceRepo: IAmbulanceRepository,
     private geo: IGeoService,
     private distance: IDistanceService,
-    private simulation: ISimulationService,
   ) {}
 
   async findNearbyAmbulances(
@@ -47,9 +44,5 @@ export class DispatchService implements IDispatchService {
     }
 
     return drivers;
-  }
-
-  async advanceSimulation(bookingId: string, steps: number = 1): Promise<void> {
-    await this.simulation.advanceSimulation(bookingId, steps);
   }
 }
