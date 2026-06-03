@@ -3,14 +3,14 @@ info:
   title: ResQLink API
   description: >
     Backend API for the ResQLink ambulance booking and dispatch platform.
-    Features static discovery via H3 spatial indexing and a simulated movement
-    flow.
+    Features static discovery via H3 spatial indexing and real-time driver tracking via GPS.
   version: 1.0.0
 tags:
   - name: Providers
   - name: Hospitals
   - name: Ambulances
   - name: Bookings
+  - name: Driver
 paths:
   /:
     get:
@@ -318,6 +318,9 @@ paths:
                 ambulance_id:
                   type: string
                   format: uuid
+                driver_id:
+                  type: string
+                  format: uuid
               required:
                 - ambulance_id
       responses:
@@ -342,8 +345,9 @@ paths:
       operationId: updateBookingStatus
       summary: Update Booking Status
       description: >-
-        Update the status of a booking. Changing status to "en_route" triggers
-        the ambulance simulation.
+        Update the status of a booking. The `en_route` status requires provider or
+        admin privileges. Once `en_route`, the driver app sends real-time GPS
+        updates via `POST /driver/location`.
       tags:
         - Bookings
       security:
@@ -384,16 +388,65 @@ paths:
           $ref: '#/components/responses/TooManyRequestsError'
         '500':
           $ref: '#/components/responses/InternalError'
-  /driver/ping:
+  /driver/location:
     post:
-      operationId: advanceSimulation
-      summary: Advance Booking Simulation (Admin only)
-      description: >-
-        Simulate movement along the route by popping coordinates for the given booking ID.
-        This is an admin-only endpoint used to control simulations.
+      operationId: updateDriverLocation
+      summary: Submit Driver GPS Location
+      description: Submit current location updates for an assigned booking.
       tags:
-        - Admin
-        - Simulation
+        - Driver
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DriverLocation'
+      responses:
+        '200':
+          description: Location updated successfully
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /driver/assignments:
+    get:
+      operationId: getDriverAssignments
+      summary: Get Driver Assignments
+      description: Retrieve current bookings assigned to the authenticated driver.
+      tags:
+        - Driver
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: A list of assigned bookings.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Booking'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /driver/status:
+    put:
+      operationId: updateDriverStatus
+      summary: Update Driver Online Status
+      description: Set the driver's online status (online/offline).
+      tags:
+        - Driver
       security:
         - BearerAuth: []
       requestBody:
@@ -403,28 +456,13 @@ paths:
             schema:
               type: object
               properties:
-                bookingId:
-                  type: string
-                  format: uuid
-                steps:
-                  type: integer
-                  minimum: 1
-                  maximum: 100
+                online:
+                  type: boolean
               required:
-                - bookingId
+                - online
       responses:
         '200':
-          description: Simulation successfully advanced
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  bookingId:
-                    type: string
-                    format: uuid
-                  steps:
-                    type: integer
+          description: Status updated successfully
         '400':
           $ref: '#/components/responses/ValidationError'
         '403':
@@ -719,6 +757,12 @@ components:
           description: >-
             ID of the provider this booking is locked to. Set at creation time.
             Null for legacy bookings.
+        driver_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: >-
+            ID of the driver assigned to this booking. Null if unassigned.
         booking_type:
           type: string
           enum: [medis, sosial, jenazah, darurat]
@@ -747,6 +791,19 @@ components:
         status:
           type: string
           enum: [draft, confirmed, en_route, arrived, to_hospital, completed, cancelled]
+        estimated_price:
+          type: integer
+          nullable: true
+        needs_paramedic:
+          type: boolean
+          nullable: true
+        final_price:
+          type: integer
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
         route_geometry:
           type: object
           nullable: true
@@ -802,6 +859,29 @@ components:
         - user_id
         - status
         - created_at
+    DriverLocation:
+      type: object
+      properties:
+        booking_id:
+          type: string
+          format: uuid
+        lat:
+          $ref: '#/components/schemas/Latitude'
+        lng:
+          $ref: '#/components/schemas/Longitude'
+        heading:
+          type: number
+        speed:
+          type: number
+        accuracy:
+          type: number
+        captured_at:
+          type: string
+          format: date-time
+      required:
+        - lat
+        - lng
+        - captured_at
     AmbulanceLocation:
       type: object
       properties:
