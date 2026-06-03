@@ -19,6 +19,7 @@ The Booking API uses a **provider-directed dispatch model**.
 
 ### 2.3 Role checks
 - **Is Provider:** `payload.role === "provider" || payload.app_metadata?.role === "provider"`
+- **Is Driver:** `payload.role === "driver" || payload.app_metadata?.role === "driver"`
 - **Is Admin:** `payload.role === "admin" || payload.app_metadata?.role === "admin"`
 
 ### 2.4 Unauthenticated endpoints (no token needed)
@@ -82,12 +83,13 @@ The Booking API uses a **provider-directed dispatch model**.
 
 ### 3.3 Assignment & Status
 #### PUT /bookings/:id/assign — auth, RL: 30/min
-- **Body:** `{ ambulance_id: uuid }`
+- **Body:** `{ ambulance_id: uuid, driver_id?: uuid }`
 - **Logic:**
     1. Status must be `draft`.
     2. Ambulance must exist and belong to the correct provider (if booking locked to provider).
-    3. Calculates `route_geometry` (Leg 1: amb-to-pickup, Leg 2: pickup-to-destination).
-    4. Transitions to `confirmed`.
+    3. If `driver_id` is provided, pre-assigns the driver to the booking.
+    4. Calculates `route_geometry` (Leg 1: amb-to-pickup, Leg 2: pickup-to-destination).
+    5. Transitions to `confirmed`.
 - **Response:** 200 `Booking` (with `route_geometry`).
 - **Errors:** 400 (not draft), 403 (provider mismatch), 404 (ambulance not found), 400 (routing failed).
 
@@ -97,10 +99,17 @@ The Booking API uses a **provider-directed dispatch model**.
 - **Logic:** Validates transitions, primes simulation (if `en_route`), cleans up simulation (if `cancelled`).
 - **Response:** 200 `Booking` object.
 
-### 3.4 Simulation (Admin)
-#### POST /driver/ping — auth, RL: 30/min, admin-only
-- **Body:** `{ bookingId: uuid, steps?: 1-100 }` (defaults to 1)
-- **Logic:** Pops `steps` coordinates from Redis, broadcasts LAST one via realtime. Auto-sets `arrived` status if route exhausted.
+### 3.4 Driver API (Driver App)
+#### POST /driver/location — auth, RL: 60/min
+- **Body:** `{ booking_id: uuid, lat: number, lng: number, heading?: number, speed?: number }`
+- **Logic:** Updates driver's live GPS location, persists to Redis cache (hot) and Supabase history (batch).
+
+#### GET /driver/assignments — auth, RL: 30/min
+- **Response:** 200 `Booking[]` (all current assignments for the driver).
+
+#### PUT /driver/status — auth, RL: 30/min
+- **Body:** `{ online: boolean }`
+- **Logic:** Sets driver's online/offline status.
 
 ## 4. Booking State Machine
 
@@ -142,7 +151,7 @@ draft ──(PUT /bookings/:id/assign)──→ confirmed
 ### 5.1 Trip Location Channel
 - **Channel:** `trip:{bookingId}`
 - **Event:** `location_update`
-- **Payload:** `{ lat: number, lng: number }` (ephemeral broadcast)
+- **Payload:** `{ lat: number, lng: number }` (ephemeral broadcast, driven by driver app GPS updates)
 
 ```js
 import { createClient } from "@supabase/supabase-js";
@@ -232,13 +241,10 @@ sequenceDiagram
     F->>U: Draw route on map
 
     P->>B: PUT /bookings/:id/status { status: "en_route" }
-    Note over B: Primes simulation (decodes route to Redis)
     B-->>P: 200 Booking { status: "en_route" }
 
     F->>R: Subscribe to channel "trip:{bookingId}"
-    Note over U: Admin triggers simulation
-    Admin->>B: POST /driver/ping { bookingId, steps: N }
-    B->>B: LPOP N coords, broadcast LAST one
+    DriverApp->>B: POST /driver/location { booking_id, lat, lng, ... }
     B->>R: broadcast "location_update" { lat, lng }
     R-->>F: { lat, lng }
     F->>U: Animate marker along polyline
@@ -310,6 +316,7 @@ interface Booking {
   status: BookingStatus;
   ambulance_id: string | null;
   provider_id: string | null;
+  driver_id: string | null;
   booking_type: "medis" | "sosial" | "jenazah" | "darurat";
   patient_condition: string;
   pickup_address: string;
@@ -340,38 +347,16 @@ interface RouteLeg {
   encoded_polyline: string; // Mapbox polyline6
 }
 
-// ── Provider (discovery response) ──
-type ProviderType =
-  | "rumah_sakit" | "klinik" | "komunitas" | "rt_rw"
-  | "yayasan" | "masjid" | "lainnya";
-
-interface Provider {
+// ── Driver ──
+interface Driver {
   id: string;
   name: string;
-  h3_index: string;
-  latitude: number;
-  longitude: number;
-  provider_type: ProviderType;
-  address?: string;
-  phone?: string;
-  created_at: string;
-}
-
-interface ProviderDetails extends Provider {
-  distance?: string;       // human-readable, e.g. "1.23 km"
-  distance_value?: number; // meters
-}
-
-// ── Error Response (all endpoints) ──
-interface ApiError {
-  error: string;
-  details: Record<string, unknown>;
-  // On validation failure:
-  // details = { fieldName: { _errors: ["message"] } }
+  online: boolean;
 }
 
 // ── Realtime Location Update ──
-interface AmbulanceLocation {
+interface DriverLocation {
+  booking_id: string;
   lat: number;
   lng: number;
   heading?: number;
