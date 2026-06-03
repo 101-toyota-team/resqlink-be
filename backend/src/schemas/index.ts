@@ -71,11 +71,6 @@ export const bookingSchema = z.object({
   destination_lng: z.number().min(-180).max(180),
 });
 
-export const adminSimulationAdvanceSchema = z.object({
-  bookingId: z.string().uuid(),
-  steps: z.number().int().min(1).max(100).optional().default(1),
-});
-
 export const searchQuerySchema = z.object({
   q: z.string().min(2, "Search query must be at least 2 characters").max(256),
   limit: z.coerce.number().int().min(1).max(100).optional(),
@@ -101,6 +96,20 @@ export const bookingIdParamSchema = z.object({
 
 export const bookingAssignSchema = z.object({
   ambulance_id: z.string().uuid(),
+  driver_id: z.string().uuid().optional(),
+});
+
+export const driverLocationSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  heading: z.number().min(0).max(360).optional(),
+  speed: z.number().min(0).optional(),
+  accuracy: z.number().min(0).optional(),
+  booking_id: z.string().uuid().optional(),
+});
+
+export const driverStatusSchema = z.object({
+  online: z.boolean(),
 });
 
 export const paginationSchema = z.object({

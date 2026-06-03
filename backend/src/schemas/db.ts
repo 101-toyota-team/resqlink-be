@@ -71,6 +71,7 @@ export const dbBookingSchema = z.object({
   destination_lng: z.coerce.number(),
   route_geometry: nullToUndefined(dbRouteGeometrySchema),
   user_id: z.string(),
+  driver_id: z.string().uuid().nullable().optional(),
   status: z.enum(BOOKING_STATUSES),
   created_at: z.string(),
 });

@@ -3,14 +3,12 @@ import { DispatchService } from "../src/services/dispatch";
 import { IAmbulanceRepository } from "../src/repositories/ambulance";
 import { IGeoService } from "../src/services/geo";
 import { IDistanceService } from "../src/services/distance";
-import { ISimulationService } from "../src/services/simulation";
 import { AmbulanceLocation } from "../src/types";
 
 describe("DispatchService", () => {
   let mockAmbulanceRepo: Mocked<IAmbulanceRepository>;
   let mockGeo: Mocked<IGeoService>;
   let mockDistance: Mocked<IDistanceService>;
-  let mockSimulation: Mocked<ISimulationService>;
   let service: DispatchService;
 
   beforeEach(() => {
@@ -31,18 +29,7 @@ describe("DispatchService", () => {
       getEnrichedDrivers: vi.fn(),
       getRouteLeg: vi.fn(),
     } as unknown as Mocked<IDistanceService>;
-    mockSimulation = {
-      startSimulation: vi.fn(),
-      advanceSimulation: vi.fn(),
-      startSimulationForBooking: vi.fn(),
-      stopSimulation: vi.fn().mockResolvedValue(undefined),
-    } as Mocked<ISimulationService>;
-    service = new DispatchService(
-      mockAmbulanceRepo,
-      mockGeo,
-      mockDistance,
-      mockSimulation,
-    );
+    service = new DispatchService(mockAmbulanceRepo, mockGeo, mockDistance);
   });
 
   it("should find nearby drivers from DB and call distance service for enrichment", async () => {
@@ -117,18 +104,5 @@ describe("DispatchService", () => {
 
     expect(results).toHaveLength(0);
     expect(mockDistance.getEnrichedDrivers).not.toHaveBeenCalled();
-  });
-
-  describe("advanceSimulation", () => {
-    it("should advance simulation by bookingId", async () => {
-      const mockBookingId = "booking-123";
-
-      await service.advanceSimulation(mockBookingId, 2);
-
-      expect(mockSimulation.advanceSimulation).toHaveBeenCalledWith(
-        mockBookingId,
-        2,
-      );
-    });
   });
 });
