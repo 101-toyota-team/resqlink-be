@@ -14,7 +14,7 @@ const mockEnv = {
 import bookingsApp from "../src/routes/bookings";
 import { errorHandler } from "../src/middleware/error-handler";
 import { ERROR_MESSAGES } from "../src/utils/constants";
-import { AppVariables, JwtPayload } from "../src/types";
+import { AppVariables, JwtPayload, ILogger } from "../src/types";
 import { Bindings } from "../src/schemas/env";
 import {
   IBookingRepository,
@@ -56,6 +56,14 @@ const createApp = (
   app.use("*", async (c, next) => {
     c.set("jwtPayload", jwtPayloadMock);
 
+    c.set("getLogger", () => ({
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      child: vi.fn(),
+    }));
+
     c.set("getDistanceService", () => {
       const baseMock = {
         getEnrichedDrivers: vi.fn(),
@@ -72,11 +80,20 @@ const createApp = (
     });
 
     c.set("getBookingService", () => {
+      const mockLogger = {
+        info: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
+        child: vi.fn(),
+      } as unknown as ILogger;
+
       return new BookingService(
         dbMock as IBookingRepository,
         dbMock as IAmbulanceRepository,
         dbMock as IRealtimeBroadcaster,
         c.get("getDistanceService")(),
+        mockLogger,
       );
     });
 

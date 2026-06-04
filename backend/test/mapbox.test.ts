@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 import { MapboxRepository } from "../src/infrastructure/mapbox";
+import { ILogger } from "../src/types";
+
+const mockLogger = {
+  info: vi.fn(),
+  error: vi.fn(),
+  warn: vi.fn(),
+  debug: vi.fn(),
+  child: vi.fn(),
+} as unknown as ILogger;
 
 describe("MapboxRepository", () => {
   const accessToken = "test-token";
@@ -7,7 +16,7 @@ describe("MapboxRepository", () => {
   let fetchMock: Mock;
 
   beforeEach(() => {
-    repo = new MapboxRepository(accessToken);
+    repo = new MapboxRepository(accessToken, mockLogger);
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
   });

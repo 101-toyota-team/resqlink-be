@@ -1,4 +1,5 @@
 import { Booking, DriverLocation } from "../types";
+import type { ILogger } from "../types";
 
 export interface IDriverService {
   updateLocation(
@@ -22,6 +23,7 @@ export class DriverService implements IDriverService {
     private driverLocationRepo: import("../repositories/driver-location").IDriverLocationRepository,
     private bookingRepo: import("../repositories/booking").IBookingRepository,
     private realtime: import("../repositories/realtime").IRealtimeBroadcaster,
+    private logger: ILogger,
   ) {}
 
   async updateLocation(

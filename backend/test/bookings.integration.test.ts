@@ -52,6 +52,13 @@ const createApp = (dbMock: MockDb, jwtPayloadMock: JwtPayload) => {
             viewport: { low: { lat: 0, lng: 0 }, high: { lat: 1, lng: 1 } },
           }),
         } as unknown as IDistanceService,
+        {
+          info: vi.fn(),
+          error: vi.fn(),
+          warn: vi.fn(),
+          debug: vi.fn(),
+          child: vi.fn(),
+        },
       );
     });
 

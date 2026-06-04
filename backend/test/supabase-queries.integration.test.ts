@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { HospitalRepository } from "../src/infrastructure/supabase/hospital";
 import { ProviderRepository } from "../src/infrastructure/supabase/provider";
 
@@ -7,12 +7,21 @@ import { ProviderRepository } from "../src/infrastructure/supabase/provider";
 // They assert that the SQL queries and RPC calls are structurally correct and
 // do not throw PostgREST errors like PGRST100 (syntax) or PGRST203 (overload ambiguity).
 describe("Supabase Real Query Integration Tests", () => {
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+    child: vi.fn(),
+  };
+
   describe("ProviderRepository", () => {
     it("should successfully execute searchProviders without throwing PGRST203", async () => {
       const providerRepo = new ProviderRepository(
         (env as unknown as Record<string, string>).SUPABASE_URL as string,
         (env as unknown as Record<string, string>)
           .SUPABASE_SECRET_KEY as string,
+        mockLogger as any,
       );
 
       // Attempt a search both with and without explicit limit to ensure no RPC ambiguity
@@ -35,6 +44,7 @@ describe("Supabase Real Query Integration Tests", () => {
         (env as unknown as Record<string, string>).SUPABASE_URL as string,
         (env as unknown as Record<string, string>)
           .SUPABASE_SECRET_KEY as string,
+        mockLogger as any,
       );
 
       const results = await providerRepo.findProvidersByH3Indexes([
@@ -50,6 +60,7 @@ describe("Supabase Real Query Integration Tests", () => {
         (env as unknown as Record<string, string>).SUPABASE_URL as string,
         (env as unknown as Record<string, string>)
           .SUPABASE_SECRET_KEY as string,
+        mockLogger as any,
       );
 
       const resWithLimit = await hospitalRepo.searchHospitals("rs", "rs", 5);
@@ -64,6 +75,7 @@ describe("Supabase Real Query Integration Tests", () => {
         (env as unknown as Record<string, string>).SUPABASE_URL as string,
         (env as unknown as Record<string, string>)
           .SUPABASE_SECRET_KEY as string,
+        mockLogger as any,
       );
 
       // 878c106a4ffffff is a valid H3 index form

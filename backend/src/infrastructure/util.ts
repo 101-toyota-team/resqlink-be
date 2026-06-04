@@ -1,4 +1,4 @@
-import logger from "../utils/logger";
+import { logger } from "../utils/logger";
 
 const MAX_RETRIES = 2;
 const BASE_DELAY = 200;

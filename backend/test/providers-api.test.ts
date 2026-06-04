@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
+import { ILogger } from "../src/types";
+
+const mockLogger = {
+  info: vi.fn(),
+  error: vi.fn(),
+  warn: vi.fn(),
+  debug: vi.fn(),
+  child: vi.fn(),
+} as unknown as ILogger;
 import providersApp from "../src/routes/providers";
 import { errorHandler } from "../src/middleware/error-handler";
 import { ERROR_MESSAGES } from "../src/utils/constants";
@@ -37,6 +46,13 @@ const createApp = (
   const app = new Hono<{ Bindings: Bindings; Variables: AppVariables }>();
   app.use("*", async (c, next) => {
     c.set("getProviderService", () => serviceMock as IProviderService);
+    c.set("getLogger", () => ({
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      child: vi.fn(),
+    }));
     if (bookingRepoMock) {
       c.set(
         "getBookingService",
@@ -74,7 +90,14 @@ describe("ProviderService", () => {
       cellToLatLng: vi.fn(),
       haversineDistance: vi.fn(),
     } as IGeoService;
-    service = new ProviderService(mockProviderRepo, mockGeo);
+    const mockLogger = {
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      child: vi.fn(),
+    };
+    service = new ProviderService(mockProviderRepo, mockGeo, mockLogger);
   });
 
   it("should expand abbreviations like RS in search query", async () => {

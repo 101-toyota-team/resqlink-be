@@ -89,11 +89,20 @@ describe("BookingService", () => {
       }),
     } as Mocked<IDistanceService>;
 
+    const mockLogger = {
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      child: vi.fn(),
+    } as any;
+
     service = new BookingService(
       mockBookingRepo,
       mockAmbulanceRepo,
       mockRealtime,
       mockDistanceService,
+      mockLogger,
     );
   });
 

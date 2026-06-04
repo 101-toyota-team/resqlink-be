@@ -69,7 +69,14 @@ describe("DistanceService", () => {
       haversineDistance: vi.fn(),
     } as Mocked<IGeoService>;
 
-    service = new DistanceService(mockMaps, mockCache, mockGeo);
+    const mockLogger = {
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      child: vi.fn(),
+    };
+    service = new DistanceService(mockMaps, mockCache, mockGeo, mockLogger);
   });
 
   it("returns empty array for no drivers", async () => {

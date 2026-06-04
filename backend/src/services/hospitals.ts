@@ -2,6 +2,7 @@ import { Hospital, HospitalDetails } from "../types";
 import { IHospitalRepository } from "../repositories/hospital";
 import { IGeoService } from "./geo";
 import { preprocessQuery } from "../utils/query";
+import type { ILogger } from "../types";
 
 export interface IHospitalService {
   searchHospitals(query: string, limit?: number): Promise<Hospital[]>;
@@ -12,6 +13,7 @@ export class HospitalService implements IHospitalService {
   constructor(
     private hospitalRepo: IHospitalRepository,
     private geo: IGeoService,
+    private logger: ILogger,
   ) {}
 
   async searchHospitals(query: string, limit?: number): Promise<Hospital[]> {

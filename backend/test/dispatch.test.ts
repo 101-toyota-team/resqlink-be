@@ -29,7 +29,14 @@ describe("DispatchService", () => {
       getEnrichedDrivers: vi.fn(),
       getRouteLeg: vi.fn(),
     } as unknown as Mocked<IDistanceService>;
-    service = new DispatchService(mockAmbulanceRepo, mockGeo, mockDistance);
+    const mockLogger = {
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      child: vi.fn(),
+    };
+    service = new DispatchService(mockAmbulanceRepo, mockGeo, mockDistance, mockLogger);
   });
 
   it("should find nearby drivers from DB and call distance service for enrichment", async () => {

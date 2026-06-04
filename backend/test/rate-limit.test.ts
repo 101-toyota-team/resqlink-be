@@ -91,6 +91,16 @@ describe("Rate Limiter Middleware (Native)", () => {
       Variables: AppVariables;
     }>();
 
+    app.use("*", async (c, next) => {
+      c.set("getLogger", () => ({
+        info: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
+        child: vi.fn(),
+      }));
+      await next();
+    });
     app.use("*", rateLimiter("RL_DEFAULT"));
     app.get("/test", (c) => c.json({ ok: true }));
 

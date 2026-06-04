@@ -2,10 +2,10 @@ import { IGenericCache } from "../repositories/generic-cache";
 import { IMapsRepository } from "../repositories/maps";
 import { AmbulanceLocation } from "../types";
 import { IGeoService } from "./geo";
-import logger from "../utils/logger";
 import { GLOBAL_H3_RESOLUTION, REDIS } from "../utils/constants";
 import { decodePolyline } from "../utils/polyline";
 import { normalizeCoordinate, calculateViewport } from "../utils/route";
+import type { ILogger } from "../types";
 
 export interface IDistanceService {
   getEnrichedDrivers<T extends AmbulanceLocation>(
@@ -38,6 +38,7 @@ export class DistanceService implements IDistanceService {
     private maps: IMapsRepository,
     private cache: IGenericCache,
     private geo: IGeoService,
+    private logger: ILogger,
   ) {}
 
   async getRouteLeg(
@@ -147,7 +148,7 @@ export class DistanceService implements IDistanceService {
       ]);
 
       if (matrix.status !== "OK") {
-        logger.error(
+        this.logger.error(
           "Maps Distance API returned non-OK status: %s",
           matrix.status,
         );
@@ -187,7 +188,7 @@ export class DistanceService implements IDistanceService {
       );
       for (const result of writeResults) {
         if (result.status === "rejected") {
-          logger.warn("Distance cache write failed:", result.reason);
+          this.logger.warn("Distance cache write failed:", result.reason);
         }
       }
     }

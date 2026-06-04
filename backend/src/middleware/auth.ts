@@ -1,9 +1,8 @@
 import { Context, Next } from "hono";
 import { verifyWithJwks } from "hono/jwt";
-import { JwtPayload } from "../types";
+import { AppVariables, JwtPayload } from "../types";
 import { Bindings } from "../schemas/env";
 import { ERROR_MESSAGES, errorResponse } from "../utils/constants";
-import logger from "../utils/logger";
 
 // Type guard to validate JWT payload structure
 function isValidJwtPayload(payload: unknown): payload is JwtPayload {
@@ -15,9 +14,10 @@ function isValidJwtPayload(payload: unknown): payload is JwtPayload {
 }
 
 export const supabaseAuth = async (
-  c: Context<{ Bindings: Bindings; Variables: { jwtPayload: JwtPayload } }>,
+  c: Context<{ Bindings: Bindings; Variables: AppVariables }>,
   next: Next,
 ) => {
+  const logger = c.get("getLogger")();
   const authHeader = c.req.header("Authorization");
   if (!authHeader)
     return c.json(errorResponse(ERROR_MESSAGES.UNAUTHORIZED), 401);
@@ -33,7 +33,7 @@ export const supabaseAuth = async (
     });
 
     if (!isValidJwtPayload(payload)) {
-      logger.error(payload, "Invalid JWT payload structure");
+      logger.error("Invalid JWT payload structure", { payload });
       return c.json(errorResponse(ERROR_MESSAGES.INVALID_TOKEN), 401);
     }
 

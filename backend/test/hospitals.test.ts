@@ -17,6 +17,13 @@ const createApp = (serviceMock: MockHospitalService) => {
 
   app.use("*", async (c, next) => {
     c.set("getHospitalService", () => serviceMock as IHospitalService);
+    c.set("getLogger", () => ({
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      child: vi.fn(),
+    }));
     await next();
   });
 

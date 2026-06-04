@@ -36,7 +36,14 @@ describe("ProviderService", () => {
       haversineDistance: vi.fn(),
     } as Mocked<IGeoService>;
 
-    service = new ProviderService(mockRepo, mockGeo);
+    const mockLogger = {
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      child: vi.fn(),
+    };
+    service = new ProviderService(mockRepo, mockGeo, mockLogger);
   });
 
   describe("searchProviders", () => {

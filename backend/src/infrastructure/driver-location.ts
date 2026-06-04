@@ -2,6 +2,7 @@ import { IDriverLocationRepository } from "../repositories/driver-location";
 import { DriverLocation } from "../types";
 import { IGenericCache } from "../repositories/generic-cache";
 import { SupabaseClientBase } from "./supabase/client";
+import type { ILogger } from "../types";
 
 const DRIVER_LOCATION_PREFIX = "driver:location:";
 const DRIVER_LOCATION_TTL = 300;
@@ -16,8 +17,8 @@ export class DriverLocationRepository
     location: DriverLocation;
   }> = [];
 
-  constructor(url: string, key: string, cache: IGenericCache) {
-    super(url, key);
+  constructor(url: string, key: string, cache: IGenericCache, logger: ILogger) {
+    super(url, key, logger);
     this.cache = cache;
   }
 

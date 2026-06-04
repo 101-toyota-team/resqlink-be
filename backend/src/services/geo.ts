@@ -1,6 +1,6 @@
 import * as h3 from "h3-js";
-import logger from "../utils/logger";
 import { ValidationError } from "../utils/errors";
+import type { ILogger } from "../types";
 
 export interface IGeoService {
   getNeighbors(h3Index: string, radius: number): string[];
@@ -17,6 +17,8 @@ export interface IGeoService {
 }
 
 export class GeoService implements IGeoService {
+  constructor(private logger: ILogger) {}
+
   getNeighbors(h3Index: string, radius: number): string[] {
     return h3.gridDisk(h3Index, radius);
   }
@@ -24,16 +26,17 @@ export class GeoService implements IGeoService {
   getRing(h3Index: string, radius: number): string[] {
     if (radius === 0) return [h3Index];
     try {
-      return h3.gridRingUnsafe(h3Index, radius);
+        return h3.gridRingUnsafe(h3Index, radius);
     } catch (err) {
-      logger.warn(err, "gridRingUnsafe failed, falling back to gridDisk", {
-        h3Index,
-        radius,
-      });
-      const disk = h3.gridDisk(h3Index, radius);
-      const inner = h3.gridDisk(h3Index, radius - 1);
-      return disk.filter((c) => !inner.includes(c));
+        this.logger.warn(err, "gridRingUnsafe failed, falling back to gridDisk", {
+          h3Index,
+          radius,
+        });
+        const disk = h3.gridDisk(h3Index, radius);
+        const inner = h3.gridDisk(h3Index, radius - 1);
+        return disk.filter((c) => !inner.includes(c));
     }
+
   }
 
   latLngToCell(lat: number, lng: number, resolution: number): string {

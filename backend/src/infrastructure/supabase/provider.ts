@@ -3,12 +3,17 @@ import { SupabaseClientBase } from "./client";
 import { Provider } from "../../types";
 import { DatabaseSchemaDriftError } from "../../utils/constants";
 import { dbProviderSchema } from "../../schemas/db";
-import logger from "../../utils/logger";
+import type { ILogger } from "../../types";
 
 export class ProviderRepository
   extends SupabaseClientBase
   implements IProviderRepository
 {
+  constructor(url: string, key: string, logger: ILogger) {
+    super(url, key, logger);
+}
+
+
   async searchProviders(
     raw: string,
     expanded: string,
@@ -25,14 +30,14 @@ export class ProviderRepository
     );
 
     if (error) {
-      logger.error(error, "Supabase searchProviders error");
+      this.logger.error(error, "Supabase searchProviders error");
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
     try {
       return dbProviderSchema.array().parse(data || []);
     } catch (err) {
-      logger.error(err, "Database schema drift detected in searchProviders");
+      this.logger.error(err, "Database schema drift detected in searchProviders");
       throw new DatabaseSchemaDriftError("Provider", err);
     }
   }
@@ -45,14 +50,14 @@ export class ProviderRepository
       .in("h3_index", h3Indexes);
 
     if (error) {
-      logger.error(error, "Supabase findProvidersByH3Indexes error");
+      this.logger.error(error, "Supabase findProvidersByH3Indexes error");
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
     try {
       return dbProviderSchema.array().parse(data || []);
     } catch (err) {
-      logger.error(
+      this.logger.error(
         err,
         "Database schema drift detected in findProvidersByH3Indexes",
       );
