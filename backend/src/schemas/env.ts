@@ -7,6 +7,7 @@ export const envSchema = z.object({
   SUPABASE_SECRET_KEY: z.string().min(1),
   MAPBOX_ACCESS_TOKEN: z.string().min(1),
   ALLOWED_ORIGINS: z.string().min(1),
+  LOG_LEVEL: z.string().optional().default("info"),
   RL_DEFAULT: z.any().optional(),
   RL_DRIVER: z.any().optional(),
 });

@@ -4,6 +4,7 @@ compatibility_date = "2026-01-01"
 [vars]
 # DO NOT put real secrets here. Use .dev.vars for local and 'wrangler secret put' for prod.
 MAPBOX_ACCESS_TOKEN = "pk.your_token_here"
+LOG_LEVEL = "info"
 
 [[ratelimits]]
 name = "RL_DEFAULT"

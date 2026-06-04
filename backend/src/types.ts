@@ -12,6 +12,8 @@ import { IGenericCache } from "./repositories/generic-cache";
 import type { BookingStatus } from "./utils/constants";
 import type { IDistanceService } from "./services/distance";
 import type { IDriverRepository } from "./repositories/driver";
+import type { IDriverService } from "./services/driver";
+import type { IDriverLocationRepository } from "./repositories/driver-location";
 
 export interface DriverLocation {
   lat: number;
@@ -183,10 +185,10 @@ export interface ILogger {
   info(...args: unknown[]): void;
   error(...args: unknown[]): void;
   warn(...args: unknown[]): void;
+  debug(...args: unknown[]): void;
+  child(context: Record<string, unknown>): ILogger;
 }
 
-import type { IDriverService } from "./services/driver";
-import type { IDriverLocationRepository } from "./repositories/driver-location";
 
 export interface AppVariables {
   getBookingService: () => IBookingService;
@@ -204,5 +206,7 @@ export interface AppVariables {
   getDriverService: () => IDriverService;
   getDriverLocationRepo: () => IDriverLocationRepository;
   getDriverRepo: () => IDriverRepository;
+  getLogger: () => ILogger;
   jwtPayload: JwtPayload;
+  requestId: string;
 }
