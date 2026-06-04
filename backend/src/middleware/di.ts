@@ -11,7 +11,7 @@ import {
 import { UpstashRedisRepository } from "../infrastructure/upstash";
 import { MapboxRepository } from "../infrastructure/mapbox";
 import { Bindings } from "../schemas/env";
-import { AppVariables } from "../types";
+import { AppVariables, ILogger } from "../types";
 import { GeoService } from "../services/geo";
 import { DistanceService } from "../services/distance";
 import { ProviderService, IProviderService } from "../services/providers";
@@ -19,6 +19,7 @@ import { HospitalService, IHospitalService } from "../services/hospitals";
 import { DriverService, IDriverService } from "../services/driver";
 import { DriverLocationRepository } from "../infrastructure/driver-location";
 import { DriverRepository } from "../infrastructure/driver-repo";
+import { Logger } from "../utils/logger";
 
 export const diMiddleware: MiddlewareHandler<{
   Bindings: Bindings;
@@ -40,9 +41,22 @@ export const diMiddleware: MiddlewareHandler<{
   let geoService: GeoService | undefined;
   let driverLocationRepo: DriverLocationRepository | undefined;
   let driverRepo: DriverRepository | undefined;
+  let loggerInstance: ILogger | undefined;
+
+  c.set("getLogger", () => {
+    if (!loggerInstance) {
+      const baseLogger = new Logger(c.env.LOG_LEVEL);
+      loggerInstance = baseLogger.child({
+        requestId: c.get("requestId"),
+        method: c.req.method,
+        path: c.req.path,
+      });
+    }
+    return loggerInstance;
+  });
 
   const getGeo = () => {
-    if (!geoService) geoService = new GeoService();
+    if (!geoService) geoService = new GeoService(c.get("getLogger")());
     return geoService;
   };
 
@@ -51,6 +65,7 @@ export const diMiddleware: MiddlewareHandler<{
       bookingRepo = new BookingRepository(
         c.env.SUPABASE_URL,
         c.env.SUPABASE_SECRET_KEY,
+        c.get("getLogger")(),
       );
     }
     return bookingRepo;
@@ -61,6 +76,7 @@ export const diMiddleware: MiddlewareHandler<{
       ambulanceRepo = new AmbulanceRepository(
         c.env.SUPABASE_URL,
         c.env.SUPABASE_SECRET_KEY,
+        c.get("getLogger")(),
       );
     }
     return ambulanceRepo;
@@ -71,6 +87,7 @@ export const diMiddleware: MiddlewareHandler<{
       providerRepo = new ProviderRepository(
         c.env.SUPABASE_URL,
         c.env.SUPABASE_SECRET_KEY,
+        c.get("getLogger")(),
       );
     }
     return providerRepo;
@@ -81,6 +98,7 @@ export const diMiddleware: MiddlewareHandler<{
       hospitalRepo = new HospitalRepository(
         c.env.SUPABASE_URL,
         c.env.SUPABASE_SECRET_KEY,
+        c.get("getLogger")(),
       );
     }
     return hospitalRepo;
@@ -91,6 +109,7 @@ export const diMiddleware: MiddlewareHandler<{
       realtimeRepo = new RealtimeBroadcaster(
         c.env.SUPABASE_URL,
         c.env.SUPABASE_SECRET_KEY,
+        c.get("getLogger")(),
       );
     }
     return realtimeRepo;
@@ -98,7 +117,7 @@ export const diMiddleware: MiddlewareHandler<{
 
   c.set("getMaps", () => {
     if (!mapsRepo) {
-      mapsRepo = new MapboxRepository(c.env.MAPBOX_ACCESS_TOKEN);
+      mapsRepo = new MapboxRepository(c.env.MAPBOX_ACCESS_TOKEN, c.get("getLogger")());
     }
     return mapsRepo;
   });
@@ -108,6 +127,7 @@ export const diMiddleware: MiddlewareHandler<{
       cacheRepo = new UpstashRedisRepository(
         c.env.UPSTASH_REDIS_REST_URL,
         c.env.UPSTASH_REDIS_REST_TOKEN,
+        c.get("getLogger")(),
       );
     }
     return cacheRepo;
@@ -119,6 +139,7 @@ export const diMiddleware: MiddlewareHandler<{
         c.get("getMaps")(),
         c.get("getCache")(),
         getGeo(),
+        c.get("getLogger")(),
       );
     }
     return distanceService;
@@ -130,6 +151,7 @@ export const diMiddleware: MiddlewareHandler<{
         c.env.SUPABASE_URL,
         c.env.SUPABASE_SECRET_KEY,
         c.get("getCache")(),
+        c.get("getLogger")(),
       );
     }
     return driverLocationRepo;
@@ -140,6 +162,7 @@ export const diMiddleware: MiddlewareHandler<{
       driverRepo = new DriverRepository(
         c.env.SUPABASE_URL,
         c.env.SUPABASE_SECRET_KEY,
+        c.get("getLogger")(),
       );
     }
     return driverRepo;
@@ -152,6 +175,7 @@ export const diMiddleware: MiddlewareHandler<{
         c.get("getAmbulanceRepo")(),
         c.get("getRealtimeRepo")(),
         c.get("getDistanceService")(),
+        c.get("getLogger")(),
       );
     }
     return bookingService;
@@ -162,6 +186,7 @@ export const diMiddleware: MiddlewareHandler<{
       providerService = new ProviderService(
         c.get("getProviderRepo")(),
         getGeo(),
+        c.get("getLogger")(),
       );
     }
     return providerService;
@@ -172,6 +197,7 @@ export const diMiddleware: MiddlewareHandler<{
       hospitalService = new HospitalService(
         c.get("getHospitalRepo")(),
         getGeo(),
+        c.get("getLogger")(),
       );
     }
     return hospitalService;
@@ -183,6 +209,7 @@ export const diMiddleware: MiddlewareHandler<{
         c.get("getAmbulanceRepo")(),
         getGeo(),
         c.get("getDistanceService")(),
+        c.get("getLogger")(),
       );
     }
     return dispatchService;
@@ -195,6 +222,7 @@ export const diMiddleware: MiddlewareHandler<{
         c.get("getDriverLocationRepo")(),
         c.get("getBookingRepo")(),
         c.get("getRealtimeRepo")(),
+        c.get("getLogger")(),
       );
     }
     return driverService;

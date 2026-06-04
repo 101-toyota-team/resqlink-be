@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { AppVariables } from "./types";
 import { envSchema, Bindings } from "./schemas/env";
-import logger from "./utils/logger";
+import { Logger } from "./utils/logger";
 import { ERROR_MESSAGES, errorResponse } from "./utils/constants";
 
 import { diMiddleware } from "./middleware/di";
@@ -31,11 +31,20 @@ app.use(
   }),
 );
 
+// 0.5. Request Correlation Middleware
+app.use("*", async (c, next) => {
+  const requestId = crypto.randomUUID();
+  c.set("requestId", requestId);
+  await next();
+  c.res.headers.set("x-request-id", requestId);
+});
+
 // 1. Environment Validation Middleware
 app.use("*", async (c, next) => {
   const result = envSchema.safeParse(c.env);
   if (!result.success) {
-    logger.error("Invalid environment variables");
+    const bootstrapLogger = new Logger(c.env.LOG_LEVEL);
+    bootstrapLogger.error("Invalid environment variables");
     return c.json(errorResponse(ERROR_MESSAGES.CONFIGURATION_ERROR), 500);
   }
   await next();
@@ -49,6 +58,21 @@ app.use("/ambulances/*", rateLimiter("RL_DEFAULT"));
 app.use("/bookings/*", rateLimiter("RL_DEFAULT"));
 app.use("/bookings", rateLimiter("RL_DEFAULT"));
 app.use("/driver/*", rateLimiter("RL_DRIVER"));
+
+// 3.5. Request Lifecycle Logging
+app.use("*", async (c, next) => {
+  const start = performance.now();
+  await next();
+  const durationMs = Math.round(performance.now() - start);
+  const logger = new Logger(c.env.LOG_LEVEL, {
+    requestId: c.get("requestId"),
+    method: c.req.method,
+    path: c.req.path,
+    statusCode: c.res.status,
+    durationMs,
+  });
+  logger.info("Request completed");
+});
 
 // 4. Auth Middleware
 app.use("/bookings", supabaseAuth);

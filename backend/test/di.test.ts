@@ -45,6 +45,7 @@ describe("DI Middleware", () => {
     UPSTASH_REDIS_REST_TOKEN: "test-token",
     MAPBOX_ACCESS_TOKEN: "test-token",
     ALLOWED_ORIGINS: "*",
+    LOG_LEVEL: "info",
     RL_DEFAULT: { limit: vi.fn().mockResolvedValue({ success: true }) },
   };
 
@@ -180,5 +181,35 @@ describe("DI Middleware", () => {
     const body = await res.json<Record<string, boolean>>();
     expect(body.bookingOk).toBe(true);
     expect(body.dispatchOk).toBe(true);
+  });
+
+  it("should set getLogger on context with a function returning a logger with all required methods", async () => {
+    app.get("/logger-check", (c) => {
+      const getLogger = c.get("getLogger");
+      const logger = getLogger();
+      return c.json({
+        getLoggerType: typeof getLogger,
+        hasInfo: typeof logger.info === "function",
+        hasError: typeof logger.error === "function",
+        hasWarn: typeof logger.warn === "function",
+        hasDebug: typeof logger.debug === "function",
+        hasChild: typeof logger.child === "function",
+      });
+    });
+
+    const res = await app.request(
+      "/logger-check",
+      {},
+      mockEnv as unknown as Bindings,
+    );
+    expect(res.status).toBe(200);
+
+    const body = await res.json<Record<string, unknown>>();
+    expect(body.getLoggerType).toBe("function");
+    expect(body.hasInfo).toBe(true);
+    expect(body.hasError).toBe(true);
+    expect(body.hasWarn).toBe(true);
+    expect(body.hasDebug).toBe(true);
+    expect(body.hasChild).toBe(true);
   });
 });
