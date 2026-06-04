@@ -11,8 +11,7 @@ export class ProviderRepository
 {
   constructor(url: string, key: string, logger: ILogger) {
     super(url, key, logger);
-}
-
+  }
 
   async searchProviders(
     raw: string,
@@ -37,7 +36,10 @@ export class ProviderRepository
     try {
       return dbProviderSchema.array().parse(data || []);
     } catch (err) {
-      this.logger.error(err, "Database schema drift detected in searchProviders");
+      this.logger.error(
+        err,
+        "Database schema drift detected in searchProviders",
+      );
       throw new DatabaseSchemaDriftError("Provider", err);
     }
   }

@@ -189,7 +189,6 @@ export interface ILogger {
   child(context: Record<string, unknown>): ILogger;
 }
 
-
 export interface AppVariables {
   getBookingService: () => IBookingService;
   getDispatchService: () => IDispatchService;

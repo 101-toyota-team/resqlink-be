@@ -26,17 +26,16 @@ export class GeoService implements IGeoService {
   getRing(h3Index: string, radius: number): string[] {
     if (radius === 0) return [h3Index];
     try {
-        return h3.gridRingUnsafe(h3Index, radius);
+      return h3.gridRingUnsafe(h3Index, radius);
     } catch (err) {
-        this.logger.warn(err, "gridRingUnsafe failed, falling back to gridDisk", {
-          h3Index,
-          radius,
-        });
-        const disk = h3.gridDisk(h3Index, radius);
-        const inner = h3.gridDisk(h3Index, radius - 1);
-        return disk.filter((c) => !inner.includes(c));
+      this.logger.warn(err, "gridRingUnsafe failed, falling back to gridDisk", {
+        h3Index,
+        radius,
+      });
+      const disk = h3.gridDisk(h3Index, radius);
+      const inner = h3.gridDisk(h3Index, radius - 1);
+      return disk.filter((c) => !inner.includes(c));
     }
-
   }
 
   latLngToCell(lat: number, lng: number, resolution: number): string {

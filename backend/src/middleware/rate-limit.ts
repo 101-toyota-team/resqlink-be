@@ -27,7 +27,10 @@ export function rateLimiter(
       }
     } catch (err) {
       const logger = c.get("getLogger")();
-      logger.error("Native rate limiter error — allowing request", { bindingName, error: err });
+      logger.error("Native rate limiter error — allowing request", {
+        bindingName,
+        error: err,
+      });
       await next();
       return;
     }

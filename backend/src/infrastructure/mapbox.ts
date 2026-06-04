@@ -29,7 +29,10 @@ interface MapboxErrorResponse {
 }
 
 export class MapboxRepository implements IMapsRepository {
-  constructor(private accessToken: string, private logger: ILogger) {}
+  constructor(
+    private accessToken: string,
+    private logger: ILogger,
+  ) {}
 
   private async handleResponse<T>(response: Response): Promise<T> {
     let data: unknown;

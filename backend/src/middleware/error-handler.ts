@@ -27,6 +27,10 @@ export const errorHandler: ErrorHandler = (err, c) => {
     return c.json(errorResponse(err.message), 400);
   }
 
-  logger.error("Internal server error", err, { method: c.req.method, path: c.req.path, requestId: c.get("requestId") });
+  logger.error("Internal server error", err, {
+    method: c.req.method,
+    path: c.req.path,
+    requestId: c.get("requestId"),
+  });
   return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);
 };

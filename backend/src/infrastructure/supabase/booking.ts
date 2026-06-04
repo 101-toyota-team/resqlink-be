@@ -120,7 +120,10 @@ export class BookingRepository
     try {
       return this.parseBooking(data);
     } catch (err) {
-      this.logger.error(err, "Database schema drift detected in assignAmbulance");
+      this.logger.error(
+        err,
+        "Database schema drift detected in assignAmbulance",
+      );
       throw new Error(ERROR_MESSAGES.INTERNAL_ERROR);
     }
   }
@@ -165,7 +168,10 @@ export class BookingRepository
     try {
       return this.parseBookingList(data);
     } catch (err) {
-      this.logger.error(err, "Database schema drift detected in getUserBookings");
+      this.logger.error(
+        err,
+        "Database schema drift detected in getUserBookings",
+      );
       throw new DatabaseSchemaDriftError("Booking", err);
     }
   }

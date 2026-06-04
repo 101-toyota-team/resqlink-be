@@ -16,7 +16,9 @@ const loadEnv = () => {
       }
     });
   } catch (e) {
-    scriptLogger.info("No .dev.vars found or error reading it, using system env.");
+    scriptLogger.info(
+      "No .dev.vars found or error reading it, using system env.",
+    );
   }
 };
 
@@ -77,7 +79,9 @@ async function seed() {
       .maybeSingle();
 
     if (existingProvider) {
-      scriptLogger.info(`Provider ${p.name} already exists with ID: ${existingProvider.id}`);
+      scriptLogger.info(
+        `Provider ${p.name} already exists with ID: ${existingProvider.id}`,
+      );
       providerIds.push(existingProvider.id);
       continue;
     }
@@ -149,7 +153,9 @@ async function seed() {
     let userId: string;
 
     if (found) {
-      scriptLogger.info(`User ${acct.email} already exists. Updating metadata...`);
+      scriptLogger.info(
+        `User ${acct.email} already exists. Updating metadata...`,
+      );
       const { data, error } = await supabase.auth.admin.updateUserById(
         found.id,
         {

@@ -117,7 +117,10 @@ export const diMiddleware: MiddlewareHandler<{
 
   c.set("getMaps", () => {
     if (!mapsRepo) {
-      mapsRepo = new MapboxRepository(c.env.MAPBOX_ACCESS_TOKEN, c.get("getLogger")());
+      mapsRepo = new MapboxRepository(
+        c.env.MAPBOX_ACCESS_TOKEN,
+        c.get("getLogger")(),
+      );
     }
     return mapsRepo;
   });

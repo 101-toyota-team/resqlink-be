@@ -116,7 +116,10 @@ export class HospitalRepository
             ((providerOrderMap.get(b.id) ?? Infinity) as number),
         );
     } catch (err) {
-      this.logger.error(err, "Database schema drift detected in searchHospitals");
+      this.logger.error(
+        err,
+        "Database schema drift detected in searchHospitals",
+      );
       throw new DatabaseSchemaDriftError("Hospital", err);
     }
   }

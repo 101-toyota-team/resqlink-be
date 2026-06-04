@@ -66,7 +66,11 @@ export class BookingService implements IBookingService {
   ) {}
 
   async createBooking(data: BookingData, userId: string): Promise<Booking> {
-    this.logger.debug("Booking created", { userId, bookingType: data.booking_type, pickupH3: data.pickup_h3 });
+    this.logger.debug("Booking created", {
+      userId,
+      bookingType: data.booking_type,
+      pickupH3: data.pickup_h3,
+    });
     const estimated_price = BOOKING_FEES[data.booking_type];
     const bookingData = { ...data, user_id: userId, estimated_price };
     const booking = await this.bookingRepo.createBooking(bookingData);
@@ -79,14 +83,20 @@ export class BookingService implements IBookingService {
         });
     }
 
-    this.logger.info("Booking created", { bookingId: booking.id, status: booking.status });
+    this.logger.info("Booking created", {
+      bookingId: booking.id,
+      status: booking.status,
+    });
     return booking;
   }
 
   async getBooking(id: string, payload: JwtPayload): Promise<Booking> {
     const booking = await this.bookingRepo.getBooking(id);
     if (!booking) {
-      this.logger.debug("Booking not found", { bookingId: id, userId: payload.sub });
+      this.logger.debug("Booking not found", {
+        bookingId: id,
+        userId: payload.sub,
+      });
       throw new NotFoundError(ERROR_MESSAGES.BOOKING_NOT_FOUND);
     }
     if (
@@ -138,7 +148,11 @@ export class BookingService implements IBookingService {
     payload: JwtPayload,
     driverId?: string,
   ): Promise<Booking> {
-    this.logger.debug("Assigning ambulance", { bookingId: id, ambulanceId, driverId });
+    this.logger.debug("Assigning ambulance", {
+      bookingId: id,
+      ambulanceId,
+      driverId,
+    });
     const booking = await this.bookingRepo.getBooking(id);
     if (!booking) {
       throw new NotFoundError(ERROR_MESSAGES.BOOKING_NOT_FOUND);
@@ -173,8 +187,16 @@ export class BookingService implements IBookingService {
         await this.ambulanceRepo.getAmbulanceProviderLocation(ambulanceId);
       const ambLat = providerLoc ? providerLoc.lat : booking.pickup_lat;
       const ambLng = providerLoc ? providerLoc.lng : booking.pickup_lng;
-      
-      this.logger.debug("Route calculation started", { bookingId: id, ambulanceOrigin: { lat: ambLat, lng: ambLng }, pickup: { lat: booking.pickup_lat, lng: booking.pickup_lng }, destination: { lat: booking.destination_lat, lng: booking.destination_lng } });
+
+      this.logger.debug("Route calculation started", {
+        bookingId: id,
+        ambulanceOrigin: { lat: ambLat, lng: ambLng },
+        pickup: { lat: booking.pickup_lat, lng: booking.pickup_lng },
+        destination: {
+          lat: booking.destination_lat,
+          lng: booking.destination_lng,
+        },
+      });
 
       const leg1 = await this.distanceService.getRouteLeg(
         { lat: ambLat, lng: ambLng },
@@ -215,7 +237,13 @@ export class BookingService implements IBookingService {
         routeGeometry,
         driverId,
       );
-      this.logger.info("Ambulance assigned", { bookingId: id, ambulanceId, driverId, status: "confirmed", totalDistance: routeGeometry.total_distance_meters });
+      this.logger.info("Ambulance assigned", {
+        bookingId: id,
+        ambulanceId,
+        driverId,
+        status: "confirmed",
+        totalDistance: routeGeometry.total_distance_meters,
+      });
       return result;
     } catch (error: unknown) {
       if (
@@ -261,7 +289,11 @@ export class BookingService implements IBookingService {
 
     const allowedTransitions = VALID_TRANSITIONS[booking.status];
     if (!allowedTransitions || !allowedTransitions.includes(newStatus)) {
-      this.logger.warn("Unauthorized status transition attempt", { bookingId: id, targetStatus: newStatus, userId: payload.sub });
+      this.logger.warn("Unauthorized status transition attempt", {
+        bookingId: id,
+        targetStatus: newStatus,
+        userId: payload.sub,
+      });
       throw new BookingStateError(ERROR_MESSAGES.INVALID_BOOKING_TRANSITION);
     }
 
@@ -272,7 +304,12 @@ export class BookingService implements IBookingService {
     }
 
     await this.bookingRepo.updateBookingStatus(id, newStatus);
-    this.logger.info("Booking status transition", { bookingId: id, fromStatus: booking.status, toStatus: newStatus, userId: payload.sub });
+    this.logger.info("Booking status transition", {
+      bookingId: id,
+      fromStatus: booking.status,
+      toStatus: newStatus,
+      userId: payload.sub,
+    });
     return { ...booking, status: newStatus };
   }
 }

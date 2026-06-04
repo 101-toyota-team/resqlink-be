@@ -6,7 +6,11 @@ import type { ILogger } from "../types";
 export class UpstashRedisRepository implements IGenericCache {
   private client: Redis;
 
-  constructor(url: string, token: string, private logger: ILogger) {
+  constructor(
+    url: string,
+    token: string,
+    private logger: ILogger,
+  ) {
     this.client = new Redis({ url, token });
   }
 

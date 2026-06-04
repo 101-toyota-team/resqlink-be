@@ -57,9 +57,7 @@ async function main() {
       const password = args[2];
 
       if (!email || !password) {
-        logger.error(
-          "Usage: npx tsx scripts/jwt.ts signin <email> <password>",
-        );
+        logger.error("Usage: npx tsx scripts/jwt.ts signin <email> <password>");
         process.exit(1);
       }
 
@@ -178,7 +176,6 @@ async function main() {
 Supabase JWT Helper Script
 ...
       `);
-
   }
 }
 

@@ -36,7 +36,12 @@ describe("DispatchService", () => {
       debug: vi.fn(),
       child: vi.fn(),
     };
-    service = new DispatchService(mockAmbulanceRepo, mockGeo, mockDistance, mockLogger);
+    service = new DispatchService(
+      mockAmbulanceRepo,
+      mockGeo,
+      mockDistance,
+      mockLogger,
+    );
   });
 
   it("should find nearby drivers from DB and call distance service for enrichment", async () => {

@@ -23,7 +23,10 @@ export class Logger implements ILogger {
     return LEVELS[level] >= this.level;
   }
 
-  private serializeArgs(args: unknown[]): { message?: string; data?: unknown[] } {
+  private serializeArgs(args: unknown[]): {
+    message?: string;
+    data?: unknown[];
+  } {
     const strings = args.filter((a) => typeof a === "string");
     const nonStrings = args.filter((a) => typeof a !== "string");
     return {
@@ -39,7 +42,10 @@ export class Logger implements ILogger {
           name: v.name,
           message: v.message,
           stack: v.stack,
-          cause: v.cause instanceof Error ? { name: v.cause.name, message: v.cause.message } : v.cause,
+          cause:
+            v.cause instanceof Error
+              ? { name: v.cause.name, message: v.cause.message }
+              : v.cause,
         };
       }
       if (typeof v === "object" && v !== null) {
@@ -73,23 +79,40 @@ export class Logger implements ILogger {
       ...this.context,
     };
     if (message) entry.message = message;
-    if (data && data.length > 0) entry.data = data.length === 1 ? data[0] : data;
+    if (data && data.length > 0)
+      entry.data = data.length === 1 ? data[0] : data;
 
     const output = JSON.stringify(entry);
     switch (level) {
-      case "error": console.error(output); break;
-      case "warn":  console.warn(output);  break;
-      default:      console.log(output);   break;
+      case "error":
+        console.error(output);
+        break;
+      case "warn":
+        console.warn(output);
+        break;
+      default:
+        console.log(output);
+        break;
     }
   }
 
-  info(...args: unknown[]): void  { this.emit("info", args); }
-  error(...args: unknown[]): void { this.emit("error", args); }
-  warn(...args: unknown[]): void  { this.emit("warn", args); }
-  debug(...args: unknown[]): void { this.emit("debug", args); }
+  info(...args: unknown[]): void {
+    this.emit("info", args);
+  }
+  error(...args: unknown[]): void {
+    this.emit("error", args);
+  }
+  warn(...args: unknown[]): void {
+    this.emit("warn", args);
+  }
+  debug(...args: unknown[]): void {
+    this.emit("debug", args);
+  }
 
   child(context: Record<string, unknown>): ILogger {
-    const levelName = (Object.entries(LEVELS).find(([, v]) => v === this.level)?.[0] ?? "info") as LogLevel;
+    const levelName = (Object.entries(LEVELS).find(
+      ([, v]) => v === this.level,
+    )?.[0] ?? "info") as LogLevel;
     return new Logger(levelName, { ...this.context, ...context });
   }
 }
