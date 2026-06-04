@@ -47,7 +47,10 @@ describe("Logger", () => {
     expect(serialized.name).toBe("Error");
     expect(serialized.message).toBe("wrapped");
     expect(serialized.stack).toContain("Error: wrapped");
-    expect(serialized.cause).toMatchObject({ name: "Error", message: "root cause" });
+    expect(serialized.cause).toMatchObject({
+      name: "Error",
+      message: "root cause",
+    });
     spy.mockRestore();
   });
 
@@ -127,8 +130,14 @@ describe("Logger", () => {
   it("should not share context mutations between parent and child", () => {
     const actor1 = new Logger("info", { userId: 1 });
     const actor2 = actor1.child({ userId: 2 });
-    expect((actor1 as any).context.userId).toBe(1);
-    expect((actor2 as any).context.userId).toBe(2);
+    expect(
+      (actor1 as unknown as { context: Record<string, unknown> }).context
+        .userId,
+    ).toBe(1);
+    expect(
+      (actor2 as unknown as { context: Record<string, unknown> }).context
+        .userId,
+    ).toBe(2);
   });
 
   it("should treat ' INFO ' (with whitespace) as info level", () => {

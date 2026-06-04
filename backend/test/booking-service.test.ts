@@ -4,7 +4,7 @@ import { IBookingRepository } from "../src/repositories/booking";
 import { IAmbulanceRepository } from "../src/repositories/ambulance";
 import { IRealtimeBroadcaster } from "../src/repositories/realtime";
 import { IDistanceService } from "../src/services/distance";
-import { Booking } from "../src/types";
+import { Booking, ILogger } from "../src/types";
 import {
   NotFoundError,
   ForbiddenError,
@@ -95,7 +95,7 @@ describe("BookingService", () => {
       warn: vi.fn(),
       debug: vi.fn(),
       child: vi.fn(),
-    } as any;
+    } as unknown as ILogger;
 
     service = new BookingService(
       mockBookingRepo,
