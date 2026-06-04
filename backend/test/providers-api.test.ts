@@ -1,14 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
-import { ILogger } from "../src/types";
-
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
-  debug: vi.fn(),
-  child: vi.fn(),
-} as unknown as ILogger;
 import providersApp from "../src/routes/providers";
 import { errorHandler } from "../src/middleware/error-handler";
 import { ERROR_MESSAGES } from "../src/utils/constants";
