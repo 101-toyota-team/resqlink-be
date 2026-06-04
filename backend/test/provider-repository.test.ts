@@ -1,6 +1,15 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { ProviderRepository } from "../src/infrastructure/supabase";
 import { DatabaseSchemaDriftError } from "../src/utils/constants";
+import { ILogger } from "../src/types";
+
+const mockLogger = {
+  info: vi.fn(),
+  error: vi.fn(),
+  warn: vi.fn(),
+  debug: vi.fn(),
+  child: vi.fn(),
+} as unknown as ILogger;
 
 const mockFrom = vi.fn();
 const mockRpc = vi.fn();
@@ -35,7 +44,7 @@ describe("ProviderRepository", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    repository = new ProviderRepository(url, key);
+    repository = new ProviderRepository(url, key, mockLogger);
   });
 
   describe("searchProviders", () => {

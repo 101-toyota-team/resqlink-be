@@ -3,6 +3,7 @@ import { IProviderRepository } from "../repositories/provider";
 import { IGeoService } from "./geo";
 import { preprocessQuery } from "../utils/query";
 import { PROVIDER_SEARCH } from "../utils/constants";
+import type { ILogger } from "../types";
 
 export interface IProviderService {
   searchProviders(query: string, limit?: number): Promise<ProviderDetails[]>;
@@ -17,6 +18,7 @@ export class ProviderService implements IProviderService {
   constructor(
     private providerRepo: IProviderRepository,
     private geo: IGeoService,
+    private logger: ILogger,
   ) {}
 
   async searchProviders(

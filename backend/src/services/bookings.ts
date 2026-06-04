@@ -5,12 +5,7 @@ import { Booking, BookingData, JwtPayload, RouteGeometry } from "../types";
 import type { BookingStatus } from "../utils/constants";
 import { BOOKING_FEES, ERROR_MESSAGES } from "../utils/constants";
 import { canAccessBooking, isAdminRole, isProviderRole } from "../utils/auth";
-import logger from "../utils/logger";
-import {
-  NotFoundError,
-  ForbiddenError,
-  BookingStateError,
-} from "../utils/errors";
+import type { ILogger } from "../types";
 
 const VALID_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
   draft: ["cancelled"],
@@ -21,6 +16,13 @@ const VALID_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
   completed: [],
   cancelled: [],
 };
+
+import {
+  NotFoundError,
+  ForbiddenError,
+  BookingStateError,
+} from "../utils/errors";
+import { IDistanceService } from "./distance";
 
 export interface IBookingService {
   createBooking(data: BookingData, userId: string): Promise<Booking>;
@@ -54,17 +56,17 @@ export interface IBookingService {
   ): Promise<Booking[]>;
 }
 
-import { IDistanceService } from "./distance";
-// ...
 export class BookingService implements IBookingService {
   constructor(
     private bookingRepo: IBookingRepository,
     private ambulanceRepo: IAmbulanceRepository,
     private realtime: IRealtimeBroadcaster,
     private distanceService: IDistanceService,
+    private logger: ILogger,
   ) {}
 
   async createBooking(data: BookingData, userId: string): Promise<Booking> {
+    this.logger.debug("Booking created", { userId, bookingType: data.booking_type, pickupH3: data.pickup_h3 });
     const estimated_price = BOOKING_FEES[data.booking_type];
     const bookingData = { ...data, user_id: userId, estimated_price };
     const booking = await this.bookingRepo.createBooking(bookingData);
@@ -73,16 +75,18 @@ export class BookingService implements IBookingService {
       await this.realtime
         .broadcastNewBooking(booking.provider_id, booking)
         .catch((err) => {
-          logger.error(err, "Failed to broadcast new booking to provider");
+          this.logger.error(err, "Failed to broadcast new booking to provider");
         });
     }
 
+    this.logger.info("Booking created", { bookingId: booking.id, status: booking.status });
     return booking;
   }
 
   async getBooking(id: string, payload: JwtPayload): Promise<Booking> {
     const booking = await this.bookingRepo.getBooking(id);
     if (!booking) {
+      this.logger.debug("Booking not found", { bookingId: id, userId: payload.sub });
       throw new NotFoundError(ERROR_MESSAGES.BOOKING_NOT_FOUND);
     }
     if (
@@ -134,6 +138,7 @@ export class BookingService implements IBookingService {
     payload: JwtPayload,
     driverId?: string,
   ): Promise<Booking> {
+    this.logger.debug("Assigning ambulance", { bookingId: id, ambulanceId, driverId });
     const booking = await this.bookingRepo.getBooking(id);
     if (!booking) {
       throw new NotFoundError(ERROR_MESSAGES.BOOKING_NOT_FOUND);
@@ -168,6 +173,8 @@ export class BookingService implements IBookingService {
         await this.ambulanceRepo.getAmbulanceProviderLocation(ambulanceId);
       const ambLat = providerLoc ? providerLoc.lat : booking.pickup_lat;
       const ambLng = providerLoc ? providerLoc.lng : booking.pickup_lng;
+      
+      this.logger.debug("Route calculation started", { bookingId: id, ambulanceOrigin: { lat: ambLat, lng: ambLng }, pickup: { lat: booking.pickup_lat, lng: booking.pickup_lng }, destination: { lat: booking.destination_lat, lng: booking.destination_lng } });
 
       const leg1 = await this.distanceService.getRouteLeg(
         { lat: ambLat, lng: ambLng },
@@ -201,13 +208,15 @@ export class BookingService implements IBookingService {
       const finalProviderId = booking.provider_id
         ? undefined
         : ambulance.provider_id;
-      return await this.bookingRepo.assignAmbulance(
+      const result = await this.bookingRepo.assignAmbulance(
         id,
         ambulanceId,
         finalProviderId,
         routeGeometry,
         driverId,
       );
+      this.logger.info("Ambulance assigned", { bookingId: id, ambulanceId, driverId, status: "confirmed", totalDistance: routeGeometry.total_distance_meters });
+      return result;
     } catch (error: unknown) {
       if (
         error instanceof Error &&
@@ -252,6 +261,7 @@ export class BookingService implements IBookingService {
 
     const allowedTransitions = VALID_TRANSITIONS[booking.status];
     if (!allowedTransitions || !allowedTransitions.includes(newStatus)) {
+      this.logger.warn("Unauthorized status transition attempt", { bookingId: id, targetStatus: newStatus, userId: payload.sub });
       throw new BookingStateError(ERROR_MESSAGES.INVALID_BOOKING_TRANSITION);
     }
 
@@ -262,6 +272,7 @@ export class BookingService implements IBookingService {
     }
 
     await this.bookingRepo.updateBookingStatus(id, newStatus);
+    this.logger.info("Booking status transition", { bookingId: id, fromStatus: booking.status, toStatus: newStatus, userId: payload.sub });
     return { ...booking, status: newStatus };
   }
 }

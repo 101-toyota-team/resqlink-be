@@ -1,12 +1,12 @@
 import { Redis } from "@upstash/redis/cloudflare";
 import { IGenericCache } from "../repositories/generic-cache";
-import logger from "../utils/logger";
 import type { z } from "zod";
+import type { ILogger } from "../types";
 
 export class UpstashRedisRepository implements IGenericCache {
   private client: Redis;
 
-  constructor(url: string, token: string) {
+  constructor(url: string, token: string, private logger: ILogger) {
     this.client = new Redis({ url, token });
   }
 
@@ -36,7 +36,7 @@ export class UpstashRedisRepository implements IGenericCache {
     if (schema) {
       const parsed = schema.safeParse(data);
       if (!parsed.success) {
-        logger.warn(`Cache data validation failed for key ${key}`);
+        this.logger.warn(`Cache data validation failed for key ${key}`);
         return null;
       }
       return parsed.data;
@@ -52,7 +52,7 @@ export class UpstashRedisRepository implements IGenericCache {
       if (schema) {
         const parsed = schema.safeParse(r);
         if (!parsed.success) {
-          logger.warn(`Cache data validation failed for key ${keys[i]}`);
+          this.logger.warn(`Cache data validation failed for key ${keys[i]}`);
           return null;
         }
         return parsed.data;

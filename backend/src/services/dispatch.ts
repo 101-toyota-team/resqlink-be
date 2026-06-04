@@ -3,6 +3,7 @@ import { AmbulanceDetails } from "../types";
 import { IGeoService } from "./geo";
 import { IDistanceService } from "./distance";
 import { DISTANCE_SERVICE } from "../utils/constants";
+import type { ILogger } from "../types";
 
 export interface IDispatchService {
   findNearbyAmbulances(
@@ -17,6 +18,7 @@ export class DispatchService implements IDispatchService {
     private ambulanceRepo: IAmbulanceRepository,
     private geo: IGeoService,
     private distance: IDistanceService,
+    private logger: ILogger,
   ) {}
 
   async findNearbyAmbulances(

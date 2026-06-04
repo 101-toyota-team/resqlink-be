@@ -1,12 +1,16 @@
 import { IDriverRepository } from "../repositories/driver";
 import { SupabaseClientBase } from "./supabase/client";
 import { Driver } from "../types";
-import logger from "../utils/logger";
+import type { ILogger } from "../types";
 
 export class DriverRepository
   extends SupabaseClientBase
   implements IDriverRepository
 {
+  constructor(url: string, key: string, logger: ILogger) {
+    super(url, key, logger);
+  }
+
   async getDriver(driverId: string): Promise<Driver | null> {
     const { data, error } = await this.client
       .from("drivers")
@@ -16,7 +20,7 @@ export class DriverRepository
 
     if (error) {
       if (error.code === "PGRST116") return null;
-      logger.error(error, "Supabase getDriver error");
+      this.logger.error(error, "Supabase getDriver error");
       return null;
     }
 
@@ -33,7 +37,7 @@ export class DriverRepository
       .eq("id", driverId);
 
     if (error) {
-      logger.error(error, "Supabase updateAvailability error");
+      this.logger.error(error, "Supabase updateAvailability error");
       throw new Error(`Supabase error: ${error.message}`);
     }
   }

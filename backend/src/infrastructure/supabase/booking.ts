@@ -8,12 +8,16 @@ import {
   ERROR_MESSAGES,
 } from "../../utils/constants";
 import { dbBookingSchema } from "../../schemas/db";
-import logger from "../../utils/logger";
+import type { ILogger } from "../../types";
 
 export class BookingRepository
   extends SupabaseClientBase
   implements IBookingRepository
 {
+  constructor(url: string, key: string, logger: ILogger) {
+    super(url, key, logger);
+  }
+
   private parseBooking(data: unknown): Booking {
     const parsed = dbBookingSchema.parse(data);
     return {
@@ -43,14 +47,14 @@ export class BookingRepository
       .single();
 
     if (error) {
-      logger.error(error, "Supabase createBooking error");
+      this.logger.error(error, "Supabase createBooking error");
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
     try {
       return this.parseBooking(booking);
     } catch (err) {
-      logger.error(err, "Database schema drift detected in createBooking");
+      this.logger.error(err, "Database schema drift detected in createBooking");
       throw new Error(ERROR_MESSAGES.INTERNAL_ERROR);
     }
   }
@@ -64,14 +68,14 @@ export class BookingRepository
 
     if (error) {
       if (error.code === "PGRST116") return null;
-      logger.error(error, "Supabase getBooking error");
+      this.logger.error(error, "Supabase getBooking error");
       return null;
     }
 
     try {
       return this.parseBooking(booking);
     } catch (err) {
-      logger.error(err, "Database schema drift detected in getBooking");
+      this.logger.error(err, "Database schema drift detected in getBooking");
       throw new DatabaseSchemaDriftError("Booking", err);
     }
   }
@@ -109,14 +113,14 @@ export class BookingRepository
       if (error.code === "PGRST116") {
         throw new BookingStateError("Booking is no longer in draft status");
       }
-      logger.error(error, "Supabase assignAmbulance error");
+      this.logger.error(error, "Supabase assignAmbulance error");
       throw new Error(ERROR_MESSAGES.INTERNAL_ERROR, { cause: error });
     }
 
     try {
       return this.parseBooking(data);
     } catch (err) {
-      logger.error(err, "Database schema drift detected in assignAmbulance");
+      this.logger.error(err, "Database schema drift detected in assignAmbulance");
       throw new Error(ERROR_MESSAGES.INTERNAL_ERROR);
     }
   }
@@ -128,7 +132,7 @@ export class BookingRepository
       .eq("id", id);
 
     if (error) {
-      logger.error(error, "Supabase updateBookingStatus error");
+      this.logger.error(error, "Supabase updateBookingStatus error");
       throw new Error(ERROR_MESSAGES.INTERNAL_ERROR, { cause: error });
     }
   }
@@ -154,14 +158,14 @@ export class BookingRepository
     const { data, error } = await query;
 
     if (error) {
-      logger.error(error, "Supabase getUserBookings error");
+      this.logger.error(error, "Supabase getUserBookings error");
       throw new Error(ERROR_MESSAGES.INTERNAL_ERROR, { cause: error });
     }
 
     try {
       return this.parseBookingList(data);
     } catch (err) {
-      logger.error(err, "Database schema drift detected in getUserBookings");
+      this.logger.error(err, "Database schema drift detected in getUserBookings");
       throw new DatabaseSchemaDriftError("Booking", err);
     }
   }
@@ -188,14 +192,14 @@ export class BookingRepository
     const { data, error } = await query;
 
     if (error) {
-      logger.error(error, "Supabase getConfirmedBookings error");
+      this.logger.error(error, "Supabase getConfirmedBookings error");
       throw new Error(ERROR_MESSAGES.INTERNAL_ERROR, { cause: error });
     }
 
     try {
       return this.parseBookingList(data);
     } catch (err) {
-      logger.error(
+      this.logger.error(
         err,
         "Database schema drift detected in getConfirmedBookings",
       );
@@ -229,14 +233,14 @@ export class BookingRepository
     const { data, error } = await query;
 
     if (error) {
-      logger.error(error, "Supabase getBookingsByProvider error");
+      this.logger.error(error, "Supabase getBookingsByProvider error");
       throw new Error(ERROR_MESSAGES.INTERNAL_ERROR, { cause: error });
     }
 
     try {
       return this.parseBookingList(data);
     } catch (err) {
-      logger.error(
+      this.logger.error(
         err,
         "Database schema drift detected in getBookingsByProvider",
       );
@@ -261,14 +265,14 @@ export class BookingRepository
     const { data, error } = await query;
 
     if (error) {
-      logger.error(error, "Supabase getDriverAssignments error");
+      this.logger.error(error, "Supabase getDriverAssignments error");
       throw new Error(ERROR_MESSAGES.INTERNAL_ERROR, { cause: error });
     }
 
     try {
       return this.parseBookingList(data);
     } catch (err) {
-      logger.error(err, "Database schema drift in getDriverAssignments");
+      this.logger.error(err, "Database schema drift in getDriverAssignments");
       throw new DatabaseSchemaDriftError("Booking", err);
     }
   }

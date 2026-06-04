@@ -1,7 +1,16 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { GeoService } from "../src/services/geo";
+import { ILogger } from "../src/types";
 
-const geo = new GeoService();
+const mockLogger = {
+  info: vi.fn(),
+  error: vi.fn(),
+  warn: vi.fn(),
+  debug: vi.fn(),
+  child: vi.fn(),
+} as unknown as ILogger;
+
+const geo = new GeoService(mockLogger);
 
 describe("GeoService.parseLatLng", () => {
   it("parses valid coordinate string", () => {

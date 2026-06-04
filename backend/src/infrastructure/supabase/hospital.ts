@@ -4,12 +4,16 @@ import { SupabaseClientBase } from "./client";
 import { Hospital, HospitalDetails } from "../../types";
 import { DatabaseSchemaDriftError } from "../../utils/constants";
 import { dbHospitalSchema } from "../../schemas/db";
-import logger from "../../utils/logger";
+import type { ILogger } from "../../types";
 
 export class HospitalRepository
   extends SupabaseClientBase
   implements IHospitalRepository
 {
+  constructor(url: string, key: string, logger: ILogger) {
+    super(url, key, logger);
+  }
+
   private mapHospitalItem(
     item: z.infer<typeof dbHospitalSchema>,
   ): Hospital | null {
@@ -54,7 +58,7 @@ export class HospitalRepository
     );
 
     if (rpcError) {
-      logger.error(rpcError, "Supabase searchHospitals RPC error");
+      this.logger.error(rpcError, "Supabase searchHospitals RPC error");
       throw new Error(`Supabase error: ${rpcError.message}`, {
         cause: rpcError,
       });
@@ -97,7 +101,7 @@ export class HospitalRepository
       .in("id", hospitalIds);
 
     if (error) {
-      logger.error(error, "Supabase searchHospitals error");
+      this.logger.error(error, "Supabase searchHospitals error");
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
@@ -112,7 +116,7 @@ export class HospitalRepository
             ((providerOrderMap.get(b.id) ?? Infinity) as number),
         );
     } catch (err) {
-      logger.error(err, "Database schema drift detected in searchHospitals");
+      this.logger.error(err, "Database schema drift detected in searchHospitals");
       throw new DatabaseSchemaDriftError("Hospital", err);
     }
   }
@@ -153,7 +157,7 @@ export class HospitalRepository
       .order("name", { foreignTable: "providers", ascending: true });
 
     if (error) {
-      logger.error(error, "Supabase findHospitalsByH3Indexes error");
+      this.logger.error(error, "Supabase findHospitalsByH3Indexes error");
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
@@ -163,7 +167,7 @@ export class HospitalRepository
         .map((item): HospitalDetails | null => this.mapHospitalItem(item))
         .filter((h): h is HospitalDetails => h !== null);
     } catch (err) {
-      logger.error(
+      this.logger.error(
         err,
         "Database schema drift detected in findHospitalsByH3Indexes",
       );

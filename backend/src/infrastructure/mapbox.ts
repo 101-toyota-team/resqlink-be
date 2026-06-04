@@ -6,29 +6,30 @@ import {
 import { fetchWithTimeout } from "./util";
 import { IMapsRepository } from "../repositories/maps";
 import { formatDistance, formatDuration } from "../utils/format";
+import type { ILogger } from "../types";
 
 interface MapboxDirectionsResponse {
   code: string;
-  routes: Array<{
-    geometry: string;
+  routes: {
     distance: number;
     duration: number;
-  }>;
+    geometry: string;
+  }[];
 }
 
 interface MapboxMatrixResponse {
   code: string;
-  distances: Array<Array<number | null>>;
-  durations: Array<Array<number | null>>;
+  distances: number[][];
+  durations: number[][];
 }
 
 interface MapboxErrorResponse {
-  message?: string;
-  code?: string;
+  message: string;
+  code: string;
 }
 
 export class MapboxRepository implements IMapsRepository {
-  constructor(private accessToken: string) {}
+  constructor(private accessToken: string, private logger: ILogger) {}
 
   private async handleResponse<T>(response: Response): Promise<T> {
     let data: unknown;

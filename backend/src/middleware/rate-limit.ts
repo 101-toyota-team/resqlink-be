@@ -2,7 +2,6 @@ import type { MiddlewareHandler } from "hono";
 import type { AppVariables } from "../types";
 import type { Bindings } from "../schemas/env";
 import { errorResponse } from "../utils/constants";
-import logger from "../utils/logger";
 
 export function rateLimiter(
   bindingName: "RL_DEFAULT" | "RL_DRIVER" = "RL_DEFAULT",
@@ -27,10 +26,8 @@ export function rateLimiter(
         return c.json(errorResponse("Too many requests"), 429);
       }
     } catch (err) {
-      logger.error(
-        err,
-        `Native rate limiter error for ${bindingName} — allowing request`,
-      );
+      const logger = c.get("getLogger")();
+      logger.error("Native rate limiter error — allowing request", { bindingName, error: err });
       await next();
       return;
     }

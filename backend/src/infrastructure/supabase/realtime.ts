@@ -1,11 +1,16 @@
 import { IRealtimeBroadcaster } from "../../repositories/realtime";
 import { SupabaseClientBase } from "./client";
 import { DriverLocation, Booking } from "../../types";
+import type { ILogger } from "../../types";
 
 export class RealtimeBroadcaster
   extends SupabaseClientBase
   implements IRealtimeBroadcaster
 {
+  constructor(url: string, key: string, logger: ILogger) {
+    super(url, key, logger);
+  }
+
   async broadcastTripLocation(
     bookingId: string,
     location: DriverLocation,

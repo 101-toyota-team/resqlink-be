@@ -7,12 +7,16 @@ import {
   dbAmbulanceSchema,
   dbAmbulanceProviderSchema,
 } from "../../schemas/db";
-import logger from "../../utils/logger";
+import type { ILogger } from "../../types";
 
 export class AmbulanceRepository
   extends SupabaseClientBase
   implements IAmbulanceRepository
 {
+  constructor(url: string, key: string, logger: ILogger) {
+    super(url, key, logger);
+  }
+
   async getAmbulance(ambulanceId: string): Promise<AmbulanceInfo | null> {
     const { data, error } = await this.client
       .from("ambulances")
@@ -22,14 +26,14 @@ export class AmbulanceRepository
 
     if (error) {
       if (error.code === "PGRST116") return null;
-      logger.error(error, "Supabase getAmbulance error");
+      this.logger.error(error, "Supabase getAmbulance error");
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
     try {
       return dbAmbulanceSchema.parse(data);
     } catch (err) {
-      logger.error(err, "Database schema drift detected in getAmbulance");
+      this.logger.error(err, "Database schema drift detected in getAmbulance");
       throw new DatabaseSchemaDriftError("Ambulance", err);
     }
   }
@@ -52,7 +56,7 @@ export class AmbulanceRepository
       .in("providers.h3_index", h3Indexes);
 
     if (error) {
-      logger.error(error, "Supabase findAvailableAmbulances error");
+      this.logger.error(error, "Supabase findAvailableAmbulances error");
       throw new Error(`Supabase error: ${error.message}`, { cause: error });
     }
 
@@ -69,7 +73,7 @@ export class AmbulanceRepository
         };
       });
     } catch (err) {
-      logger.error(
+      this.logger.error(
         err,
         "Database schema drift detected in findAvailableAmbulances",
       );
@@ -94,7 +98,7 @@ export class AmbulanceRepository
       .single();
 
     if (error || !data) {
-      logger.error(error, "Supabase getAmbulanceProviderLocation error");
+      this.logger.error(error, "Supabase getAmbulanceProviderLocation error");
       throw new Error(`Supabase error: ${error?.message}`, { cause: error });
     }
 
@@ -114,7 +118,7 @@ export class AmbulanceRepository
         lng: provider.longitude,
       };
     } catch (err) {
-      logger.error(
+      this.logger.error(
         err,
         "Database schema drift detected in getAmbulanceProviderLocation",
       );
