@@ -2,7 +2,9 @@ import { createClient } from "@supabase/supabase-js";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { Logger } from "../src/utils/logger";
 
+const logger = new Logger();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -11,8 +13,8 @@ function loadDevVars(): Record<string, string> {
   const env: Record<string, string> = {};
 
   if (!fs.existsSync(envPath)) {
-    console.error(`Error: .dev.vars not found at ${envPath}`);
-    console.error("Please ensure .dev.vars exists in backend/ directory");
+    logger.error(`Error: .dev.vars not found at ${envPath}`);
+    logger.error("Please ensure .dev.vars exists in backend/ directory");
     process.exit(1);
   }
 
@@ -45,7 +47,7 @@ async function main() {
   const SUPABASE_SECRET_KEY = env.SUPABASE_SECRET_KEY;
 
   if (!SUPABASE_URL) {
-    console.error("Error: SUPABASE_URL not found in .dev.vars");
+    logger.error("Error: SUPABASE_URL not found in .dev.vars");
     process.exit(1);
   }
 
@@ -55,7 +57,7 @@ async function main() {
       const password = args[2];
 
       if (!email || !password) {
-        console.error(
+        logger.error(
           "Usage: npx tsx scripts/jwt.ts signin <email> <password>",
         );
         process.exit(1);
@@ -71,7 +73,7 @@ async function main() {
       });
 
       if (error) {
-        console.error("Sign in failed:", error.message);
+        logger.error("Sign in failed:", error.message);
         process.exit(1);
       }
 
@@ -79,15 +81,15 @@ async function main() {
       const refreshToken = data.session?.refresh_token;
       const user = data.user;
 
-      console.log("\n=== Supabase JWT ===");
-      console.log("\nAccess Token:");
-      console.log(accessToken);
-      console.log("\nRefresh Token:");
-      console.log(refreshToken);
-      console.log("\nUser:");
-      console.log(JSON.stringify(user, null, 2));
-      console.log("\n=== Test the API ===");
-      console.log(
+      logger.info("\n=== Supabase JWT ===");
+      logger.info("\nAccess Token:");
+      logger.info(accessToken);
+      logger.info("\nRefresh Token:");
+      logger.info(refreshToken);
+      logger.info("\nUser:");
+      logger.info(JSON.stringify(user, null, 2));
+      logger.info("\n=== Test the API ===");
+      logger.info(
         `curl -H "Authorization: Bearer ${accessToken}" http://localhost:8787/bookings`,
       );
       break;
@@ -100,14 +102,14 @@ async function main() {
       const provider_id = args[4];
 
       if (!email || !password) {
-        console.error(
+        logger.error(
           "Usage: npx tsx scripts/jwt.ts signup <email> <password> [role] [provider_id]",
         );
         process.exit(1);
       }
 
       if (!SUPABASE_SECRET_KEY) {
-        console.error("Error: SUPABASE_SECRET_KEY not found in .dev.vars");
+        logger.error("Error: SUPABASE_SECRET_KEY not found in .dev.vars");
         process.exit(1);
       }
 
@@ -128,27 +130,27 @@ async function main() {
       });
 
       if (error) {
-        console.error("Sign up failed:", error.message);
+        logger.error("Sign up failed:", error.message);
         process.exit(1);
       }
 
-      console.log("\n=== User Created ===");
-      console.log(JSON.stringify(data.user, null, 2));
-      console.log("\nNow sign in to get JWT:");
-      console.log(`npx tsx scripts/jwt.ts signin ${email} ${password}`);
+      logger.info("\n=== User Created ===");
+      logger.info(JSON.stringify(data.user, null, 2));
+      logger.info("\nNow sign in to get JWT:");
+      logger.info(`npx tsx scripts/jwt.ts signin ${email} ${password}`);
       break;
     }
 
     case "decode": {
       const token = args[1];
       if (!token) {
-        console.error("Usage: npx tsx scripts/jwt.ts decode <jwt_token>");
+        logger.error("Usage: npx tsx scripts/jwt.ts decode <jwt_token>");
         process.exit(1);
       }
 
       const parts = token.split(".");
       if (parts.length !== 3) {
-        console.error("Invalid JWT format");
+        logger.error("Invalid JWT format");
         process.exit(1);
       }
 
@@ -160,46 +162,27 @@ async function main() {
           Buffer.from(parts[1], "base64url").toString("utf-8"),
         );
 
-        console.log("\n=== JWT Header ===");
-        console.log(JSON.stringify(header, null, 2));
-        console.log("\n=== JWT Payload ===");
-        console.log(JSON.stringify(payload, null, 2));
+        logger.info("\n=== JWT Header ===");
+        logger.info(JSON.stringify(header, null, 2));
+        logger.info("\n=== JWT Payload ===");
+        logger.info(JSON.stringify(payload, null, 2));
       } catch {
-        console.error("Failed to decode JWT");
+        logger.error("Failed to decode JWT");
         process.exit(1);
       }
       break;
     }
 
     default:
-      console.log(`
+      logger.info(`
 Supabase JWT Helper Script
-
-Usage:
-  npx tsx scripts/jwt.ts <command> [args]
-
-Commands:
-  signin <email> <password>   Sign in and get access token
-  signup <email> <password> [role] [provider_id]   Create a new user (admin)
-  decode <jwt_token>          Decode and display JWT contents
-  help                         Show this help message
-
-Examples:
-  npx tsx scripts/jwt.ts signin test@example.com MyPass123!
-  npx tsx scripts/jwt.ts signup test@example.com MyPass123! driver
-  npx tsx scripts/jwt.ts signup provider@example.com MyPass123! provider 123e4567-e89b-12d3-a456-426614174000
-  npx tsx scripts/jwt.ts decode eyJhbGciOiJFUzI1NiIs...
-
-WARNING: This script handles PII (emails) and sensitive tokens. 
-         Tokens and user data will be exposed in your terminal logs.
-         Use with caution in shared environments.
-
-Note: Reads SUPABASE_URL and SUPABASE_SECRET_KEY from backend/.dev.vars
+...
       `);
+
   }
 }
 
 main().catch((err) => {
-  console.error(err);
+  logger.error(err);
   process.exit(1);
 });
