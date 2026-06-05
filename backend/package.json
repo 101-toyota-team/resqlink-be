@@ -26,6 +26,9 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.15.1",
     "@cloudflare/workers-types": "^4.20260503.1",
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/parser": "^8.59.1",
+    "@vitest/coverage-istanbul": "^4.1.5",
     "eslint": "^8.57.1",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.4",
@@ -33,7 +36,6 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.5",
-    "@vitest/coverage-istanbul": "^4.1.5",
     "wrangler": "^4.87.0"
   }
 }
