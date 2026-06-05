@@ -1,6 +1,10 @@
-UPSTASH_REDIS_REST_URL="https://your-upstash-redis-url.upstash.io"
-UPSTASH_REDIS_REST_TOKEN="your-upstash-redis-rest-token"
-SUPABASE_URL=https://your-project-ref.supabase.co
-SUPABASE_SECRET_KEY=sb_secret_your-supabase-secret-key
-MAPBOX_ACCESS_TOKEN=pk.your-mapbox-access-token
-ALLOWED_ORIGINS=http://localhost:5173
+# Local secrets for wrangler dev
+# Copy this file to .dev.vars and fill in the values
+
+UPSTASH_REDIS_REST_URL=https://your-url.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your-token
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SECRET_KEY=your-secret-key
+MAPBOX_ACCESS_TOKEN=pk.your-token
+ALLOWED_ORIGINS=*
+LOG_LEVEL=debug

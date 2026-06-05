@@ -2,14 +2,15 @@ name: CI
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main, staging ]
   pull_request:
-    branches: [ main, dev ]
+    branches: [ main, staging ]
 
 jobs:
   backend-ci:
     runs-on: ubuntu-latest
-    environment: DEVELOPMENT
+    # Map environment based on branch: main -> PRODUCTION, staging -> STAGING
+    environment: ${{ github.ref_name == 'main' && 'PRODUCTION' || 'STAGING' }}
     steps:
       - uses: actions/checkout@v3
       - name: Install Node.js

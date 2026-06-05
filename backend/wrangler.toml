@@ -1,9 +1,11 @@
 main = "src/index.ts"
 compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
 
 [vars]
-# DO NOT put real secrets here. Use .dev.vars for local and 'wrangler secret put' for prod.
-MAPBOX_ACCESS_TOKEN = "pk.your_token_here"
+# Best for mobile apps: ensures no platform is blocked. 
+# Secrets must be managed via Cloudflare Secrets or .dev.vars.
+ALLOWED_ORIGINS = "*"
 LOG_LEVEL = "info"
 
 [[ratelimits]]
@@ -22,6 +24,11 @@ period = 60
 
 [env.staging]
 name = "staging"
+[env.staging.vars]
+ALLOWED_ORIGINS = "*"
+LOG_LEVEL = "info"
 
-[env.dev]
-name = "dev"
+[env.production]
+[env.production.vars]
+ALLOWED_ORIGINS = "*"
+LOG_LEVEL = "info"
