@@ -38,6 +38,23 @@ const createApp = (dbMock: MockDb, jwtPayloadMock: JwtPayload) => {
   app.use("*", async (c, next) => {
     c.set("jwtPayload", jwtPayloadMock);
 
+    // Mock executionCtx for tests
+    Object.defineProperty(c, "executionCtx", {
+      value: {
+        waitUntil: vi.fn((p) => p),
+        passThroughOnException: vi.fn(),
+      },
+      writable: true,
+    });
+
+    c.set("getLogger", () => ({
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      child: vi.fn(),
+    }));
+
     c.set("getBookingService", () => {
       return new BookingService(
         dbMock as IBookingRepository,
@@ -83,13 +100,13 @@ describe("Bookings Integration Lifecycle", () => {
       updateBookingStatus: vi.fn(),
       assignAmbulance: vi.fn(),
       getAmbulance: vi.fn(),
-      broadcastNewBooking: vi.fn(),
+      broadcastNewBooking: vi.fn().mockResolvedValue("ok"),
       getUserBookings: vi.fn(),
       getConfirmedBookings: vi.fn(),
       getBookingsByProvider: vi.fn(),
       findAvailableAmbulances: vi.fn(),
       getAmbulanceProviderLocation: vi.fn(),
-      broadcastTripLocation: vi.fn(),
+      broadcastTripLocation: vi.fn().mockResolvedValue("ok"),
       searchProviders: vi.fn(),
       findProvidersByH3Indexes: vi.fn(),
       searchHospitals: vi.fn(),

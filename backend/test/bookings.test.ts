@@ -56,6 +56,15 @@ const createApp = (
   app.use("*", async (c, next) => {
     c.set("jwtPayload", jwtPayloadMock);
 
+    // Mock executionCtx for tests
+    Object.defineProperty(c, "executionCtx", {
+      value: {
+        waitUntil: vi.fn((p) => p),
+        passThroughOnException: vi.fn(),
+      },
+      writable: true,
+    });
+
     c.set("getLogger", () => ({
       info: vi.fn(),
       error: vi.fn(),
@@ -120,16 +129,16 @@ describe("Bookings API", () => {
       assignAmbulance: vi.fn(),
       getAmbulance: vi.fn(),
       findAvailableAmbulances: vi.fn(),
-      broadcastTripLocation: vi.fn(),
+      broadcastTripLocation: vi.fn().mockResolvedValue("ok"),
       getAmbulanceProviderLocation: vi.fn(),
       getUserBookings: vi.fn(),
       getConfirmedBookings: vi.fn(),
+      getBookingsByProvider: vi.fn(),
       searchProviders: vi.fn(),
       findProvidersByH3Indexes: vi.fn(),
       searchHospitals: vi.fn(),
       findHospitalsByH3Indexes: vi.fn(),
-      getBookingsByProvider: vi.fn(),
-      broadcastNewBooking: vi.fn(),
+      broadcastNewBooking: vi.fn().mockResolvedValue("ok"),
       getDriverAssignments: vi.fn(),
     };
   });

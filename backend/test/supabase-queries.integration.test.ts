@@ -1,5 +1,14 @@
 import { env } from "cloudflare:test";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeAll } from "vitest";
+
+// Mock environment variables if they are missing
+if (!(env as any).SUPABASE_URL) {
+  (env as any).SUPABASE_URL = "http://localhost";
+}
+if (!(env as any).SUPABASE_SECRET_KEY) {
+  (env as any).SUPABASE_SECRET_KEY = "test";
+}
+
 import { HospitalRepository } from "../src/infrastructure/supabase/hospital";
 import { ProviderRepository } from "../src/infrastructure/supabase/provider";
 import { ILogger } from "../src/types";

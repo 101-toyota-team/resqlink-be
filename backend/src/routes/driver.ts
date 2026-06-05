@@ -24,9 +24,15 @@ driverApp.post(
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
     const driverId = payload.sub;
     const driverService = c.get("getDriverService")();
-    const driverLocationRepo = c.get("getDriverLocationRepo")();
-    await driverService.updateLocation(driverId, body);
-    c.executionCtx.waitUntil(driverLocationRepo.flushBatch());
+
+    let waitUntil: ((p: Promise<any>) => void) | undefined;
+    try {
+      waitUntil = c.executionCtx.waitUntil.bind(c.executionCtx);
+    } catch {
+      // ignore
+    }
+
+    await driverService.updateLocation(driverId, body, waitUntil);
     return c.json({ status: "ok" }, 200);
   },
 );

@@ -12,10 +12,6 @@ export class DriverLocationRepository
   implements IDriverLocationRepository
 {
   private cache: IGenericCache;
-  private batchBuffer: Array<{
-    driver_id: string;
-    location: DriverLocation;
-  }> = [];
 
   constructor(url: string, key: string, cache: IGenericCache, logger: ILogger) {
     super(url, key, logger);
@@ -29,7 +25,22 @@ export class DriverLocationRepository
     const key = `${DRIVER_LOCATION_PREFIX}${driverId}`;
     await this.cache.set(key, location, DRIVER_LOCATION_TTL);
 
-    this.batchBuffer.push({ driver_id: driverId, location });
+    const row = {
+      driver_id: driverId,
+      booking_id: location.booking_id || null,
+      lat: location.lat,
+      lng: location.lng,
+      heading: location.heading ?? null,
+      speed: location.speed ?? null,
+      accuracy: location.accuracy ?? null,
+      captured_at: location.captured_at,
+    };
+
+    const { error } = await this.client.from("driver_locations").insert(row);
+
+    if (error) {
+      this.logger.error(error, "Failed to insert driver location to database");
+    }
   }
 
   async getLatest(driverId: string): Promise<DriverLocation | null> {
@@ -42,30 +53,6 @@ export class DriverLocationRepository
   ): Promise<(DriverLocation | null)[]> {
     const keys = driverIds.map((id) => `${DRIVER_LOCATION_PREFIX}${id}`);
     return this.cache.mget<DriverLocation>(keys);
-  }
-
-  async flushBatch(): Promise<void> {
-    if (this.batchBuffer.length === 0) return;
-
-    const batch = this.batchBuffer.splice(0, this.batchBuffer.length);
-
-    const rows = batch.map((b) => ({
-      driver_id: b.driver_id,
-      booking_id: b.location.booking_id || null,
-      lat: b.location.lat,
-      lng: b.location.lng,
-      heading: b.location.heading ?? null,
-      speed: b.location.speed ?? null,
-      accuracy: b.location.accuracy ?? null,
-      captured_at: b.location.captured_at,
-    }));
-
-    const { error } = await this.client.from("driver_locations").insert(rows);
-
-    if (error) {
-      this.batchBuffer.unshift(...batch);
-      throw new Error(`Failed to flush driver locations: ${error.message}`);
-    }
   }
 
   async getTripHistory(

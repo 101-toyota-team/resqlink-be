@@ -17,11 +17,27 @@ export class RealtimeBroadcaster
   ): Promise<void> {
     const channel = this.client.channel(`trip:${bookingId}`);
     try {
-      await channel.send({
+      await new Promise((resolve, reject) => {
+        channel.subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            resolve(null);
+          } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            reject(
+              new Error(`Failed to subscribe to realtime channel: ${status}`),
+            );
+          }
+        });
+      });
+
+      const res = await channel.send({
         type: "broadcast",
         event: "location_update",
         payload: location,
       });
+
+      if (res !== "ok") {
+        throw new Error(`Broadcast failed with status: ${res}`);
+      }
     } finally {
       await this.client.removeChannel(channel);
     }
@@ -33,11 +49,27 @@ export class RealtimeBroadcaster
   ): Promise<void> {
     const channel = this.client.channel(`provider:${providerId}`);
     try {
-      await channel.send({
+      await new Promise((resolve, reject) => {
+        channel.subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            resolve(null);
+          } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            reject(
+              new Error(`Failed to subscribe to realtime channel: ${status}`),
+            );
+          }
+        });
+      });
+
+      const res = await channel.send({
         type: "broadcast",
         event: "new_booking",
         payload: booking,
       });
+
+      if (res !== "ok") {
+        throw new Error(`Broadcast failed with status: ${res}`);
+      }
     } finally {
       await this.client.removeChannel(channel);
     }

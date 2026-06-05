@@ -8,7 +8,14 @@ import {
 import { ERROR_MESSAGES, errorResponse } from "../utils/constants";
 
 export const errorHandler: ErrorHandler = (err, c) => {
-  const logger = c.get("getLogger")();
+  let logger;
+  try {
+    logger = c.get("getLogger")();
+  } catch {
+    console.error("Logger not found in context, using fallback console.error");
+    console.error(err);
+    return c.json(errorResponse(ERROR_MESSAGES.INTERNAL_ERROR), 500);
+  }
 
   if (err instanceof NotFoundError) {
     logger.info("Not found", { errorType: "NotFoundError" });
