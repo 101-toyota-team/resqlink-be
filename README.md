@@ -29,6 +29,7 @@ SUPABASE_SECRET_KEY=your-service-role-key
 UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
 UPSTASH_REDIS_REST_TOKEN=your-token
 MAPBOX_ACCESS_TOKEN=pk.your-access-token
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
 ### 3. Running Locally

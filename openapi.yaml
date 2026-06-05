@@ -414,6 +414,43 @@ paths:
           $ref: '#/components/responses/TooManyRequestsError'
         '500':
           $ref: '#/components/responses/InternalError'
+  /driver/bookings/{id}/track:
+    get:
+      operationId: trackDriver
+      summary: Get Driver's Latest Location
+      description: Get the latest location of the driver assigned to a booking.
+      tags:
+        - Driver
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Driver's latest location
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  location:
+                    $ref: '#/components/schemas/DriverLocation'
+                    nullable: true
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsError'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /driver/assignments:
     get:
       operationId: getDriverAssignments
@@ -878,10 +915,10 @@ components:
         captured_at:
           type: string
           format: date-time
+          readOnly: true
       required:
         - lat
         - lng
-        - captured_at
     AmbulanceLocation:
       type: object
       properties:

@@ -104,6 +104,10 @@ The Booking API uses a **provider-directed dispatch model**.
 - **Body:** `{ booking_id: uuid, lat: number, lng: number, heading?: number, speed?: number }`
 - **Logic:** Updates driver's live GPS location, persists to Redis cache (hot) and Supabase history (batch).
 
+#### GET /driver/bookings/:id/track — auth, RL: 30/min
+- **Response:** `{ location: DriverLocation | null }`
+- **Logic:** Returns the latest GPS point for the driver assigned to this booking. Returns `null` if no ambulance is assigned yet or if the booking is not yet `en_route`.
+
 #### GET /driver/assignments — auth, RL: 30/min
 - **Response:** 200 `Booking[]` (all current assignments for the driver).
 
