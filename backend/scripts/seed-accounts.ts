@@ -15,7 +15,7 @@ const loadEnv = () => {
         process.env[key] = rest.join("=").trim();
       }
     });
-  } catch (e) {
+  } catch (_e) {
     scriptLogger.info(
       "No .dev.vars found or error reading it, using system env.",
     );
