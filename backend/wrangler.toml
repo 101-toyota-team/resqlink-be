@@ -29,6 +29,7 @@ ALLOWED_ORIGINS = "*"
 LOG_LEVEL = "info"
 
 [env.production]
+name = "api"
 [env.production.vars]
 ALLOWED_ORIGINS = "*"
 LOG_LEVEL = "info"
