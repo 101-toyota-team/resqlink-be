@@ -18,19 +18,40 @@ jobs:
         with:
           node-version: 22
       - name: Install Dependencies
-        run: cd backend && npm install
+        working-directory: ./backend
+        run: npm install
+      - name: Verify Secrets
+        run: |
+          REQUIRED_SECRETS=("UPSTASH_REDIS_REST_URL" "UPSTASH_REDIS_REST_TOKEN" "SUPABASE_SECRET_KEY" "MAPBOX_ACCESS_TOKEN" "SUPABASE_URL" "ALLOWED_ORIGINS")
+          for secret in "${REQUIRED_SECRETS[@]}"; do
+            if [ -z "${!secret}" ]; then
+              echo "❌ $secret is missing in environment"
+              exit 1
+            fi
+          done
+        env:
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          ALLOWED_ORIGINS: ${{ secrets.ALLOWED_ORIGINS }}
       - name: Create .dev.vars for Cloudflare Worker tests
         run: |
           cat > backend/.dev.vars <<EOF
-          SUPABASE_URL=https://${{ secrets.SUPABASE_PROJECT_ID }}.supabase.co
+          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
           UPSTASH_REDIS_REST_URL=${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN=${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
           SUPABASE_SECRET_KEY=${{ secrets.SUPABASE_SECRET_KEY }}
           MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }}
+          ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}
           EOF
       - name: Lint
-        run: cd backend && npm run lint
+        working-directory: ./backend
+        run: npm run lint
       - name: Test
-        run: cd backend && npm test
+        working-directory: ./backend
+        run: npm test
       - name: Format Check
-        run: cd backend && npx prettier --check "**/*.{ts,js}"
+        working-directory: ./backend
+        run: npx prettier --check "**/*.{ts,js}"
