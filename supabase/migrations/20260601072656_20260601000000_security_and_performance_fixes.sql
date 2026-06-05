@@ -14,16 +14,20 @@ END $$;
 -- 2. Fix Mutable Search Paths
 -- Explicitly set search_path to 'public' for functions to prevent search path hijacking.
 -- Note: We apply this to all overloaded signatures present in the database.
-ALTER FUNCTION public.providers_fts_trigger() SET search_path = public;
-ALTER FUNCTION public.update_provider_booking_count() SET search_path = public;
-
-ALTER FUNCTION public.search_providers_optimized(text) SET search_path = public;
-ALTER FUNCTION public.search_providers_optimized(text, text) SET search_path = public;
-ALTER FUNCTION public.search_providers_optimized(text, text, integer) SET search_path = public;
-
-ALTER FUNCTION public.search_hospitals_optimized(text) SET search_path = public;
-ALTER FUNCTION public.search_hospitals_optimized(text, text) SET search_path = public;
-ALTER FUNCTION public.search_hospitals_optimized(text, text, integer) SET search_path = public;
+DO $$ 
+DECLARE 
+    func_record RECORD;
+BEGIN
+    FOR func_record IN 
+        SELECT n.nspname, p.proname, pg_get_function_identity_arguments(p.oid) as args
+        FROM pg_proc p 
+        JOIN pg_namespace n ON p.pronamespace = n.oid 
+        WHERE n.nspname = 'public' 
+        AND p.proname IN ('providers_fts_trigger', 'update_provider_booking_count', 'search_providers_optimized', 'search_hospitals_optimized')
+    LOOP
+        EXECUTE format('ALTER FUNCTION %I.%I(%s) SET search_path = public', func_record.nspname, func_record.proname, func_record.args);
+    END LOOP;
+END $$;
 
 -- 3. Optimize RLS Policies (Initplan Issue)
 -- Wrap auth.<function>() calls in a subselect (SELECT auth.<function>()) so PostgreSQL 

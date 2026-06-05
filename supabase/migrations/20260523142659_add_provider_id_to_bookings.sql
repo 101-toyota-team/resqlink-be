@@ -1,1 +1,1 @@
-ALTER TABLE bookings ADD COLUMN provider_id UUID REFERENCES providers(id);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS provider_id UUID REFERENCES providers(id);

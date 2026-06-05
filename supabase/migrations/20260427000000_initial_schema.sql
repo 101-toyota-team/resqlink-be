@@ -1,7 +1,7 @@
 -- 1. Providers Table
-CREATE TYPE provider_type AS ENUM ('rumah_sakit', 'klinik', 'komunitas', 'rt_rw', 'yayasan', 'masjid', 'lainnya');
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'provider_type') THEN CREATE TYPE provider_type AS ENUM ('rumah_sakit', 'klinik', 'komunitas', 'rt_rw', 'yayasan', 'masjid', 'lainnya'); END IF; END $$;
 
-CREATE TABLE providers (
+CREATE TABLE IF NOT EXISTS providers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     provider_type provider_type NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE providers (
 );
 
 -- 2. Hospitals Table (1-to-1 with Providers)
-CREATE TABLE hospitals (
+CREATE TABLE IF NOT EXISTS hospitals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     provider_id UUID NOT NULL REFERENCES providers(id) ON DELETE CASCADE,
     igd_phone VARCHAR(20) NOT NULL,
@@ -31,11 +31,11 @@ CREATE TABLE hospitals (
 );
 
 -- 3. Ambulances Table
-CREATE TYPE ambulance_type AS ENUM ('medis', 'sosial', 'jenazah', 'darurat');
-CREATE TYPE service_level AS ENUM ('basic', 'advanced', 'icu_mobile');
-CREATE TYPE ambulance_status AS ENUM ('available', 'dispatched', 'unavailable', 'maintenance');
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ambulance_type') THEN CREATE TYPE ambulance_type AS ENUM ('medis', 'sosial', 'jenazah', 'darurat'); END IF; END $$;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'service_level') THEN CREATE TYPE service_level AS ENUM ('basic', 'advanced', 'icu_mobile'); END IF; END $$;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ambulance_status') THEN CREATE TYPE ambulance_status AS ENUM ('available', 'dispatched', 'unavailable', 'maintenance'); END IF; END $$;
 
-CREATE TABLE ambulances (
+CREATE TABLE IF NOT EXISTS ambulances (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     provider_id UUID NOT NULL REFERENCES providers(id) ON DELETE CASCADE,
     plate_number VARCHAR(20) NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE ambulances (
 );
 
 -- 4. Drivers Table
-CREATE TABLE drivers (
+CREATE TABLE IF NOT EXISTS drivers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     provider_id UUID NOT NULL REFERENCES providers(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
@@ -67,9 +67,9 @@ CREATE TABLE drivers (
 );
 
 -- 5. Bookings Table
-CREATE TYPE booking_status AS ENUM ('confirmed', 'en_route', 'arrived', 'to_hospital', 'completed', 'cancelled');
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'booking_status') THEN CREATE TYPE booking_status AS ENUM ('confirmed', 'en_route', 'arrived', 'to_hospital', 'completed', 'cancelled'); END IF; END $$;
 
-CREATE TABLE bookings (
+CREATE TABLE IF NOT EXISTS bookings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL, -- Assuming Supabase Auth handles users
     ambulance_id UUID NOT NULL REFERENCES ambulances(id),
