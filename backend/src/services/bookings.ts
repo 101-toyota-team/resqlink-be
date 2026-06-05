@@ -25,7 +25,11 @@ import {
 import { IDistanceService } from "./distance";
 
 export interface IBookingService {
-  createBooking(data: BookingData, userId: string): Promise<Booking>;
+  createBooking(
+    data: BookingData,
+    userId: string,
+    waitUntil?: (p: Promise<any>) => void,
+  ): Promise<Booking>;
   getBooking(id: string, payload: JwtPayload): Promise<Booking>;
   getUserBookings(
     userId: string,
@@ -37,11 +41,13 @@ export interface IBookingService {
     ambulanceId: string,
     payload: JwtPayload,
     driverId?: string,
+    waitUntil?: (p: Promise<any>) => void,
   ): Promise<Booking>;
   updateStatus(
     id: string,
     status: BookingStatus,
     payload: JwtPayload,
+    waitUntil?: (p: Promise<any>) => void,
   ): Promise<Booking>;
   getConfirmedBookings(
     providerId: string,
@@ -65,7 +71,11 @@ export class BookingService implements IBookingService {
     private logger: ILogger,
   ) {}
 
-  async createBooking(data: BookingData, userId: string): Promise<Booking> {
+  async createBooking(
+    data: BookingData,
+    userId: string,
+    waitUntil?: (p: Promise<any>) => void,
+  ): Promise<Booking> {
     this.logger.debug("Booking created", {
       userId,
       bookingType: data.booking_type,
@@ -76,11 +86,15 @@ export class BookingService implements IBookingService {
     const booking = await this.bookingRepo.createBooking(bookingData);
 
     if (booking.status === "draft" && booking.provider_id) {
-      await this.realtime
+      const broadcastPromise = this.realtime
         .broadcastNewBooking(booking.provider_id, booking)
         .catch((err) => {
           this.logger.error(err, "Failed to broadcast new booking to provider");
         });
+
+      if (waitUntil) {
+        waitUntil(broadcastPromise);
+      }
     }
 
     this.logger.info("Booking created", {

@@ -39,8 +39,8 @@ describe("DriverService", () => {
     } as Mocked<IBookingRepository>;
 
     mockRealtime = {
-      broadcastTripLocation: vi.fn(),
-      broadcastNewBooking: vi.fn(),
+      broadcastTripLocation: vi.fn().mockResolvedValue("ok"),
+      broadcastNewBooking: vi.fn().mockResolvedValue("ok"),
     } as Mocked<IRealtimeBroadcaster>;
 
     const mockLogger = {

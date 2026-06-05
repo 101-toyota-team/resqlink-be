@@ -75,7 +75,8 @@ vi.mock("../src/infrastructure/supabase", () => {
       findProvidersByH3Indexes: vi.fn(),
       searchHospitals: vi.fn(),
       findHospitalsByH3Indexes: vi.fn(),
-      broadcastTripLocation: vi.fn(),
+      broadcastTripLocation: vi.fn().mockResolvedValue("ok"),
+      broadcastNewBooking: vi.fn().mockResolvedValue("ok"),
     };
   };
   return {
