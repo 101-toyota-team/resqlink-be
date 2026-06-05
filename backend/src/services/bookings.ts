@@ -161,6 +161,7 @@ export class BookingService implements IBookingService {
     ambulanceId: string,
     payload: JwtPayload,
     driverId?: string,
+    waitUntil?: (p: Promise<any>) => void,
   ): Promise<Booking> {
     this.logger.debug("Assigning ambulance", {
       bookingId: id,
@@ -251,6 +252,23 @@ export class BookingService implements IBookingService {
         routeGeometry,
         driverId,
       );
+
+      // Broadcast update
+      const broadcastPromise = this.realtime
+        .broadcastTripLocation(id, {
+          lat: ambLat,
+          lng: ambLng,
+          captured_at: new Date().toISOString(),
+          booking_id: id,
+        })
+        .catch((err) => {
+          this.logger.error(err, "Failed to broadcast ambulance assignment");
+        });
+
+      if (waitUntil) {
+        waitUntil(broadcastPromise);
+      }
+
       this.logger.info("Ambulance assigned", {
         bookingId: id,
         ambulanceId,
@@ -276,6 +294,7 @@ export class BookingService implements IBookingService {
     id: string,
     newStatus: BookingStatus,
     payload: JwtPayload,
+    waitUntil?: (p: Promise<any>) => void,
   ): Promise<Booking> {
     const booking = await this.bookingRepo.getBooking(id);
     if (!booking) {
@@ -318,6 +337,25 @@ export class BookingService implements IBookingService {
     }
 
     await this.bookingRepo.updateBookingStatus(id, newStatus);
+
+    // Broadcast status update
+    // Note: Reuse broadcastTripLocation or create a new dedicated status broadcast if needed.
+    // For now, any broadcast on the trip channel can signal an update.
+    const broadcastPromise = this.realtime
+      .broadcastTripLocation(id, {
+        lat: booking.pickup_lat,
+        lng: booking.pickup_lng,
+        captured_at: new Date().toISOString(),
+        booking_id: id,
+      })
+      .catch((err) => {
+        this.logger.error(err, "Failed to broadcast status update");
+      });
+
+    if (waitUntil) {
+      waitUntil(broadcastPromise);
+    }
+
     this.logger.info("Booking status transition", {
       bookingId: id,
       fromStatus: booking.status,

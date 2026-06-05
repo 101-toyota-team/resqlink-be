@@ -92,7 +92,18 @@ describe("DispatchService", () => {
       { id: "driver_1", lat: -6.1, lng: 106.8 },
     ]);
     mockDistance.getEnrichedDrivers.mockResolvedValue([
-      { id: "driver_1", eta: "10 mins" } as AmbulanceDetails,
+      {
+        id: "driver_1",
+        eta: "10 mins",
+        distance: "2km",
+        eta_value: 600,
+        distance_value: 2000,
+      } as AmbulanceDetails & {
+        eta: string;
+        distance: string;
+        eta_value: number;
+        distance_value: number;
+      },
     ]);
 
     const results = await service.findNearbyAmbulances("878c84c525fff", 1);

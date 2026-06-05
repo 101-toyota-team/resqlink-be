@@ -27,6 +27,17 @@ USING (
   )
 );
 
+-- Policy: Providers can view driver locations for their bookings
+CREATE POLICY "Providers can view driver locations for their bookings"
+ON public.driver_locations FOR SELECT TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM public.bookings
+    WHERE bookings.id = driver_locations.booking_id
+    AND bookings.provider_id = ((SELECT auth.jwt()) -> 'app_metadata' ->> 'provider_id')::uuid
+  )
+);
+
 -- 3b. Add missing Foreign Key to bookings.user_id
 ALTER TABLE public.bookings
 ADD CONSTRAINT bookings_user_id_fkey
