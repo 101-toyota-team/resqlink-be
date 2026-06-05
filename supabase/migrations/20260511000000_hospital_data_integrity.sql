@@ -12,8 +12,18 @@ WHERE h.provider_id = p.id;
 ALTER TABLE hospitals ALTER COLUMN provider_type SET NOT NULL;
 
 -- Add CHECK constraint to ensure only rumah_sakit can have hospital records
-ALTER TABLE hospitals ADD CONSTRAINT chk_hospital_type 
-CHECK (provider_type = 'rumah_sakit');
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM pg_constraint 
+        WHERE conname = 'chk_hospital_type' 
+        AND conrelid = 'hospitals'::regclass
+    ) THEN
+        ALTER TABLE hospitals ADD CONSTRAINT chk_hospital_type 
+        CHECK (provider_type = 'rumah_sakit');
+    END IF;
+END $$;
 
 -- Add index on provider_type for efficient filtering
 CREATE INDEX IF NOT EXISTS idx_hospitals_provider_type ON hospitals (provider_type);
