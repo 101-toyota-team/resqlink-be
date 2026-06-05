@@ -1,0 +1,37 @@
+name = "resqlink-backend"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# Non-sensitive configuration variables. 
+# Secrets (SUPABASE_*, UPSTASH_*, MAPBOX_*) must be managed via 
+# Cloudflare Secrets (wrangler secret put) or .dev.vars for local dev.
+ALLOWED_ORIGINS = "*"
+LOG_LEVEL = "info"
+
+[[ratelimits]]
+name = "RL_DEFAULT"
+namespace_id = "1001"
+[ratelimits.simple]
+limit = 30
+period = 60
+
+[[ratelimits]]
+name = "RL_DRIVER"
+namespace_id = "1001"
+[ratelimits.simple]
+limit = 60
+period = 60
+
+[env.dev]
+name = "resqlink-backend-dev"
+[env.dev.vars]
+ALLOWED_ORIGINS = "http://localhost:3000,https://dev.resqlink.app"
+LOG_LEVEL = "debug"
+
+[env.staging]
+name = "resqlink-backend-staging"
+[env.staging.vars]
+ALLOWED_ORIGINS = "https://staging.resqlink.app"
+LOG_LEVEL = "info"
