@@ -22,10 +22,10 @@ jobs:
         run: npm install
       - name: Verify Secrets
         run: |
-          REQUIRED_SECRETS=("UPSTASH_REDIS_REST_URL" "UPSTASH_REDIS_REST_TOKEN" "SUPABASE_SECRET_KEY" "MAPBOX_ACCESS_TOKEN" "SUPABASE_URL" "ALLOWED_ORIGINS")
-          for secret in "${REQUIRED_SECRETS[@]}"; do
-            if [ -z "${!secret}" ]; then
-              echo "❌ $secret is missing in environment"
+          REQUIRED_VARS=("UPSTASH_REDIS_REST_URL" "UPSTASH_REDIS_REST_TOKEN" "SUPABASE_SECRET_KEY" "MAPBOX_ACCESS_TOKEN" "SUPABASE_URL" "ALLOWED_ORIGINS")
+          for var in "${REQUIRED_VARS[@]}"; do
+            if [ -z "${!var}" ]; then
+              echo "❌ $var is missing in environment"
               exit 1
             fi
           done
