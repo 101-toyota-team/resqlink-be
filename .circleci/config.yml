@@ -1,0 +1,159 @@
+version: 2.1
+
+# --------------------------------------------------------
+# Executors (The Cloud Environment)
+# Using CircleCI's optimized Node container for faster boot times
+# --------------------------------------------------------
+executors:
+  node-executor:
+    docker:
+      - image: cimg/node:22.0
+    working_directory: ~/repo
+
+# --------------------------------------------------------
+# Jobs Definitions
+# --------------------------------------------------------
+jobs:
+  test-backend:
+    executor: node-executor
+    steps:
+      - checkout
+      - run:
+          name: Install Dependencies
+          command: |
+            cd backend
+            npm install
+      - run:
+          name: Verify CI Secrets
+          command: |
+            REQUIRED_VARS=("UPSTASH_REDIS_REST_URL" "UPSTASH_REDIS_REST_TOKEN" "SUPABASE_SECRET_KEY" "MAPBOX_ACCESS_TOKEN" "SUPABASE_URL" "ALLOWED_ORIGINS")
+            for var in "${REQUIRED_VARS[@]}"; do
+              if [ -z "${!var}" ]; then
+                echo "❌ $var is missing in CircleCI Context"
+                exit 1
+              fi
+            done
+      - run:
+          name: Create .dev.vars for Worker tests
+          command: |
+            cd backend
+            cat > .dev.vars <<EOF
+            SUPABASE_URL=${SUPABASE_URL}
+            UPSTASH_REDIS_REST_URL=${UPSTASH_REDIS_REST_URL}
+            UPSTASH_REDIS_REST_TOKEN=${UPSTASH_REDIS_REST_TOKEN}
+            SUPABASE_SECRET_KEY=${SUPABASE_SECRET_KEY}
+            MAPBOX_ACCESS_TOKEN=${MAPBOX_ACCESS_TOKEN}
+            ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+            EOF
+      - run:
+          name: Lint
+          command: cd backend && npm run lint
+      - run:
+          name: Test
+          command: cd backend && npm test
+      - run:
+          name: Format Check
+          command: cd backend && npx prettier --check "**/*.{ts,js}"
+
+  deploy-backend:
+    executor: node-executor
+    steps:
+      - checkout
+      - run:
+          name: Install Dependencies
+          command: cd backend && npm install
+      - run:
+          name: Deploy Supabase Migrations
+          command: |
+            cd backend
+            # Using npx to execute the supabase CLI natively in the cloud runner
+            npx supabase link --project-ref "${SUPABASE_PROJECT_ID}" --password "${SUPABASE_DB_PASSWORD}"
+            npx supabase db push --include-all --password "${SUPABASE_DB_PASSWORD}"
+      - run:
+          name: Deploy Cloudflare Worker
+          command: |
+            cd backend
+            
+            # Map CircleCI branch to Cloudflare environment
+            if [ "${CIRCLE_BRANCH}" == "main" ]; then
+              DEPLOY_ENV="production"
+            else
+              DEPLOY_ENV="staging"
+            fi
+            echo "Deploying to environment: $DEPLOY_ENV"
+
+            # Execute deployment and capture the live URL
+            npx wrangler deploy \
+              --var UPSTASH_REDIS_REST_URL:"${UPSTASH_REDIS_REST_URL}" \
+              --var SUPABASE_URL:"${SUPABASE_URL}" \
+              --var MAPBOX_ACCESS_TOKEN:"${MAPBOX_ACCESS_TOKEN}" \
+              --var ALLOWED_ORIGINS:"${ALLOWED_ORIGINS}" \
+              --secret UPSTASH_REDIS_REST_TOKEN:"${UPSTASH_REDIS_REST_TOKEN}" \
+              --secret SUPABASE_SECRET_KEY:"${SUPABASE_SECRET_KEY}" \
+              --env "$DEPLOY_ENV" | tee wrangler_output.txt
+            
+            # Extract deployed URL for health check
+            DEPLOYED_URL=$(grep -oE "https://\S+\.workers\.dev" wrangler_output.txt | head -n 1)
+            echo "export DEPLOYED_URL=$DEPLOYED_URL" >> $BASH_ENV
+      - run:
+          name: Post-Deployment Health Check
+          command: |
+            if [ -z "$DEPLOYED_URL" ]; then
+              echo "⚠️ Could not parse deployment URL, skipping health check."
+              exit 0
+            fi
+            echo "Verifying endpoint: $DEPLOYED_URL"
+            for i in {1..5}; do
+              if curl -s "$DEPLOYED_URL" | grep -q "Status: Online"; then
+                echo "✅ Live traffic health check passed!"
+                exit 0
+              fi
+              echo "Attempt $i failed, retrying in 5 seconds..."
+              sleep 5
+            done
+            echo "❌ Deployment critical failure: Health check timed out"
+            exit 1
+
+# --------------------------------------------------------
+# Workflow Orchestration
+# --------------------------------------------------------
+workflows:
+  version: 2
+  
+  # 1. The Staging Pipeline
+  build-and-deploy-staging:
+    jobs:
+      - test-backend:
+          name: test-backend-staging
+          filters:
+            branches:
+              only: staging
+          context: resqlink-staging
+          
+      - deploy-backend:
+          name: deploy-backend-staging
+          requires:
+            - test-backend-staging
+          filters:
+            branches:
+              only: staging
+          context: resqlink-staging
+
+  # 2. The Production Pipeline
+  build-and-deploy-production:
+    jobs:
+      - test-backend:
+          name: test-backend-production
+          filters:
+            branches:
+              only: main
+          context: resqlink-production
+          
+      - deploy-backend:
+          name: deploy-backend-production
+          requires:
+            - test-backend-production
+          filters:
+            branches:
+              only: main
+          context: resqlink-production
