@@ -54,9 +54,7 @@ export class DriverService implements IDriverService {
     if (payload.booking_id) {
       const broadcastPromise = this.realtime
         .broadcastTripLocation(payload.booking_id, location)
-        .catch((err) => {
-          this.logger.error(err, "Failed to broadcast trip location");
-        });
+        .catch(() => {});
 
       if (waitUntil) {
         waitUntil(broadcastPromise);

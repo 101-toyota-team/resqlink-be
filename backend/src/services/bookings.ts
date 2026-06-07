@@ -86,9 +86,7 @@ export class BookingService implements IBookingService {
     if (booking.status === "draft" && booking.provider_id) {
       const broadcastPromise = this.realtime
         .broadcastNewBooking(booking.provider_id, booking)
-        .catch((err) => {
-          this.logger.error(err, "Failed to broadcast new booking to provider");
-        });
+        .catch(() => {});
 
       if (waitUntil) {
         waitUntil(broadcastPromise);
