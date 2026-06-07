@@ -11,11 +11,36 @@ export class RealtimeBroadcaster
     super(url, key, logger);
   }
 
+  private async subscribe(channelName: string): Promise<import("@supabase/supabase-js").RealtimeChannel> {
+    const channel = this.client.channel(channelName);
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.client.removeChannel(channel);
+        reject(new Error("Subscription timed out"));
+      }, 5000);
+
+      channel.subscribe((status) => {
+        clearTimeout(timeout);
+        if (status === "SUBSCRIBED") {
+          resolve(channel);
+        } else if (
+          status === "CHANNEL_ERROR" ||
+          status === "CLOSED" ||
+          status === "TIMED_OUT"
+        ) {
+          this.client.removeChannel(channel);
+          reject(new Error(`Subscription failed with status: ${status}`));
+        }
+      });
+    });
+  }
+
   async broadcastTripLocation(
     bookingId: string,
     location: DriverLocation,
   ): Promise<void> {
-    const channel = this.client.channel(`trip:${bookingId}`);
+    const channelName = `trip:${bookingId}`;
+    const channel = await this.subscribe(channelName);
     try {
       await channel.send({
         type: "broadcast",
@@ -31,7 +56,8 @@ export class RealtimeBroadcaster
     providerId: string,
     booking: Booking,
   ): Promise<void> {
-    const channel = this.client.channel(`provider:${providerId}`);
+    const channelName = `provider:${providerId}`;
+    const channel = await this.subscribe(channelName);
     try {
       await channel.send({
         type: "broadcast",

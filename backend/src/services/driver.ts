@@ -12,6 +12,7 @@ export interface IDriverService {
       accuracy?: number;
       booking_id?: string;
     },
+    waitUntil?: (promise: Promise<any>) => void,
   ): Promise<void>;
   getAssignments(driverId: string): Promise<Booking[]>;
   setOnlineStatus(driverId: string, online: boolean): Promise<void>;
@@ -36,6 +37,7 @@ export class DriverService implements IDriverService {
       accuracy?: number;
       booking_id?: string;
     },
+    waitUntil?: (promise: Promise<any>) => void,
   ): Promise<void> {
     const location: DriverLocation = {
       lat: payload.lat,
@@ -50,7 +52,17 @@ export class DriverService implements IDriverService {
     await this.driverLocationRepo.updateLatest(driverId, location);
 
     if (payload.booking_id) {
-      await this.realtime.broadcastTripLocation(payload.booking_id, location);
+      const broadcastPromise = this.realtime
+        .broadcastTripLocation(payload.booking_id, location)
+        .catch((err) => {
+          this.logger.error(err, "Failed to broadcast trip location");
+        });
+
+      if (waitUntil) {
+        waitUntil(broadcastPromise);
+      } else {
+        await broadcastPromise;
+      }
     }
   }
 

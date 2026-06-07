@@ -25,7 +25,11 @@ import {
 import { IDistanceService } from "./distance";
 
 export interface IBookingService {
-  createBooking(data: BookingData, userId: string): Promise<Booking>;
+  createBooking(
+    data: BookingData,
+    userId: string,
+    waitUntil?: (promise: Promise<any>) => void,
+  ): Promise<Booking>;
   getBooking(id: string, payload: JwtPayload): Promise<Booking>;
   getUserBookings(
     userId: string,
@@ -65,7 +69,11 @@ export class BookingService implements IBookingService {
     private logger: ILogger,
   ) {}
 
-  async createBooking(data: BookingData, userId: string): Promise<Booking> {
+  async createBooking(
+    data: BookingData,
+    userId: string,
+    waitUntil?: (promise: Promise<any>) => void,
+  ): Promise<Booking> {
     this.logger.debug("Booking created", {
       userId,
       bookingType: data.booking_type,
@@ -76,11 +84,17 @@ export class BookingService implements IBookingService {
     const booking = await this.bookingRepo.createBooking(bookingData);
 
     if (booking.status === "draft" && booking.provider_id) {
-      await this.realtime
+      const broadcastPromise = this.realtime
         .broadcastNewBooking(booking.provider_id, booking)
         .catch((err) => {
           this.logger.error(err, "Failed to broadcast new booking to provider");
         });
+
+      if (waitUntil) {
+        waitUntil(broadcastPromise);
+      } else {
+        await broadcastPromise;
+      }
     }
 
     this.logger.info("Booking created", {

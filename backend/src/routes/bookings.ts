@@ -34,7 +34,8 @@ bookingsApp.post(
     const body = c.req.valid("json");
     const payload = c.get("jwtPayload");
     const bookingService = c.get("getBookingService")();
-    const booking = await bookingService.createBooking(body, payload.sub);
+    const waitUntil = c.executionCtx?.waitUntil?.bind(c.executionCtx);
+    const booking = await bookingService.createBooking(body, payload.sub, waitUntil);
     return c.json(booking, 201);
   },
 );

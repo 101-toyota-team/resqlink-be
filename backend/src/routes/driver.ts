@@ -25,7 +25,8 @@ driverApp.post(
     const driverId = payload.sub;
     const driverService = c.get("getDriverService")();
     const driverLocationRepo = c.get("getDriverLocationRepo")();
-    await driverService.updateLocation(driverId, body);
+    const waitUntil = c.executionCtx?.waitUntil?.bind(c.executionCtx);
+    await driverService.updateLocation(driverId, body, waitUntil);
     c.executionCtx.waitUntil(driverLocationRepo.flushBatch());
     return c.json({ status: "ok" }, 200);
   },
