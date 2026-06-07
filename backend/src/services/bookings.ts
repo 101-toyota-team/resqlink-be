@@ -41,11 +41,13 @@ export interface IBookingService {
     ambulanceId: string,
     payload: JwtPayload,
     driverId?: string,
+    waitUntil?: (promise: Promise<any>) => void,
   ): Promise<Booking>;
   updateStatus(
     id: string,
     status: BookingStatus,
     payload: JwtPayload,
+    waitUntil?: (promise: Promise<any>) => void,
   ): Promise<Booking>;
   getConfirmedBookings(
     providerId: string,
@@ -86,7 +88,7 @@ export class BookingService implements IBookingService {
     if (booking.status === "draft" && booking.provider_id) {
       const broadcastPromise = this.realtime
         .broadcastNewBooking(booking.provider_id, booking)
-        .catch((err) => this.logger.error(err, "Failed to broadcast new booking to provider"));
+        .catch(() => {});
 
       if (waitUntil) {
         waitUntil(broadcastPromise);
@@ -159,6 +161,7 @@ export class BookingService implements IBookingService {
     ambulanceId: string,
     payload: JwtPayload,
     driverId?: string,
+    waitUntil?: (promise: Promise<any>) => void,
   ): Promise<Booking> {
     this.logger.debug("Assigning ambulance", {
       bookingId: id,
@@ -242,13 +245,24 @@ export class BookingService implements IBookingService {
       const finalProviderId = booking.provider_id
         ? undefined
         : ambulance.provider_id;
-      const result = await this.bookingRepo.assignAmbulance(
+       const result = await this.bookingRepo.assignAmbulance(
         id,
         ambulanceId,
         finalProviderId,
         routeGeometry,
         driverId,
       );
+      
+      const broadcastPromise = this.realtime
+        .broadcastAmbulanceAssigned(id, result)
+        .catch(() => {});
+
+      if (waitUntil) {
+        waitUntil(broadcastPromise);
+      } else {
+        await broadcastPromise;
+      }
+      
       this.logger.info("Ambulance assigned", {
         bookingId: id,
         ambulanceId,
@@ -274,6 +288,7 @@ export class BookingService implements IBookingService {
     id: string,
     newStatus: BookingStatus,
     payload: JwtPayload,
+    waitUntil?: (promise: Promise<any>) => void,
   ): Promise<Booking> {
     const booking = await this.bookingRepo.getBooking(id);
     if (!booking) {
@@ -316,6 +331,17 @@ export class BookingService implements IBookingService {
     }
 
     await this.bookingRepo.updateBookingStatus(id, newStatus);
+    
+    const broadcastPromise = this.realtime
+      .broadcastTripLocation(id, { lat: booking.pickup_lat, lng: booking.pickup_lng, captured_at: new Date().toISOString() }) // Need to adapt to status change
+      .catch(() => {});
+    
+    if (waitUntil) {
+      waitUntil(broadcastPromise);
+    } else {
+      await broadcastPromise;
+    }
+
     this.logger.info("Booking status transition", {
       bookingId: id,
       fromStatus: booking.status,

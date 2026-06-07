@@ -61,7 +61,8 @@ bookingsApp.put(
     const { status } = c.req.valid("json");
     const payload = c.get("jwtPayload");
     const bookingService = c.get("getBookingService")();
-    const booking = await bookingService.updateStatus(id, status, payload);
+    const waitUntil = c.executionCtx?.waitUntil?.bind(c.executionCtx);
+    const booking = await bookingService.updateStatus(id, status, payload, waitUntil);
     return c.json(booking, 200);
   },
 );
@@ -75,11 +76,13 @@ bookingsApp.put(
     const { ambulance_id, driver_id } = c.req.valid("json");
     const payload = c.get("jwtPayload");
     const bookingService = c.get("getBookingService")();
+    const waitUntil = c.executionCtx?.waitUntil?.bind(c.executionCtx);
     const booking = await bookingService.assignAmbulance(
       id,
       ambulance_id,
       payload,
       driver_id,
+      waitUntil,
     );
     return c.json(booking, 200);
   },

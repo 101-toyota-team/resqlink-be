@@ -52,4 +52,46 @@ export class RealtimeBroadcaster
       await this.client.removeChannel(channel);
     }
   }
+
+  async broadcastAmbulanceAssigned(
+    bookingId: string,
+    booking: Booking,
+  ): Promise<void> {
+    const channel = this.client.channel(`trip:${bookingId}`, {
+      config: { broadcast: { ack: true } },
+    });
+    try {
+      await channel.send({
+        type: "broadcast",
+        event: "ambulance_assigned",
+        payload: booking,
+      });
+    } catch (err) {
+      this.logger.error(err, "Failed to broadcast ambulance assignment");
+      throw err;
+    } finally {
+      await this.client.removeChannel(channel);
+    }
+  }
+
+  async broadcastStatusUpdated(
+    bookingId: string,
+    status: string,
+  ): Promise<void> {
+    const channel = this.client.channel(`trip:${bookingId}`, {
+      config: { broadcast: { ack: true } },
+    });
+    try {
+      await channel.send({
+        type: "broadcast",
+        event: "status_updated",
+        payload: { status },
+      });
+    } catch (err) {
+      this.logger.error(err, "Failed to broadcast status update");
+      throw err;
+    } finally {
+      await this.client.removeChannel(channel);
+    }
+  }
 }
