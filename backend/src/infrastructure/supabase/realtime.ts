@@ -11,6 +11,9 @@ export class RealtimeBroadcaster
     super(url, key, logger);
   }
 
+  // NOTE: This implementation uses the Supabase REST Broadcast API 
+  // (by calling send() without subscribe()), which is highly efficient 
+  // for serverless environments by bypassing WebSocket handshakes.
   async broadcastTripLocation(
     bookingId: string,
     location: DriverLocation,

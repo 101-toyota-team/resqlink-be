@@ -87,8 +87,7 @@ export class BookingService implements IBookingService {
 
     if (booking.status === "draft" && booking.provider_id) {
       const broadcastPromise = this.realtime
-        .broadcastNewBooking(booking.provider_id, booking)
-        .catch(() => {});
+        .broadcastNewBooking(booking.provider_id, booking);
 
       if (waitUntil) {
         waitUntil(broadcastPromise);
@@ -255,8 +254,7 @@ export class BookingService implements IBookingService {
       );
       
       const broadcastPromise = this.realtime
-        .broadcastAmbulanceAssigned(id, result)
-        .catch(() => {});
+        .broadcastAmbulanceAssigned(id, result);
 
       if (waitUntil) {
         waitUntil(broadcastPromise);
@@ -339,8 +337,7 @@ export class BookingService implements IBookingService {
     }
     
     const broadcastPromise = this.realtime
-      .broadcastStatusUpdated(id, newStatus)
-      .catch(() => {});
+      .broadcastStatusUpdated(id, newStatus);
     
     if (waitUntil) {
       waitUntil(broadcastPromise);

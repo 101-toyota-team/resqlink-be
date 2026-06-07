@@ -27,23 +27,22 @@ export class DriverLocationRepository
     // NOTE: For high-volume production, consider buffering/batching updates via Redis Streams
     // to reduce DB IOPS. Direct inserts are used here for immediate data durability.
     const tasks: Promise<any>[] = [
-      this.cache.set(key, location, DRIVER_LOCATION_TTL).catch((err) => {
-        this.logger.error(err, "Failed to update cache");
-      }),
-      this.client.from("driver_locations").insert({
-        driver_id: driverId,
-        booking_id: location.booking_id || null,
-        lat: location.lat,
-        lng: location.lng,
-        heading: location.heading ?? null,
-        speed: location.speed ?? null,
-        accuracy: location.accuracy ?? null,
-        captured_at: location.captured_at,
-      }).then(({ error }) => {
-        if (error) throw error;
-      }).catch((err) => {
-        this.logger.error(err, "Failed to persist driver location");
-      })
+      this.cache.set(key, location, DRIVER_LOCATION_TTL),
+      this.client
+        .from("driver_locations")
+        .insert({
+          driver_id: driverId,
+          booking_id: location.booking_id || null,
+          lat: location.lat,
+          lng: location.lng,
+          heading: location.heading ?? null,
+          speed: location.speed ?? null,
+          accuracy: location.accuracy ?? null,
+          captured_at: location.captured_at,
+        })
+        .then(({ error }) => {
+          if (error) throw error;
+        }),
     ];
 
     await Promise.all(tasks);
