@@ -47,16 +47,11 @@ export class DriverService implements IDriverService {
       booking_id: payload.booking_id,
     };
 
-    const tasks: Promise<any>[] = [
-      this.driverLocationRepo.updateLatest(driverId, location),
-    ];
+    await this.driverLocationRepo.updateLatest(driverId, location);
 
     if (payload.booking_id) {
-      tasks.push(
-        this.realtime.broadcastTripLocation(payload.booking_id, location).catch(() => {}),
-      );
+      this.realtime.broadcastTripLocation(payload.booking_id, location).catch(() => {});
     }
-    await Promise.allSettled(tasks);
   }
 
   async getAssignments(driverId: string): Promise<Booking[]> {

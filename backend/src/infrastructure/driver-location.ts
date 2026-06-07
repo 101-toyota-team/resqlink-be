@@ -23,22 +23,28 @@ export class DriverLocationRepository
     location: DriverLocation,
   ): Promise<void> {
     const key = `${DRIVER_LOCATION_PREFIX}${driverId}`;
-    await this.cache.set(key, location, DRIVER_LOCATION_TTL);
+    
+    const tasks: Promise<any>[] = [
+      this.cache.set(key, location, DRIVER_LOCATION_TTL).catch((err) => {
+        this.logger.error(err, "Failed to update cache");
+      }),
+      this.client.from("driver_locations").insert({
+        driver_id: driverId,
+        booking_id: location.booking_id || null,
+        lat: location.lat,
+        lng: location.lng,
+        heading: location.heading ?? null,
+        speed: location.speed ?? null,
+        accuracy: location.accuracy ?? null,
+        captured_at: location.captured_at,
+      }).then(({ error }) => {
+        if (error) throw error;
+      }).catch((err) => {
+        this.logger.error(err, "Failed to persist driver location");
+      })
+    ];
 
-    const { error } = await this.client.from("driver_locations").insert({
-      driver_id: driverId,
-      booking_id: location.booking_id || null,
-      lat: location.lat,
-      lng: location.lng,
-      heading: location.heading ?? null,
-      speed: location.speed ?? null,
-      accuracy: location.accuracy ?? null,
-      captured_at: location.captured_at,
-    });
-
-    if (error) {
-      this.logger.error(error, "Failed to persist driver location");
-    }
+    await Promise.allSettled(tasks);
   }
   async getLatest(driverId: string): Promise<DriverLocation | null> {
     const key = `${DRIVER_LOCATION_PREFIX}${driverId}`;
