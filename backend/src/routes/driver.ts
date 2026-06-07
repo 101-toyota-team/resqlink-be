@@ -13,7 +13,7 @@ const driverApp = createRouteApp();
 
 // POST /driver/location — Send GPS update from driver app
 // Driver JWT required. Accepts { lat, lng, heading?, speed?, accuracy?, booking_id? }
-// Writes to Redis cache + buffers to Supabase batch insert
+// Writes to Redis cache + Supabase insert
 driverApp.post(
   "/location",
   zValidator("json", driverLocationSchema, validatorHook),

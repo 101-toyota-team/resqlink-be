@@ -12,6 +12,12 @@ export class DriverLocationRepository
   implements IDriverLocationRepository
 {
   private cache: IGenericCache;
+
+  constructor(url: string, key: string, cache: IGenericCache, logger: ILogger) {
+    super(url, key, logger);
+    this.cache = cache;
+  }
+
   async updateLatest(
     driverId: string,
     location: DriverLocation,
@@ -34,7 +40,6 @@ export class DriverLocationRepository
       this.logger.error(error, "Failed to persist driver location");
     }
   }
-
   async getLatest(driverId: string): Promise<DriverLocation | null> {
     const key = `${DRIVER_LOCATION_PREFIX}${driverId}`;
     return this.cache.get<DriverLocation>(key);
