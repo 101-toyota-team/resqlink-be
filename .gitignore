@@ -18,6 +18,7 @@ Icon?
 .dev.vars
 .dev.vars.*
 .secrets
+.vars
 credentials.json
 token.json
 
