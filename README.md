@@ -30,6 +30,7 @@ UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
 UPSTASH_REDIS_REST_TOKEN=your-token
 MAPBOX_ACCESS_TOKEN=pk.your-access-token
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+LOG_LEVEL=info
 ```
 
 ### 3. Running Locally
@@ -44,6 +45,25 @@ ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 *   **Mapbox Access Tokens**: Ensure you have created a token for the backend (Cloudflare Worker). Ensure the token has scopes for Directions and Matrix APIs.
 
 ## 📦 Deployment
+
+### GitHub Actions Configuration
+The following environment variables must be configured in your GitHub Repository settings (**Settings > Secrets and variables > Actions**):
+
+| Type | Name | Description |
+| :--- | :--- | :--- |
+| **Secrets** | `SUPABASE_ACCESS_TOKEN` | Administrative CLI access. |
+| **Secrets** | `SUPABASE_DB_PASSWORD` | Direct DB access. |
+| **Secrets** | `CLOUDFLARE_API_TOKEN` | Worker deployment permission. |
+| **Secrets** | `UPSTASH_REDIS_REST_TOKEN` | Redis authentication. |
+| **Secrets** | `SUPABASE_SECRET_KEY` | `service_role` key (bypasses RLS). |
+| **Secrets** | `MAPBOX_ACCESS_TOKEN` | Mapbox token (masked in logs). |
+| **Variables** | `SUPABASE_PROJECT_ID` | Public project reference. |
+| **Variables** | `CLOUDFLARE_ACCOUNT_ID` | Public account identifier. |
+| **Variables** | `SUPABASE_URL` | Public API gateway URL. |
+| **Variables** | `UPSTASH_REDIS_REST_URL` | Public Redis endpoint. |
+| **Variables** | `ALLOWED_ORIGINS` | CORS configuration. |
+| **Variables** | `LOG_LEVEL` | Logging verbosity (default: `info`). |
+
 To push database migrations to Supabase and deploy the Cloudflare Worker simultaneously:
 *   `cd backend && npx wrangler deploy`
 

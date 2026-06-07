@@ -17,6 +17,7 @@ Icon?
 .env.local
 .dev.vars
 .dev.vars.*
+.secrets
 credentials.json
 token.json
 
