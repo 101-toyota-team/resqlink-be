@@ -7,5 +7,5 @@ export interface IRealtimeBroadcaster {
   ): Promise<void>;
   broadcastNewBooking(providerId: string, booking: Booking): Promise<void>;
   broadcastAmbulanceAssigned(bookingId: string, booking: Booking): Promise<void>;
-  broadcastStatusUpdated(bookingId: string, status: string): Promise<void>;
+  broadcastStatusUpdated(bookingId: string, booking: Booking): Promise<void>;
 }

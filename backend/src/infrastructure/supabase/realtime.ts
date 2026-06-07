@@ -88,7 +88,7 @@ export class RealtimeBroadcaster
 
   async broadcastStatusUpdated(
     bookingId: string,
-    status: string,
+    booking: Booking,
   ): Promise<void> {
     const channel = this.client.channel(`trip:${bookingId}`, {
       config: { broadcast: { ack: true } },
@@ -97,7 +97,7 @@ export class RealtimeBroadcaster
       const resp = await channel.send({
         type: "broadcast",
         event: "status_updated",
-        payload: { status },
+        payload: booking,
       });
       if (resp !== "ok") {
         this.logger.warn("Failed to broadcast status update", { status: resp });

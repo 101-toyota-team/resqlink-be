@@ -337,7 +337,7 @@ export class BookingService implements IBookingService {
     }
     
     const broadcastPromise = this.realtime
-      .broadcastStatusUpdated(id, newStatus);
+      .broadcastStatusUpdated(id, updatedBooking);
     
     if (waitUntil) {
       waitUntil(broadcastPromise);
