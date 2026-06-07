@@ -2,6 +2,7 @@ import { IRealtimeBroadcaster } from "../../repositories/realtime";
 import { SupabaseClientBase } from "./client";
 import { DriverLocation, Booking } from "../../types";
 import type { ILogger } from "../../types";
+import { RealtimeChannel } from "@supabase/supabase-js";
 
 export class RealtimeBroadcaster
   extends SupabaseClientBase
@@ -11,7 +12,7 @@ export class RealtimeBroadcaster
     super(url, key, logger);
   }
 
-  private async subscribe(channelName: string): Promise<import("@supabase/supabase-js").RealtimeChannel> {
+  private async subscribe(channelName: string): Promise<RealtimeChannel> {
     const channel = this.client.channel(channelName);
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
