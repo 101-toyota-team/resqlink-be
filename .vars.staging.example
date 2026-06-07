@@ -1,0 +1,9 @@
+# Copy this file to .vars.staging and fill in the values
+# These are GitHub Actions Variables for Staging
+
+SUPABASE_PROJECT_ID=
+CLOUDFLARE_ACCOUNT_ID=
+SUPABASE_URL=
+UPSTASH_REDIS_REST_URL=
+ALLOWED_ORIGINS=
+LOG_LEVEL=info
