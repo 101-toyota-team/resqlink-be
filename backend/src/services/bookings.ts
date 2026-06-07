@@ -333,7 +333,7 @@ export class BookingService implements IBookingService {
     await this.bookingRepo.updateBookingStatus(id, newStatus);
     
     const broadcastPromise = this.realtime
-      .broadcastTripLocation(id, { lat: booking.pickup_lat, lng: booking.pickup_lng, captured_at: new Date().toISOString() }) // Need to adapt to status change
+      .broadcastStatusUpdated(id, newStatus)
       .catch(() => {});
     
     if (waitUntil) {
