@@ -12,44 +12,24 @@ export class RealtimeBroadcaster
     super(url, key, logger);
   }
 
-  private async subscribe(channelName: string): Promise<RealtimeChannel> {
-    const channel = this.client.channel(channelName);
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        this.client.removeChannel(channel);
-        reject(new Error("Subscription timed out"));
-      }, 5000);
-
-      channel.subscribe((status) => {
-        clearTimeout(timeout);
-        if (status === "SUBSCRIBED") {
-          resolve(channel);
-        } else if (
-          status === "CHANNEL_ERROR" ||
-          status === "CLOSED" ||
-          status === "TIMED_OUT"
-        ) {
-          this.client.removeChannel(channel);
-          reject(new Error(`Subscription failed with status: ${status}`));
-        }
-      });
-    });
-  }
-
   async broadcastTripLocation(
     bookingId: string,
     location: DriverLocation,
   ): Promise<void> {
-    const channelName = `trip:${bookingId}`;
-    const channel = await this.subscribe(channelName);
+    const channel = this.client.channel(`trip:${bookingId}`, {
+      config: { broadcast: { ack: true } },
+    });
     try {
       await channel.send({
         type: "broadcast",
         event: "location_update",
         payload: location,
       });
+    } catch (err) {
+      this.logger.error(err, "Failed to broadcast trip location");
+      throw err;
     } finally {
-      await this.client.removeChannel(channel);
+      this.client.removeChannel(channel);
     }
   }
 
@@ -57,16 +37,20 @@ export class RealtimeBroadcaster
     providerId: string,
     booking: Booking,
   ): Promise<void> {
-    const channelName = `provider:${providerId}`;
-    const channel = await this.subscribe(channelName);
+    const channel = this.client.channel(`provider:${providerId}`, {
+      config: { broadcast: { ack: true } },
+    });
     try {
       await channel.send({
         type: "broadcast",
         event: "new_booking",
         payload: booking,
       });
+    } catch (err) {
+      this.logger.error(err, "Failed to broadcast new booking");
+      throw err;
     } finally {
-      await this.client.removeChannel(channel);
+      this.client.removeChannel(channel);
     }
   }
 }
