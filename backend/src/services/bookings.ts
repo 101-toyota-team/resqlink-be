@@ -203,7 +203,7 @@ export class BookingService implements IBookingService {
       const ambLat = providerLoc ? providerLoc.lat : booking.pickup_lat;
       const ambLng = providerLoc ? providerLoc.lng : booking.pickup_lng;
 
-      this.logger.debug("Route calculation started", {
+       this.logger.debug("Route calculation started", {
         bookingId: id,
         ambulanceOrigin: { lat: ambLat, lng: ambLng },
         pickup: { lat: booking.pickup_lat, lng: booking.pickup_lng },
@@ -213,15 +213,16 @@ export class BookingService implements IBookingService {
         },
       });
 
-      const leg1 = await this.distanceService.getRouteLeg(
-        { lat: ambLat, lng: ambLng },
-        { lat: booking.pickup_lat, lng: booking.pickup_lng },
-      );
-
-      const leg2 = await this.distanceService.getRouteLeg(
-        { lat: booking.pickup_lat, lng: booking.pickup_lng },
-        { lat: booking.destination_lat, lng: booking.destination_lng },
-      );
+      const [leg1, leg2] = await Promise.all([
+        this.distanceService.getRouteLeg(
+          { lat: ambLat, lng: ambLng },
+          { lat: booking.pickup_lat, lng: booking.pickup_lng },
+        ),
+        this.distanceService.getRouteLeg(
+          { lat: booking.pickup_lat, lng: booking.pickup_lng },
+          { lat: booking.destination_lat, lng: booking.destination_lng },
+        ),
+      ]);
 
       const routeGeometry: RouteGeometry = {
         total_distance_meters: leg1.distance + leg2.distance,
@@ -332,6 +333,11 @@ export class BookingService implements IBookingService {
 
     await this.bookingRepo.updateBookingStatus(id, newStatus);
     
+    const updatedBooking = await this.bookingRepo.getBooking(id);
+    if (!updatedBooking) {
+      throw new NotFoundError(ERROR_MESSAGES.BOOKING_NOT_FOUND);
+    }
+    
     const broadcastPromise = this.realtime
       .broadcastStatusUpdated(id, newStatus)
       .catch(() => {});
@@ -348,6 +354,6 @@ export class BookingService implements IBookingService {
       toStatus: newStatus,
       userId: payload.sub,
     });
-    return { ...booking, status: newStatus };
+    return updatedBooking;
   }
 }
