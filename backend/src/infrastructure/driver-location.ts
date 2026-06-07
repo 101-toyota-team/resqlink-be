@@ -24,6 +24,8 @@ export class DriverLocationRepository
   ): Promise<void> {
     const key = `${DRIVER_LOCATION_PREFIX}${driverId}`;
     
+    // NOTE: For high-volume production, consider buffering/batching updates via Redis Streams
+    // to reduce DB IOPS. Direct inserts are used here for immediate data durability.
     const tasks: Promise<any>[] = [
       this.cache.set(key, location, DRIVER_LOCATION_TTL).catch((err) => {
         this.logger.error(err, "Failed to update cache");
@@ -44,7 +46,7 @@ export class DriverLocationRepository
       })
     ];
 
-    await Promise.allSettled(tasks);
+    await Promise.all(tasks);
   }
   async getLatest(driverId: string): Promise<DriverLocation | null> {
     const key = `${DRIVER_LOCATION_PREFIX}${driverId}`;

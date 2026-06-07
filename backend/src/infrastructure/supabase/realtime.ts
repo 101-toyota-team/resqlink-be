@@ -19,13 +19,16 @@ export class RealtimeBroadcaster
       config: { broadcast: { ack: true } },
     });
     try {
-      await channel.send({
+      const resp = await channel.send({
         type: "broadcast",
         event: "location_update",
         payload: location,
       });
+      if (resp !== "ok") {
+        this.logger.warn("Failed to broadcast trip location", { status: resp });
+      }
     } catch (err) {
-      this.logger.error(err, "Failed to broadcast trip location");
+      this.logger.error(err, "Error broadcasting trip location");
       throw err;
     } finally {
       await this.client.removeChannel(channel);
@@ -40,13 +43,16 @@ export class RealtimeBroadcaster
       config: { broadcast: { ack: true } },
     });
     try {
-      await channel.send({
+      const resp = await channel.send({
         type: "broadcast",
         event: "new_booking",
         payload: booking,
       });
+      if (resp !== "ok") {
+        this.logger.warn("Failed to broadcast new booking", { status: resp });
+      }
     } catch (err) {
-      this.logger.error(err, "Failed to broadcast new booking");
+      this.logger.error(err, "Error broadcasting new booking");
       throw err;
     } finally {
       await this.client.removeChannel(channel);
@@ -61,13 +67,16 @@ export class RealtimeBroadcaster
       config: { broadcast: { ack: true } },
     });
     try {
-      await channel.send({
+      const resp = await channel.send({
         type: "broadcast",
         event: "ambulance_assigned",
         payload: booking,
       });
+      if (resp !== "ok") {
+        this.logger.warn("Failed to broadcast ambulance assignment", { status: resp });
+      }
     } catch (err) {
-      this.logger.error(err, "Failed to broadcast ambulance assignment");
+      this.logger.error(err, "Error broadcasting ambulance assignment");
       throw err;
     } finally {
       await this.client.removeChannel(channel);
@@ -82,13 +91,16 @@ export class RealtimeBroadcaster
       config: { broadcast: { ack: true } },
     });
     try {
-      await channel.send({
+      const resp = await channel.send({
         type: "broadcast",
         event: "status_updated",
         payload: { status },
       });
+      if (resp !== "ok") {
+        this.logger.warn("Failed to broadcast status update", { status: resp });
+      }
     } catch (err) {
-      this.logger.error(err, "Failed to broadcast status update");
+      this.logger.error(err, "Error broadcasting status update");
       throw err;
     } finally {
       await this.client.removeChannel(channel);
