@@ -2,7 +2,6 @@ import { IRealtimeBroadcaster } from "../../repositories/realtime";
 import { SupabaseClientBase } from "./client";
 import { DriverLocation, Booking } from "../../types";
 import type { ILogger } from "../../types";
-import { RealtimeChannel } from "@supabase/supabase-js";
 
 export class RealtimeBroadcaster
   extends SupabaseClientBase
@@ -29,7 +28,7 @@ export class RealtimeBroadcaster
       this.logger.error(err, "Failed to broadcast trip location");
       throw err;
     } finally {
-      this.client.removeChannel(channel);
+      await this.client.removeChannel(channel);
     }
   }
 
@@ -50,7 +49,7 @@ export class RealtimeBroadcaster
       this.logger.error(err, "Failed to broadcast new booking");
       throw err;
     } finally {
-      this.client.removeChannel(channel);
+      await this.client.removeChannel(channel);
     }
   }
 }

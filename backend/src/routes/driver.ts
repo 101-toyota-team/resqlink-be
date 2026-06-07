@@ -27,8 +27,8 @@ driverApp.post(
     const driverLocationRepo = c.get("getDriverLocationRepo")();
     const waitUntil = c.executionCtx?.waitUntil?.bind(c.executionCtx);
     await driverService.updateLocation(driverId, body, waitUntil);
-    if (c.executionCtx) {
-      c.executionCtx.waitUntil(driverLocationRepo.flushBatch());
+    if (waitUntil) {
+      waitUntil(driverLocationRepo.flushBatch());
     } else {
       await driverLocationRepo.flushBatch();
     }
