@@ -1,0 +1,9 @@
+# Copy this file to .vars and fill in the values
+# These are GitHub Actions Variables (non-sensitive)
+
+SUPABASE_PROJECT_ID=
+CLOUDFLARE_ACCOUNT_ID=
+SUPABASE_URL=
+UPSTASH_REDIS_REST_URL=
+ALLOWED_ORIGINS=
+LOG_LEVEL=info

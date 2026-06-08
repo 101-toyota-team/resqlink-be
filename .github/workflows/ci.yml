@@ -2,9 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [ main, staging ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, staging ]
+    branches: [ main ]
+  workflow_dispatch: {}
 
 jobs:
   backend-ci:
@@ -30,21 +31,23 @@ jobs:
             fi
           done
         env:
-          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_URL: ${{ vars.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          ALLOWED_ORIGINS: ${{ secrets.ALLOWED_ORIGINS }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          ALLOWED_ORIGINS: ${{ vars.ALLOWED_ORIGINS }}
+          LOG_LEVEL: ${{ vars.LOG_LEVEL || 'info' }}
       - name: Create .dev.vars for Cloudflare Worker tests
         run: |
           cat > backend/.dev.vars <<EOF
-          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-          UPSTASH_REDIS_REST_URL=${{ secrets.UPSTASH_REDIS_REST_URL }}
+          SUPABASE_URL=${{ vars.SUPABASE_URL }}
+          UPSTASH_REDIS_REST_URL=${{ vars.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN=${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
           SUPABASE_SECRET_KEY=${{ secrets.SUPABASE_SECRET_KEY }}
           MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }}
-          ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}
+          ALLOWED_ORIGINS=${{ vars.ALLOWED_ORIGINS }}
+          LOG_LEVEL=${{ vars.LOG_LEVEL || 'info' }}
           EOF
       - name: Lint
         working-directory: ./backend
