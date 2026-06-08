@@ -41,6 +41,8 @@ interface MockDb {
   searchHospitals: ReturnType<typeof vi.fn>;
   findHospitalsByH3Indexes: ReturnType<typeof vi.fn>;
   broadcastNewBooking: ReturnType<typeof vi.fn>;
+  broadcastAmbulanceAssigned: ReturnType<typeof vi.fn>;
+  broadcastStatusUpdated: ReturnType<typeof vi.fn>;
   getDriverAssignments: ReturnType<typeof vi.fn>;
 }
 
@@ -129,7 +131,9 @@ describe("Bookings API", () => {
       searchHospitals: vi.fn(),
       findHospitalsByH3Indexes: vi.fn(),
       getBookingsByProvider: vi.fn(),
-      broadcastNewBooking: vi.fn(),
+      broadcastNewBooking: vi.fn().mockResolvedValue(undefined),
+      broadcastAmbulanceAssigned: vi.fn().mockResolvedValue(undefined),
+      broadcastStatusUpdated: vi.fn().mockResolvedValue(undefined),
       getDriverAssignments: vi.fn(),
     };
   });

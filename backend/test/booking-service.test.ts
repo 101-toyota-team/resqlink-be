@@ -77,6 +77,8 @@ describe("BookingService", () => {
     mockRealtime = {
       broadcastTripLocation: vi.fn().mockResolvedValue(undefined),
       broadcastNewBooking: vi.fn().mockResolvedValue(undefined),
+      broadcastAmbulanceAssigned: vi.fn().mockResolvedValue(undefined),
+      broadcastStatusUpdated: vi.fn().mockResolvedValue(undefined),
     } as Mocked<IRealtimeBroadcaster>;
 
     mockDistanceService = {
