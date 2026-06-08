@@ -12,7 +12,10 @@ export const errorHandler: ErrorHandler = (err, c) => {
   let logger;
   try {
     const getLogger = c.get("getLogger");
-    logger = typeof getLogger === "function" ? getLogger() : new Logger(c?.env?.LOG_LEVEL || "info");
+    logger =
+      typeof getLogger === "function"
+        ? getLogger()
+        : new Logger(c?.env?.LOG_LEVEL || "info");
   } catch {
     logger = new Logger(c?.env?.LOG_LEVEL || "info");
   }

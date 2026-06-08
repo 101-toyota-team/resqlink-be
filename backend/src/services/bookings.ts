@@ -205,7 +205,7 @@ export class BookingService implements IBookingService {
       const ambLat = providerLoc ? providerLoc.lat : booking.pickup_lat;
       const ambLng = providerLoc ? providerLoc.lng : booking.pickup_lng;
 
-       this.logger.debug("Route calculation started", {
+      this.logger.debug("Route calculation started", {
         bookingId: id,
         ambulanceOrigin: { lat: ambLat, lng: ambLng },
         pickup: { lat: booking.pickup_lat, lng: booking.pickup_lng },
@@ -248,14 +248,14 @@ export class BookingService implements IBookingService {
       const finalProviderId = booking.provider_id
         ? undefined
         : ambulance.provider_id;
-       const result = await this.bookingRepo.assignAmbulance(
+      const result = await this.bookingRepo.assignAmbulance(
         id,
         ambulanceId,
         finalProviderId,
         routeGeometry,
         driverId,
       );
-      
+
       const broadcastPromise = this.realtime
         .broadcastAmbulanceAssigned(id, result)
         .catch((err) => {
@@ -267,7 +267,7 @@ export class BookingService implements IBookingService {
       } else {
         await broadcastPromise;
       }
-      
+
       this.logger.info("Ambulance assigned", {
         bookingId: id,
         ambulanceId,
@@ -336,18 +336,18 @@ export class BookingService implements IBookingService {
     }
 
     await this.bookingRepo.updateBookingStatus(id, newStatus);
-    
+
     const updatedBooking = await this.bookingRepo.getBooking(id);
     if (!updatedBooking) {
       throw new NotFoundError(ERROR_MESSAGES.BOOKING_NOT_FOUND);
     }
-    
+
     const broadcastPromise = this.realtime
       .broadcastStatusUpdated(id, updatedBooking)
       .catch((err) => {
         this.logger.error(err, "Failed to broadcast status update");
       });
-    
+
     if (waitUntil) {
       waitUntil(broadcastPromise);
     } else {

@@ -6,6 +6,9 @@ export interface IRealtimeBroadcaster {
     location: DriverLocation,
   ): Promise<void>;
   broadcastNewBooking(providerId: string, booking: Booking): Promise<void>;
-  broadcastAmbulanceAssigned(bookingId: string, booking: Booking): Promise<void>;
+  broadcastAmbulanceAssigned(
+    bookingId: string,
+    booking: Booking,
+  ): Promise<void>;
   broadcastStatusUpdated(bookingId: string, booking: Booking): Promise<void>;
 }

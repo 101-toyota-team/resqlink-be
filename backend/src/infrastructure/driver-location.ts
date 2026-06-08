@@ -23,7 +23,7 @@ export class DriverLocationRepository
     location: DriverLocation,
   ): Promise<void> {
     const key = `${DRIVER_LOCATION_PREFIX}${driverId}`;
-    
+
     // NOTE: For high-volume production, consider buffering/batching updates via Redis Streams
     // to reduce DB IOPS. Direct inserts are used here for immediate data durability.
     const tasks: Promise<void>[] = [

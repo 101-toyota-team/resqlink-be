@@ -11,8 +11,8 @@ export class RealtimeBroadcaster
     super(url, key, logger);
   }
 
-  // NOTE: This implementation uses the Supabase REST Broadcast API 
-  // (by calling send() without subscribe()), which is highly efficient 
+  // NOTE: This implementation uses the Supabase REST Broadcast API
+  // (by calling send() without subscribe()), which is highly efficient
   // for serverless environments by bypassing WebSocket handshakes.
   async broadcastTripLocation(
     bookingId: string,
@@ -70,7 +70,9 @@ export class RealtimeBroadcaster
         payload: booking,
       });
       if (resp !== "ok") {
-        this.logger.warn("Failed to broadcast ambulance assignment", { status: resp });
+        this.logger.warn("Failed to broadcast ambulance assignment", {
+          status: resp,
+        });
       }
     } finally {
       await this.client.removeChannel(channel);

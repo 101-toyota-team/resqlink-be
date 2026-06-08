@@ -25,13 +25,13 @@ driverApp.post(
     const driverId = payload.sub;
     const driverService = c.get("getDriverService")();
     const waitUntil = getWaitUntil(c);
-    
+
     if (waitUntil) {
       waitUntil(driverService.updateLocation(driverId, body));
     } else {
       await driverService.updateLocation(driverId, body);
     }
-    
+
     return c.json({ status: "ok" }, 200);
   },
 );

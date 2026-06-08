@@ -36,7 +36,11 @@ bookingsApp.post(
     const payload = c.get("jwtPayload");
     const bookingService = c.get("getBookingService")();
     const waitUntil = getWaitUntil(c);
-    const booking = await bookingService.createBooking(body, payload.sub, waitUntil);
+    const booking = await bookingService.createBooking(
+      body,
+      payload.sub,
+      waitUntil,
+    );
     return c.json(booking, 201);
   },
 );
@@ -63,7 +67,12 @@ bookingsApp.put(
     const payload = c.get("jwtPayload");
     const bookingService = c.get("getBookingService")();
     const waitUntil = getWaitUntil(c);
-    const booking = await bookingService.updateStatus(id, status, payload, waitUntil);
+    const booking = await bookingService.updateStatus(
+      id,
+      status,
+      payload,
+      waitUntil,
+    );
     return c.json(booking, 200);
   },
 );
