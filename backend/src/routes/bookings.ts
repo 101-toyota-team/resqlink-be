@@ -34,7 +34,8 @@ bookingsApp.post(
     const body = c.req.valid("json");
     const payload = c.get("jwtPayload");
     const bookingService = c.get("getBookingService")();
-    const booking = await bookingService.createBooking(body, payload.sub);
+    const waitUntil = c.executionCtx?.waitUntil?.bind(c.executionCtx);
+    const booking = await bookingService.createBooking(body, payload.sub, waitUntil);
     return c.json(booking, 201);
   },
 );
@@ -60,7 +61,8 @@ bookingsApp.put(
     const { status } = c.req.valid("json");
     const payload = c.get("jwtPayload");
     const bookingService = c.get("getBookingService")();
-    const booking = await bookingService.updateStatus(id, status, payload);
+    const waitUntil = c.executionCtx?.waitUntil?.bind(c.executionCtx);
+    const booking = await bookingService.updateStatus(id, status, payload, waitUntil);
     return c.json(booking, 200);
   },
 );
@@ -74,11 +76,13 @@ bookingsApp.put(
     const { ambulance_id, driver_id } = c.req.valid("json");
     const payload = c.get("jwtPayload");
     const bookingService = c.get("getBookingService")();
+    const waitUntil = c.executionCtx?.waitUntil?.bind(c.executionCtx);
     const booking = await bookingService.assignAmbulance(
       id,
       ambulance_id,
       payload,
       driver_id,
+      waitUntil,
     );
     return c.json(booking, 200);
   },

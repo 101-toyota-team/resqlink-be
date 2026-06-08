@@ -25,7 +25,11 @@ import {
 import { IDistanceService } from "./distance";
 
 export interface IBookingService {
-  createBooking(data: BookingData, userId: string): Promise<Booking>;
+  createBooking(
+    data: BookingData,
+    userId: string,
+    waitUntil?: (promise: Promise<any>) => void,
+  ): Promise<Booking>;
   getBooking(id: string, payload: JwtPayload): Promise<Booking>;
   getUserBookings(
     userId: string,
@@ -37,11 +41,13 @@ export interface IBookingService {
     ambulanceId: string,
     payload: JwtPayload,
     driverId?: string,
+    waitUntil?: (promise: Promise<any>) => void,
   ): Promise<Booking>;
   updateStatus(
     id: string,
     status: BookingStatus,
     payload: JwtPayload,
+    waitUntil?: (promise: Promise<any>) => void,
   ): Promise<Booking>;
   getConfirmedBookings(
     providerId: string,
@@ -65,7 +71,11 @@ export class BookingService implements IBookingService {
     private logger: ILogger,
   ) {}
 
-  async createBooking(data: BookingData, userId: string): Promise<Booking> {
+  async createBooking(
+    data: BookingData,
+    userId: string,
+    waitUntil?: (promise: Promise<any>) => void,
+  ): Promise<Booking> {
     this.logger.debug("Booking created", {
       userId,
       bookingType: data.booking_type,
@@ -76,11 +86,14 @@ export class BookingService implements IBookingService {
     const booking = await this.bookingRepo.createBooking(bookingData);
 
     if (booking.status === "draft" && booking.provider_id) {
-      await this.realtime
-        .broadcastNewBooking(booking.provider_id, booking)
-        .catch((err) => {
-          this.logger.error(err, "Failed to broadcast new booking to provider");
-        });
+      const broadcastPromise = this.realtime
+        .broadcastNewBooking(booking.provider_id, booking);
+
+      if (waitUntil) {
+        waitUntil(broadcastPromise);
+      } else {
+        await broadcastPromise;
+      }
     }
 
     this.logger.info("Booking created", {
@@ -147,6 +160,7 @@ export class BookingService implements IBookingService {
     ambulanceId: string,
     payload: JwtPayload,
     driverId?: string,
+    waitUntil?: (promise: Promise<any>) => void,
   ): Promise<Booking> {
     this.logger.debug("Assigning ambulance", {
       bookingId: id,
@@ -188,7 +202,7 @@ export class BookingService implements IBookingService {
       const ambLat = providerLoc ? providerLoc.lat : booking.pickup_lat;
       const ambLng = providerLoc ? providerLoc.lng : booking.pickup_lng;
 
-      this.logger.debug("Route calculation started", {
+       this.logger.debug("Route calculation started", {
         bookingId: id,
         ambulanceOrigin: { lat: ambLat, lng: ambLng },
         pickup: { lat: booking.pickup_lat, lng: booking.pickup_lng },
@@ -198,15 +212,16 @@ export class BookingService implements IBookingService {
         },
       });
 
-      const leg1 = await this.distanceService.getRouteLeg(
-        { lat: ambLat, lng: ambLng },
-        { lat: booking.pickup_lat, lng: booking.pickup_lng },
-      );
-
-      const leg2 = await this.distanceService.getRouteLeg(
-        { lat: booking.pickup_lat, lng: booking.pickup_lng },
-        { lat: booking.destination_lat, lng: booking.destination_lng },
-      );
+      const [leg1, leg2] = await Promise.all([
+        this.distanceService.getRouteLeg(
+          { lat: ambLat, lng: ambLng },
+          { lat: booking.pickup_lat, lng: booking.pickup_lng },
+        ),
+        this.distanceService.getRouteLeg(
+          { lat: booking.pickup_lat, lng: booking.pickup_lng },
+          { lat: booking.destination_lat, lng: booking.destination_lng },
+        ),
+      ]);
 
       const routeGeometry: RouteGeometry = {
         total_distance_meters: leg1.distance + leg2.distance,
@@ -230,13 +245,23 @@ export class BookingService implements IBookingService {
       const finalProviderId = booking.provider_id
         ? undefined
         : ambulance.provider_id;
-      const result = await this.bookingRepo.assignAmbulance(
+       const result = await this.bookingRepo.assignAmbulance(
         id,
         ambulanceId,
         finalProviderId,
         routeGeometry,
         driverId,
       );
+      
+      const broadcastPromise = this.realtime
+        .broadcastAmbulanceAssigned(id, result);
+
+      if (waitUntil) {
+        waitUntil(broadcastPromise);
+      } else {
+        await broadcastPromise;
+      }
+      
       this.logger.info("Ambulance assigned", {
         bookingId: id,
         ambulanceId,
@@ -262,6 +287,7 @@ export class BookingService implements IBookingService {
     id: string,
     newStatus: BookingStatus,
     payload: JwtPayload,
+    waitUntil?: (promise: Promise<any>) => void,
   ): Promise<Booking> {
     const booking = await this.bookingRepo.getBooking(id);
     if (!booking) {
@@ -304,12 +330,27 @@ export class BookingService implements IBookingService {
     }
 
     await this.bookingRepo.updateBookingStatus(id, newStatus);
+    
+    const updatedBooking = await this.bookingRepo.getBooking(id);
+    if (!updatedBooking) {
+      throw new NotFoundError(ERROR_MESSAGES.BOOKING_NOT_FOUND);
+    }
+    
+    const broadcastPromise = this.realtime
+      .broadcastStatusUpdated(id, updatedBooking);
+    
+    if (waitUntil) {
+      waitUntil(broadcastPromise);
+    } else {
+      await broadcastPromise;
+    }
+
     this.logger.info("Booking status transition", {
       bookingId: id,
       fromStatus: booking.status,
       toStatus: newStatus,
       userId: payload.sub,
     });
-    return { ...booking, status: newStatus };
+    return updatedBooking;
   }
 }
