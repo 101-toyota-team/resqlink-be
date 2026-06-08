@@ -13,7 +13,7 @@ const driverApp = createRouteApp();
 
 // POST /driver/location — Send GPS update from driver app
 // Driver JWT required. Accepts { lat, lng, heading?, speed?, accuracy?, booking_id? }
-// Writes to Redis cache + buffers to Supabase batch insert
+// Writes to Redis cache + Supabase insert
 driverApp.post(
   "/location",
   zValidator("json", driverLocationSchema, validatorHook),
@@ -24,9 +24,14 @@ driverApp.post(
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
     const driverId = payload.sub;
     const driverService = c.get("getDriverService")();
-    const driverLocationRepo = c.get("getDriverLocationRepo")();
-    await driverService.updateLocation(driverId, body);
-    c.executionCtx.waitUntil(driverLocationRepo.flushBatch());
+    const waitUntil = c.executionCtx?.waitUntil?.bind(c.executionCtx);
+    
+    if (waitUntil) {
+      waitUntil(driverService.updateLocation(driverId, body));
+    } else {
+      await driverService.updateLocation(driverId, body);
+    }
+    
     return c.json({ status: "ok" }, 200);
   },
 );
