@@ -9,7 +9,7 @@ on:
 
 jobs:
   backend-ci:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     # Map environment based on branch: main -> PRODUCTION, staging -> STAGING
     environment: ${{ github.ref_name == 'main' && 'PRODUCTION' || 'STAGING' }}
     steps:
