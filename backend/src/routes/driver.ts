@@ -4,7 +4,7 @@ import {
   driverStatusSchema,
   bookingIdParamSchema,
 } from "../schemas";
-import { createRouteApp } from "../utils/route";
+import { createRouteApp, getWaitUntil } from "../utils/route";
 import { validatorHook, ERROR_MESSAGES } from "../utils/constants";
 import { isDriverRole } from "../utils/auth";
 import { ForbiddenError } from "../utils/errors";
@@ -24,7 +24,7 @@ driverApp.post(
       throw new ForbiddenError(ERROR_MESSAGES.FORBIDDEN_ACCESS);
     const driverId = payload.sub;
     const driverService = c.get("getDriverService")();
-    const waitUntil = c.executionCtx?.waitUntil?.bind(c.executionCtx);
+    const waitUntil = getWaitUntil(c);
     
     if (waitUntil) {
       waitUntil(driverService.updateLocation(driverId, body));

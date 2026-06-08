@@ -50,7 +50,12 @@ export class DriverService implements IDriverService {
     const tasks = [this.driverLocationRepo.updateLatest(driverId, location)];
 
     if (payload.booking_id) {
-      tasks.push(this.realtime.broadcastTripLocation(payload.booking_id, location));
+      const broadcastPromise = this.realtime
+        .broadcastTripLocation(payload.booking_id, location)
+        .catch((err) => {
+          this.logger.error(err, "Failed to broadcast trip location");
+        });
+      tasks.push(broadcastPromise);
     }
 
     await Promise.all(tasks);

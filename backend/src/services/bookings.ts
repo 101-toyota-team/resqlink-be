@@ -28,7 +28,7 @@ export interface IBookingService {
   createBooking(
     data: BookingData,
     userId: string,
-    waitUntil?: (promise: Promise<any>) => void,
+    waitUntil?: (promise: Promise<unknown>) => void,
   ): Promise<Booking>;
   getBooking(id: string, payload: JwtPayload): Promise<Booking>;
   getUserBookings(
@@ -41,13 +41,13 @@ export interface IBookingService {
     ambulanceId: string,
     payload: JwtPayload,
     driverId?: string,
-    waitUntil?: (promise: Promise<any>) => void,
+    waitUntil?: (promise: Promise<unknown>) => void,
   ): Promise<Booking>;
   updateStatus(
     id: string,
     status: BookingStatus,
     payload: JwtPayload,
-    waitUntil?: (promise: Promise<any>) => void,
+    waitUntil?: (promise: Promise<unknown>) => void,
   ): Promise<Booking>;
   getConfirmedBookings(
     providerId: string,
@@ -74,7 +74,7 @@ export class BookingService implements IBookingService {
   async createBooking(
     data: BookingData,
     userId: string,
-    waitUntil?: (promise: Promise<any>) => void,
+    waitUntil?: (promise: Promise<unknown>) => void,
   ): Promise<Booking> {
     this.logger.debug("Booking created", {
       userId,
@@ -87,7 +87,10 @@ export class BookingService implements IBookingService {
 
     if (booking.status === "draft" && booking.provider_id) {
       const broadcastPromise = this.realtime
-        .broadcastNewBooking(booking.provider_id, booking);
+        .broadcastNewBooking(booking.provider_id, booking)
+        .catch((err) => {
+          this.logger.error(err, "Failed to broadcast new booking");
+        });
 
       if (waitUntil) {
         waitUntil(broadcastPromise);
@@ -160,7 +163,7 @@ export class BookingService implements IBookingService {
     ambulanceId: string,
     payload: JwtPayload,
     driverId?: string,
-    waitUntil?: (promise: Promise<any>) => void,
+    waitUntil?: (promise: Promise<unknown>) => void,
   ): Promise<Booking> {
     this.logger.debug("Assigning ambulance", {
       bookingId: id,
@@ -254,7 +257,10 @@ export class BookingService implements IBookingService {
       );
       
       const broadcastPromise = this.realtime
-        .broadcastAmbulanceAssigned(id, result);
+        .broadcastAmbulanceAssigned(id, result)
+        .catch((err) => {
+          this.logger.error(err, "Failed to broadcast ambulance assignment");
+        });
 
       if (waitUntil) {
         waitUntil(broadcastPromise);
@@ -287,7 +293,7 @@ export class BookingService implements IBookingService {
     id: string,
     newStatus: BookingStatus,
     payload: JwtPayload,
-    waitUntil?: (promise: Promise<any>) => void,
+    waitUntil?: (promise: Promise<unknown>) => void,
   ): Promise<Booking> {
     const booking = await this.bookingRepo.getBooking(id);
     if (!booking) {
@@ -337,7 +343,10 @@ export class BookingService implements IBookingService {
     }
     
     const broadcastPromise = this.realtime
-      .broadcastStatusUpdated(id, updatedBooking);
+      .broadcastStatusUpdated(id, updatedBooking)
+      .catch((err) => {
+        this.logger.error(err, "Failed to broadcast status update");
+      });
     
     if (waitUntil) {
       waitUntil(broadcastPromise);

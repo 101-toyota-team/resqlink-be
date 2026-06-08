@@ -26,7 +26,7 @@ export class DriverLocationRepository
     
     // NOTE: For high-volume production, consider buffering/batching updates via Redis Streams
     // to reduce DB IOPS. Direct inserts are used here for immediate data durability.
-    const tasks: Promise<any>[] = [
+    const tasks: Promise<void>[] = [
       this.cache.set(key, location, DRIVER_LOCATION_TTL),
       this.client
         .from("driver_locations")

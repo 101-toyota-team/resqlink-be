@@ -30,9 +30,6 @@ export class RealtimeBroadcaster
       if (resp !== "ok") {
         this.logger.warn("Failed to broadcast trip location", { status: resp });
       }
-    } catch (err) {
-      this.logger.error(err, "Error broadcasting trip location");
-      throw err;
     } finally {
       await this.client.removeChannel(channel);
     }
@@ -54,9 +51,6 @@ export class RealtimeBroadcaster
       if (resp !== "ok") {
         this.logger.warn("Failed to broadcast new booking", { status: resp });
       }
-    } catch (err) {
-      this.logger.error(err, "Error broadcasting new booking");
-      throw err;
     } finally {
       await this.client.removeChannel(channel);
     }
@@ -78,9 +72,6 @@ export class RealtimeBroadcaster
       if (resp !== "ok") {
         this.logger.warn("Failed to broadcast ambulance assignment", { status: resp });
       }
-    } catch (err) {
-      this.logger.error(err, "Error broadcasting ambulance assignment");
-      throw err;
     } finally {
       await this.client.removeChannel(channel);
     }
@@ -102,9 +93,6 @@ export class RealtimeBroadcaster
       if (resp !== "ok") {
         this.logger.warn("Failed to broadcast status update", { status: resp });
       }
-    } catch (err) {
-      this.logger.error(err, "Error broadcasting status update");
-      throw err;
     } finally {
       await this.client.removeChannel(channel);
     }
