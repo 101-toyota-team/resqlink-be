@@ -7,4 +7,4 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SECRET_KEY=your-secret-key
 MAPBOX_ACCESS_TOKEN=pk.your-token
 ALLOWED_ORIGINS=*
-LOG_LEVEL=debug
+LOG_LEVEL=info

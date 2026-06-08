@@ -6,9 +6,16 @@ import {
   ValidationError,
 } from "../utils/errors";
 import { ERROR_MESSAGES, errorResponse } from "../utils/constants";
+import { Logger } from "../utils/logger";
 
 export const errorHandler: ErrorHandler = (err, c) => {
-  const logger = c.get("getLogger")();
+  let logger;
+  try {
+    const getLogger = c.get("getLogger");
+    logger = typeof getLogger === "function" ? getLogger() : new Logger(c?.env?.LOG_LEVEL || "info");
+  } catch {
+    logger = new Logger(c?.env?.LOG_LEVEL || "info");
+  }
 
   if (err instanceof NotFoundError) {
     logger.info("Not found", { errorType: "NotFoundError" });

@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, Context } from "hono";
 import { Bindings } from "../schemas/env";
 import { AppVariables } from "../types";
 
@@ -7,6 +7,14 @@ type AppEnv = { Bindings: Bindings; Variables: AppVariables };
 export function createRouteApp() {
   return new Hono<AppEnv>();
 }
+
+export const getWaitUntil = (c: Context<AppEnv>) => {
+  try {
+    return c.executionCtx?.waitUntil?.bind(c.executionCtx);
+  } catch {
+    return undefined;
+  }
+};
 
 export function normalizeCoordinate(coord: number): string {
   return coord.toFixed(4);
