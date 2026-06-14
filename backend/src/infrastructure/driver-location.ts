@@ -29,18 +29,16 @@ export class DriverLocationRepository
     const tasks: Promise<void>[] = [
       this.cache.set(key, location, DRIVER_LOCATION_TTL),
       (async () => {
-        const { error } = await this.client
-          .from("driver_locations")
-          .insert({
-            driver_id: driverId,
-            booking_id: location.booking_id || null,
-            lat: location.lat,
-            lng: location.lng,
-            heading: location.heading ?? null,
-            speed: location.speed ?? null,
-            accuracy: location.accuracy ?? null,
-            captured_at: location.captured_at,
-          });
+        const { error } = await this.client.from("driver_locations").insert({
+          driver_id: driverId,
+          booking_id: location.booking_id || null,
+          lat: location.lat,
+          lng: location.lng,
+          heading: location.heading ?? null,
+          speed: location.speed ?? null,
+          accuracy: location.accuracy ?? null,
+          captured_at: location.captured_at,
+        });
         if (error) throw error;
       })(),
     ];

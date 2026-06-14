@@ -3,7 +3,7 @@ import { DispatchService } from "../src/services/dispatch";
 import { IAmbulanceRepository } from "../src/repositories/ambulance";
 import { IGeoService } from "../src/services/geo";
 import { IDistanceService } from "../src/services/distance";
-import { AmbulanceLocation, AmbulanceDetails } from "../src/types";
+import { AmbulanceLocation } from "../src/types";
 
 describe("DispatchService", () => {
   let mockAmbulanceRepo: Mocked<IAmbulanceRepository>;
@@ -92,7 +92,7 @@ describe("DispatchService", () => {
       { id: "driver_1", lat: -6.1, lng: 106.8 },
     ]);
     mockDistance.getEnrichedDrivers.mockResolvedValue([
-      { id: "driver_1", eta: "10 mins" } as any,
+      { id: "driver_1", eta: "10 mins" } as unknown as AmbulanceLocation,
     ]);
 
     const results = await service.findNearbyAmbulances("878c84c525fff", 1);
