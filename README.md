@@ -10,6 +10,14 @@ This project consists of:
 *   **Spatial Indexing**: Uber H3 (Resolution 7) calculated client-side (by the mobile app).
 *   **Maps**: Mapbox API.
 
+## 📚 Documentation
+
+| Guide | Description |
+|---|---|
+| [`docs/BACKEND_GUIDE.md`](docs/BACKEND_GUIDE.md) | Full developer onboarding: setup, middleware, DI, auth, routes, deployment |
+| [`docs/FRONTEND_BOOKING_FLOW.md`](docs/FRONTEND_BOOKING_FLOW.md) | Frontend integration guide: API reference, booking flow, Realtime, TypeScript types |
+| [`openapi.yaml`](openapi.yaml) | Full OpenAPI spec |
+
 ## 🚀 Getting Started
 
 ### 1. Prerequisites
