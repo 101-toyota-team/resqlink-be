@@ -1,4 +1,5 @@
 import { Hospital, HospitalDetails } from "../types";
+import { formatDistance } from "../utils/format";
 import { IHospitalRepository } from "../repositories/hospital";
 import { IGeoService } from "./geo";
 import { preprocessQuery } from "../utils/query";
@@ -35,7 +36,7 @@ export class HospitalService implements IHospitalService {
       );
       return {
         ...h,
-        distance: `${dist.toFixed(2)} km`,
+        distance: formatDistance(dist * 1000),
         distance_value: dist * 1000,
       };
     });

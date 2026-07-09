@@ -730,10 +730,13 @@ components:
           properties:
             distance:
               type: string
-              example: 1.2 km
+              example: 1200 m
+              description: >-
+                Straight-line (haversine) distance from the search origin,
+                always in metres (e.g. "800 m", "1200 m").
             distance_value:
               type: number
-              description: Distance in meters
+              description: Straight-line (haversine) distance in metres.
     Hospital:
       allOf:
         - $ref: '#/components/schemas/Provider'
@@ -773,10 +776,13 @@ components:
           properties:
             distance:
               type: string
-              example: 0.8 km
+              example: 800 m
+              description: >-
+                Straight-line (haversine) distance from the search origin,
+                always in metres (e.g. "800 m", "1200 m").
             distance_value:
               type: number
-              description: Distance in meters
+              description: Straight-line (haversine) distance in metres.
     Booking:
       type: object
       properties:
@@ -953,11 +959,14 @@ components:
               nullable: true
             distance:
               type: string
-              example: 2.5 km
+              example: 2500 m
               nullable: true
+              description: >-
+                Road distance from ambulance to pickup, always in metres
+                (e.g. "800 m", "2500 m").
             distance_value:
               type: number
-              description: Distance in meters
+              description: Road distance in metres from ambulance to pickup (Mapbox Matrix).
               nullable: true
           required:
             - id

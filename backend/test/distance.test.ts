@@ -86,8 +86,8 @@ describe("DistanceService", () => {
 
   it("returns cached results without API call", async () => {
     mockCache.mget.mockResolvedValue([
-      { eta: "5 mins", distance: "2.0 km" },
-      { eta: "8 mins", distance: "3.5 km" },
+      { eta: "5 mins", distance: "2000 m" },
+      { eta: "8 mins", distance: "3500 m" },
     ]);
 
     const result = await service.getEnrichedDrivers(drivers, pickupLocation);
@@ -95,7 +95,7 @@ describe("DistanceService", () => {
     expect(mockMaps.getDistanceMatrix).not.toHaveBeenCalled();
     expect(result).toHaveLength(2);
     expect(result[0].eta).toBe("5 mins");
-    expect(result[0].distance).toBe("2.0 km");
+    expect(result[0].distance).toBe("2000 m");
     expect(result[1].eta).toBe("8 mins");
   });
 
@@ -113,7 +113,7 @@ describe("DistanceService", () => {
 
   it("handles partial cache hit", async () => {
     mockCache.mget.mockResolvedValue([
-      { eta: "5 mins", distance: "2.0 km" },
+      { eta: "5 mins", distance: "2000 m" },
       null,
     ]);
     mockMaps.getDistanceMatrix.mockResolvedValue({

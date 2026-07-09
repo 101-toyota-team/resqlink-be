@@ -1,13 +1,8 @@
 /**
- * Formats distance in meters to a human-readable string.
- * If < 1000m, returns "X m".
- * If >= 1000m, returns "X.Y km" (1 decimal).
+ * Formats distance in meters to a human-readable string (always in meters).
  */
 export function formatDistance(meters: number): string {
-  if (meters < 1000) {
-    return `${Math.round(meters)} m`;
-  }
-  return `${(meters / 1000).toFixed(1)} km`;
+  return `${Math.round(meters)} m`;
 }
 
 /**

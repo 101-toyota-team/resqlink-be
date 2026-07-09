@@ -1,4 +1,5 @@
 import { ProviderDetails } from "../types";
+import { formatDistance } from "../utils/format";
 import { IProviderRepository } from "../repositories/provider";
 import { IGeoService } from "./geo";
 import { preprocessQuery } from "../utils/query";
@@ -84,7 +85,7 @@ export class ProviderService implements IProviderService {
       );
       return {
         ...p,
-        distance: `${dist.toFixed(2)} km`,
+        distance: formatDistance(dist * 1000),
         distance_value: dist * 1000,
       };
     });

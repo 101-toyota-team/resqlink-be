@@ -155,7 +155,7 @@ describe("Hospitals API", () => {
           igd_phone: "119",
           rating: 4.5,
           rating_count: 100,
-          distance: "2.5 km",
+          distance: "2500 m",
         },
       ];
       serviceMock.findNearbyHospitals.mockResolvedValue(mockResults);

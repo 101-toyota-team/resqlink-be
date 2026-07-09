@@ -219,7 +219,7 @@ describe("ProviderService", () => {
 
       const result = await service.findNearbyProviders(h3Index);
 
-      expect(result[0].distance).toBe("3.46 km");
+      expect(result[0].distance).toBe("3456 m");
       expect(result[0].distance_value).toBe(3456);
     });
 
@@ -252,7 +252,7 @@ describe("ProviderService", () => {
 
       const result = await service.findNearbyProviders(h3Index);
 
-      expect(result[0].distance).toBe("0.00 km");
+      expect(result[0].distance).toBe("0 m");
       expect(result[0].distance_value).toBe(0);
     });
 
