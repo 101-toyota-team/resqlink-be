@@ -176,6 +176,7 @@ export const diMiddleware: MiddlewareHandler<{
       bookingService = new BookingService(
         c.get("getBookingRepo")(),
         c.get("getAmbulanceRepo")(),
+        c.get("getDriverRepo")(),
         c.get("getRealtimeRepo")(),
         c.get("getDistanceService")(),
         c.get("getLogger")(),

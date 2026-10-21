@@ -2,9 +2,10 @@ import { describe, it, expect, vi, beforeEach, Mocked } from "vitest";
 import { BookingService } from "../src/services/bookings";
 import { IBookingRepository } from "../src/repositories/booking";
 import { IAmbulanceRepository } from "../src/repositories/ambulance";
+import { IDriverRepository } from "../src/repositories/driver";
 import { IRealtimeBroadcaster } from "../src/repositories/realtime";
 import { IDistanceService } from "../src/services/distance";
-import { Booking, ILogger } from "../src/types";
+import { Booking, Driver, ILogger } from "../src/types";
 import {
   NotFoundError,
   ForbiddenError,
@@ -15,6 +16,7 @@ import { ERROR_MESSAGES } from "../src/utils/constants";
 describe("BookingService", () => {
   let mockBookingRepo: Mocked<IBookingRepository>;
   let mockAmbulanceRepo: Mocked<IAmbulanceRepository>;
+  let mockDriverRepo: Mocked<IDriverRepository>;
   let mockRealtime: Mocked<IRealtimeBroadcaster>;
   let mockDistanceService: Mocked<IDistanceService>;
   let service: BookingService;
@@ -56,6 +58,17 @@ describe("BookingService", () => {
     status: "confirmed",
   };
 
+  const mockDriver: Driver = {
+    id: "driver_1",
+    provider_id: "provider_1",
+    name: "Budi",
+    phone: "081200000000",
+    license_number: "SIM-1",
+    is_available: true,
+    rating: 5,
+    is_active: true,
+  };
+
   beforeEach(() => {
     mockBookingRepo = {
       createBooking: vi.fn(),
@@ -73,6 +86,11 @@ describe("BookingService", () => {
       findAvailableAmbulances: vi.fn(),
       getAmbulanceProviderLocation: vi.fn(),
     } as Mocked<IAmbulanceRepository>;
+
+    mockDriverRepo = {
+      getDriver: vi.fn(),
+      updateAvailability: vi.fn(),
+    } as Mocked<IDriverRepository>;
 
     mockRealtime = {
       broadcastTripLocation: vi.fn().mockResolvedValue(undefined),
@@ -102,6 +120,7 @@ describe("BookingService", () => {
     service = new BookingService(
       mockBookingRepo,
       mockAmbulanceRepo,
+      mockDriverRepo,
       mockRealtime,
       mockDistanceService,
       mockLogger,
@@ -187,6 +206,87 @@ describe("BookingService", () => {
       );
 
       expect(mockRealtime.broadcastNewBooking).not.toHaveBeenCalled();
+    });
+
+    it("should derive provider_id and route geometry and broadcast when ambulance_id is given", async () => {
+      mockAmbulanceRepo.getAmbulance.mockResolvedValue({
+        id: "amb_1",
+        provider_id: "provider_1",
+      });
+      mockAmbulanceRepo.getAmbulanceProviderLocation.mockResolvedValue({
+        lat: -6.1,
+        lng: 106.7,
+      });
+      const createdBooking = {
+        ...mockDraftBooking,
+        ambulance_id: "amb_1",
+        status: "confirmed" as const,
+      };
+      mockBookingRepo.createBooking.mockResolvedValue(createdBooking);
+
+      const result = await service.createBooking(
+        {
+          ambulance_id: "amb_1",
+          provider_id: "client_supplied_provider",
+          booking_type: "medis",
+          patient_condition: "Stable",
+          pickup_address: "Jl. Sudirman No.1",
+          pickup_lat: -6.2,
+          pickup_lng: 106.8,
+          pickup_h3: "878c106a4ffffff",
+          destination_address: "RS Harapan",
+          destination_lat: -6.3,
+          destination_lng: 106.9,
+        },
+        "user_1",
+      );
+
+      expect(mockAmbulanceRepo.getAmbulance).toHaveBeenCalledWith("amb_1");
+      expect(mockBookingRepo.createBooking).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider_id: "provider_1",
+          route_geometry: {
+            total_distance_meters: 10000,
+            total_duration_seconds: 1200,
+            combined_viewport: {
+              low: { lat: 0, lng: 0 },
+              high: { lat: 1, lng: 1 },
+            },
+            legs: [
+              { sequence: 1, encoded_polyline: "mock_polyline" },
+              { sequence: 2, encoded_polyline: "mock_polyline" },
+            ],
+          },
+        }),
+      );
+      expect(mockRealtime.broadcastNewBooking).toHaveBeenCalledWith(
+        "provider_1",
+        createdBooking,
+      );
+      expect(result).toEqual(createdBooking);
+    });
+
+    it("should throw NotFoundError when booking an ambulance that does not exist", async () => {
+      mockAmbulanceRepo.getAmbulance.mockResolvedValue(null);
+
+      await expect(
+        service.createBooking(
+          {
+            ambulance_id: "amb_missing",
+            booking_type: "medis",
+            patient_condition: "Stable",
+            pickup_address: "Jl. Sudirman No.1",
+            pickup_lat: -6.2,
+            pickup_lng: 106.8,
+            pickup_h3: "878c106a4ffffff",
+            destination_address: "RS Harapan",
+            destination_lat: -6.3,
+            destination_lng: 106.9,
+          },
+          "user_1",
+        ),
+      ).rejects.toThrow(ERROR_MESSAGES.AMBULANCE_NOT_FOUND);
+      expect(mockBookingRepo.createBooking).not.toHaveBeenCalled();
     });
 
     it("should not throw when broadcast fails", async () => {
@@ -397,6 +497,77 @@ describe("BookingService", () => {
       ).rejects.toThrow(ERROR_MESSAGES.AMBULANCE_PROVIDER_MISMATCH);
     });
 
+    it("should throw NotFoundError when the assigned driver does not exist", async () => {
+      mockBookingRepo.getBooking.mockResolvedValue(mockDraftBooking);
+      mockAmbulanceRepo.getAmbulance.mockResolvedValue({
+        id: "amb_1",
+        provider_id: "provider_1",
+      });
+      mockDriverRepo.getDriver.mockResolvedValue(null);
+
+      await expect(
+        service.assignAmbulance(
+          "booking_1",
+          "amb_1",
+          mockProviderPayload,
+          "driver_missing",
+        ),
+      ).rejects.toThrow(ERROR_MESSAGES.DRIVER_NOT_FOUND);
+      expect(mockBookingRepo.assignAmbulance).not.toHaveBeenCalled();
+    });
+
+    it("should throw ForbiddenError when the driver belongs to another provider", async () => {
+      mockBookingRepo.getBooking.mockResolvedValue(mockDraftBooking);
+      mockAmbulanceRepo.getAmbulance.mockResolvedValue({
+        id: "amb_1",
+        provider_id: "provider_1",
+      });
+      mockDriverRepo.getDriver.mockResolvedValue({
+        ...mockDriver,
+        provider_id: "provider_2",
+      });
+
+      await expect(
+        service.assignAmbulance(
+          "booking_1",
+          "amb_1",
+          mockProviderPayload,
+          "driver_1",
+        ),
+      ).rejects.toThrow(ERROR_MESSAGES.FORBIDDEN_ACCESS);
+      expect(mockBookingRepo.assignAmbulance).not.toHaveBeenCalled();
+    });
+
+    it("should pass the validated driver through to the assignment", async () => {
+      mockBookingRepo.getBooking.mockResolvedValue(mockDraftBooking);
+      mockAmbulanceRepo.getAmbulance.mockResolvedValue({
+        id: "amb_1",
+        provider_id: "provider_1",
+      });
+      mockDriverRepo.getDriver.mockResolvedValue(mockDriver);
+      mockBookingRepo.assignAmbulance.mockResolvedValue({
+        ...mockDraftBooking,
+        ambulance_id: "amb_1",
+        driver_id: "driver_1",
+        status: "confirmed" as const,
+      });
+
+      await service.assignAmbulance(
+        "booking_1",
+        "amb_1",
+        mockProviderPayload,
+        "driver_1",
+      );
+
+      expect(mockBookingRepo.assignAmbulance).toHaveBeenCalledWith(
+        "booking_1",
+        "amb_1",
+        undefined,
+        expect.anything(),
+        "driver_1",
+      );
+    });
+
     it("should assign ambulance when booking has provider_id and ambulance matches", async () => {
       const assignedBooking = {
         ...mockDraftBooking,
@@ -488,6 +659,54 @@ describe("BookingService", () => {
       await expect(
         service.updateStatus("booking_1", "en_route", mockUserPayload),
       ).rejects.toThrow(ForbiddenError);
+    });
+
+    it("should throw ForbiddenError when the booking owner advances the trip", async () => {
+      const arrivedBooking = {
+        ...mockConfirmedBooking,
+        status: "arrived" as const,
+      };
+      mockBookingRepo.getBooking.mockResolvedValue(arrivedBooking);
+
+      await expect(
+        service.updateStatus("booking_1", "completed", mockUserPayload),
+      ).rejects.toThrow(ERROR_MESSAGES.FORBIDDEN_ACCESS);
+      expect(mockBookingRepo.updateBookingStatus).not.toHaveBeenCalled();
+    });
+
+    it("should allow the assigned driver to advance the trip", async () => {
+      const arrivedBooking = {
+        ...mockConfirmedBooking,
+        status: "arrived" as const,
+        driver_id: "driver_1",
+      };
+      mockBookingRepo.getBooking.mockResolvedValue(arrivedBooking);
+      mockBookingRepo.updateBookingStatus.mockResolvedValue(undefined);
+
+      await service.updateStatus("booking_1", "completed", {
+        sub: "driver_1",
+        role: "driver",
+      });
+
+      expect(mockBookingRepo.updateBookingStatus).toHaveBeenCalled();
+    });
+
+    it("should pass the current status to the repository so a concurrent update cannot win", async () => {
+      mockBookingRepo.getBooking
+        .mockResolvedValueOnce(mockConfirmedBooking)
+        .mockResolvedValueOnce({
+          ...mockConfirmedBooking,
+          status: "en_route" as const,
+        });
+      mockBookingRepo.updateBookingStatus.mockResolvedValue(undefined);
+
+      await service.updateStatus("booking_1", "en_route", mockProviderPayload);
+
+      expect(mockBookingRepo.updateBookingStatus).toHaveBeenCalledWith(
+        "booking_1",
+        "confirmed",
+        "en_route",
+      );
     });
 
     it("should throw BookingStateError for invalid transition", async () => {

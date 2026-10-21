@@ -128,13 +128,25 @@ export class BookingRepository
     }
   }
 
-  async updateBookingStatus(id: string, status: BookingStatus): Promise<void> {
+  async updateBookingStatus(
+    id: string,
+    fromStatus: BookingStatus,
+    status: BookingStatus,
+  ): Promise<void> {
     const { error } = await this.client
       .from("bookings")
       .update({ status })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("status", fromStatus)
+      .select()
+      .single();
 
     if (error) {
+      if (error.code === "PGRST116") {
+        throw new BookingStateError(
+          "Booking status was changed by another request",
+        );
+      }
       this.logger.error(error, "Supabase updateBookingStatus error");
       throw new Error(ERROR_MESSAGES.INTERNAL_ERROR, { cause: error });
     }

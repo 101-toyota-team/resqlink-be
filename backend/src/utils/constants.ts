@@ -112,6 +112,7 @@ export const ERROR_MESSAGES = {
     "Ambulance does not belong to the selected provider",
   INVALID_BOOKING_TRANSITION: "Invalid booking status transition",
   NO_ASSIGNED_AMBULANCE: "Booking has no assigned ambulance",
+  DRIVER_NOT_FOUND: "Driver not found",
 };
 
 /**

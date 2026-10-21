@@ -52,7 +52,16 @@ vi.mock("../src/infrastructure/mapbox", () => ({
   MapboxRepository: vi.fn().mockImplementation(function () {
     return {
       getDistanceMatrix: vi.fn(),
-      getDirections: vi.fn(),
+      getDirections: vi.fn().mockResolvedValue({
+        status: "OK",
+        routes: [
+          {
+            overview_polyline: { points: "_izlhA~rlgdF_{geC~ywl@" },
+            distance: 5000,
+            duration: 600,
+          },
+        ],
+      }),
     };
   }),
 }));
@@ -68,7 +77,10 @@ vi.mock("../src/infrastructure/supabase", () => {
       updateBookingStatus: vi.fn(),
       getUserBookings: vi.fn(),
       getConfirmedBookings: vi.fn(),
-      getAmbulance: vi.fn(),
+      getAmbulance: vi.fn().mockResolvedValue({
+        id: "00000000-0000-0000-0000-000000000003",
+        provider_id: "00000000-0000-0000-0000-000000000001",
+      }),
       findAvailableAmbulances: vi.fn(),
       getAmbulanceProviderLocation: vi.fn(),
       searchProviders: vi.fn(),
