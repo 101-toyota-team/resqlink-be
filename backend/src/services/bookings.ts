@@ -55,11 +55,6 @@ export interface IBookingService {
     payload: JwtPayload,
     waitUntil?: (promise: Promise<unknown>) => void,
   ): Promise<Booking>;
-  getConfirmedBookings(
-    providerId: string,
-    limit?: number,
-    offset?: number,
-  ): Promise<Booking[]>;
   getBookingsByProvider(
     providerId: string,
     status?: BookingStatus,
@@ -193,14 +188,6 @@ export class BookingService implements IBookingService {
     offset?: number,
   ): Promise<Booking[]> {
     return this.bookingRepo.getUserBookings(userId, limit, offset);
-  }
-
-  async getConfirmedBookings(
-    providerId: string,
-    limit?: number,
-    offset?: number,
-  ): Promise<Booking[]> {
-    return this.bookingRepo.getConfirmedBookings(providerId, limit, offset);
   }
 
   async getBookingsByProvider(

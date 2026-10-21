@@ -21,7 +21,6 @@ interface MockDb {
   getAmbulance: ReturnType<typeof vi.fn>;
   broadcastNewBooking: ReturnType<typeof vi.fn>;
   getUserBookings: ReturnType<typeof vi.fn>;
-  getConfirmedBookings: ReturnType<typeof vi.fn>;
   getBookingsByProvider: ReturnType<typeof vi.fn>;
   findAvailableAmbulances: ReturnType<typeof vi.fn>;
   getAmbulanceProviderLocation: ReturnType<typeof vi.fn>;
@@ -91,7 +90,6 @@ describe("Bookings Integration Lifecycle", () => {
       getAmbulance: vi.fn(),
       broadcastNewBooking: vi.fn().mockResolvedValue(undefined),
       getUserBookings: vi.fn(),
-      getConfirmedBookings: vi.fn(),
       getBookingsByProvider: vi.fn(),
       findAvailableAmbulances: vi.fn(),
       getAmbulanceProviderLocation: vi.fn(),

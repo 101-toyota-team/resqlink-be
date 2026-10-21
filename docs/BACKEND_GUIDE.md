@@ -45,8 +45,7 @@ resqlink-be/
 │   │   ├── infrastructure/  ← Supabase, Redis, Mapbox clients
 │   │   ├── middleware/      ← Auth, DI, rate-limit, error handler
 │   │   ├── schemas/         ← Zod validation schemas
-│   │   ├── utils/           ← Helpers, constants, logger
-│   │   └── archive/         ← Deprecated simulation code (do not use)
+│   │   └── utils/           ← Helpers, constants, logger
 │   ├── test/
 │   ├── wrangler.toml
 │   └── package.json
@@ -435,5 +434,3 @@ npm run test:watch   # Watch mode
 ```
 
 Tests live in `backend/test/`. Infrastructure dependencies (Supabase, Redis, Mapbox) are mocked; tests target the service layer directly.
-
-> The `src/archive/` directory contains deprecated simulation code. It is not tested and should not be used.

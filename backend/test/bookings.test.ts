@@ -35,7 +35,6 @@ interface MockDb {
   broadcastTripLocation: ReturnType<typeof vi.fn>;
   getAmbulanceProviderLocation: ReturnType<typeof vi.fn>;
   getUserBookings: ReturnType<typeof vi.fn>;
-  getConfirmedBookings: ReturnType<typeof vi.fn>;
   getBookingsByProvider: ReturnType<typeof vi.fn>;
   searchProviders: ReturnType<typeof vi.fn>;
   findProvidersByH3Indexes: ReturnType<typeof vi.fn>;
@@ -129,7 +128,6 @@ describe("Bookings API", () => {
       broadcastTripLocation: vi.fn(),
       getAmbulanceProviderLocation: vi.fn(),
       getUserBookings: vi.fn(),
-      getConfirmedBookings: vi.fn(),
       searchProviders: vi.fn(),
       findProvidersByH3Indexes: vi.fn(),
       searchHospitals: vi.fn(),

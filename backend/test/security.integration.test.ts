@@ -15,7 +15,6 @@ const mockBookingRepo = {
   assignAmbulance: vi.fn(),
   updateBookingStatus: vi.fn(),
   getUserBookings: vi.fn(),
-  getConfirmedBookings: vi.fn(),
   getAmbulance: vi.fn(),
   findAvailableAmbulances: vi.fn(),
   getAmbulanceProviderLocation: vi.fn(),

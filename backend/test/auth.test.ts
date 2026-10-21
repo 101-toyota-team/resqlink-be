@@ -76,7 +76,6 @@ vi.mock("../src/infrastructure/supabase", () => {
       assignAmbulance: vi.fn(),
       updateBookingStatus: vi.fn(),
       getUserBookings: vi.fn(),
-      getConfirmedBookings: vi.fn(),
       getAmbulance: vi.fn().mockResolvedValue({
         id: "00000000-0000-0000-0000-000000000003",
         provider_id: "00000000-0000-0000-0000-000000000001",
