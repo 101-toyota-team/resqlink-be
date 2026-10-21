@@ -58,6 +58,8 @@ app.use("/ambulances/*", rateLimiter("RL_DEFAULT"));
 app.use("/bookings/*", rateLimiter("RL_DEFAULT"));
 app.use("/bookings", rateLimiter("RL_DEFAULT"));
 app.use("/driver/*", rateLimiter("RL_DRIVER"));
+app.use("/providers/*", rateLimiter("RL_DEFAULT"));
+app.use("/hospitals/*", rateLimiter("RL_DEFAULT"));
 
 // 3.5. Request Lifecycle Logging
 app.use("*", async (c, next) => {
