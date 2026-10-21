@@ -11,6 +11,7 @@ import {
 } from "../src/repositories/db";
 import { BookingService } from "../src/services/bookings";
 import { IDistanceService } from "../src/services/distance";
+import { IDriverRepository } from "../src/repositories/driver";
 
 interface MockDb {
   createBooking: ReturnType<typeof vi.fn>;
@@ -32,6 +33,8 @@ interface MockDb {
   broadcastAmbulanceAssigned: ReturnType<typeof vi.fn>;
   broadcastStatusUpdated: ReturnType<typeof vi.fn>;
   getDriverAssignments: ReturnType<typeof vi.fn>;
+  getDriver: ReturnType<typeof vi.fn>;
+  updateAvailability: ReturnType<typeof vi.fn>;
 }
 
 const createApp = (dbMock: MockDb, jwtPayloadMock: JwtPayload) => {
@@ -44,6 +47,7 @@ const createApp = (dbMock: MockDb, jwtPayloadMock: JwtPayload) => {
       return new BookingService(
         dbMock as IBookingRepository,
         dbMock as IAmbulanceRepository,
+        dbMock as IDriverRepository,
         dbMock as IRealtimeBroadcaster,
         {
           getEnrichedDrivers: vi.fn(),
@@ -99,6 +103,8 @@ describe("Bookings Integration Lifecycle", () => {
       broadcastAmbulanceAssigned: vi.fn().mockResolvedValue(undefined),
       broadcastStatusUpdated: vi.fn().mockResolvedValue(undefined),
       getDriverAssignments: vi.fn(),
+      getDriver: vi.fn(),
+      updateAvailability: vi.fn(),
     };
   });
 

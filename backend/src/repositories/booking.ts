@@ -4,7 +4,11 @@ import type { BookingStatus } from "../utils/constants";
 export interface IBookingRepository {
   createBooking(data: BookingData): Promise<Booking>;
   getBooking(id: string): Promise<Booking | null>;
-  updateBookingStatus(id: string, status: BookingStatus): Promise<void>;
+  updateBookingStatus(
+    id: string,
+    fromStatus: BookingStatus,
+    status: BookingStatus,
+  ): Promise<void>;
   assignAmbulance(
     id: string,
     ambulanceId: string,
