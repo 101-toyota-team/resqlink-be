@@ -28,8 +28,36 @@ name = "staging"
 ALLOWED_ORIGINS = "*"
 LOG_LEVEL = "info"
 
+[[env.staging.ratelimits]]
+name = "RL_DEFAULT"
+namespace_id = "1001"
+[env.staging.ratelimits.simple]
+limit = 30
+period = 60
+
+[[env.staging.ratelimits]]
+name = "RL_DRIVER"
+namespace_id = "1001"
+[env.staging.ratelimits.simple]
+limit = 60
+period = 60
+
 [env.production]
 name = "api"
 [env.production.vars]
 ALLOWED_ORIGINS = "*"
 LOG_LEVEL = "info"
+
+[[env.production.ratelimits]]
+name = "RL_DEFAULT"
+namespace_id = "1001"
+[env.production.ratelimits.simple]
+limit = 30
+period = 60
+
+[[env.production.ratelimits]]
+name = "RL_DRIVER"
+namespace_id = "1001"
+[env.production.ratelimits.simple]
+limit = 60
+period = 60
