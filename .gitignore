@@ -22,6 +22,8 @@ Icon?
 !*.example
 credentials.json
 token.json
+envs.txt
+run.json
 
 node_modules/
 
