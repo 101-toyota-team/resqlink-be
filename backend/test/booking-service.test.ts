@@ -76,7 +76,6 @@ describe("BookingService", () => {
       updateBookingStatus: vi.fn(),
       assignAmbulance: vi.fn(),
       getUserBookings: vi.fn(),
-      getConfirmedBookings: vi.fn(),
       getBookingsByProvider: vi.fn(),
       getDriverAssignments: vi.fn(),
     } as Mocked<IBookingRepository>;
@@ -357,22 +356,6 @@ describe("BookingService", () => {
 
       expect(mockBookingRepo.getUserBookings).toHaveBeenCalledWith(
         "user_1",
-        10,
-        0,
-      );
-      expect(result).toEqual(mockBookings);
-    });
-  });
-
-  describe("getConfirmedBookings", () => {
-    it("should delegate to bookingRepo.getConfirmedBookings", async () => {
-      const mockBookings = [mockConfirmedBooking];
-      mockBookingRepo.getConfirmedBookings.mockResolvedValue(mockBookings);
-
-      const result = await service.getConfirmedBookings("provider_1", 10, 0);
-
-      expect(mockBookingRepo.getConfirmedBookings).toHaveBeenCalledWith(
-        "provider_1",
         10,
         0,
       );

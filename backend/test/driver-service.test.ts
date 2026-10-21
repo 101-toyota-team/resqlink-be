@@ -33,7 +33,6 @@ describe("DriverService", () => {
       updateBookingStatus: vi.fn(),
       assignAmbulance: vi.fn(),
       getUserBookings: vi.fn(),
-      getConfirmedBookings: vi.fn(),
       getBookingsByProvider: vi.fn(),
       getDriverAssignments: vi.fn(),
     } as Mocked<IBookingRepository>;

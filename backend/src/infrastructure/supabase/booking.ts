@@ -188,43 +188,6 @@ export class BookingRepository
     }
   }
 
-  async getConfirmedBookings(
-    providerId: string,
-    limit?: number,
-    offset?: number,
-  ): Promise<Booking[]> {
-    let query = this.client
-      .from("bookings")
-      .select("*")
-      .eq("status", "confirmed")
-      .eq("provider_id", providerId)
-      .order("created_at", { ascending: false });
-
-    if (limit !== undefined) {
-      query = query.limit(limit);
-      if (offset !== undefined) {
-        query = query.range(offset, offset + limit - 1);
-      }
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      this.logger.error(error, "Supabase getConfirmedBookings error");
-      throw new Error(ERROR_MESSAGES.INTERNAL_ERROR, { cause: error });
-    }
-
-    try {
-      return this.parseBookingList(data);
-    } catch (err) {
-      this.logger.error(
-        err,
-        "Database schema drift detected in getConfirmedBookings",
-      );
-      throw new DatabaseSchemaDriftError("Booking", err);
-    }
-  }
-
   async getBookingsByProvider(
     providerId: string,
     status?: BookingStatus,

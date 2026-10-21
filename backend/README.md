@@ -43,6 +43,5 @@ This is the Cloudflare Workers backend for the ResQLink platform.
 - **Auth**: JWT verified against Supabase JWKS (ES256 only). Applied to `/bookings/*` and `/driver/*`.
 - **H3 Spatial Search**: Backend expands H3 rings via `gridDisk` (hospitals) and `gridRingUnsafe` up to radius 30 (providers). Resolution **7** (15-char hex) is the enforced standard.
 - **Driver Presence**: Location keys in Redis have a 300-second TTL.
-- **`src/archive/`**: Contains deprecated simulation code — do not use.
 
 For the full developer guide, see [`docs/BACKEND_GUIDE.md`](../docs/BACKEND_GUIDE.md).

@@ -14,18 +14,6 @@ export class UpstashRedisRepository implements IGenericCache {
     this.client = new Redis({ url, token });
   }
 
-  async incr(key: string): Promise<number> {
-    return await this.client.incr(key);
-  }
-
-  async expire(key: string, ttl: number): Promise<void> {
-    await this.client.expire(key, ttl);
-  }
-
-  async ttl(key: string): Promise<number> {
-    return await this.client.ttl(key);
-  }
-
   async set(key: string, value: unknown, ttl?: number): Promise<void> {
     if (ttl) {
       await this.client.set(key, value, { ex: ttl });
@@ -67,21 +55,5 @@ export class UpstashRedisRepository implements IGenericCache {
 
   async del(key: string): Promise<void> {
     await this.client.del(key);
-  }
-
-  async lpush<T>(key: string, ...values: T[]): Promise<number> {
-    return await this.client.lpush(key, ...values);
-  }
-
-  async rpush<T>(key: string, ...values: T[]): Promise<number> {
-    return await this.client.rpush(key, ...values);
-  }
-
-  async lpop<T>(key: string): Promise<T | null> {
-    return await this.client.lpop<T>(key);
-  }
-
-  async llen(key: string): Promise<number> {
-    return await this.client.llen(key);
   }
 }
