@@ -49,7 +49,7 @@ LOG_LEVEL=info
 ## 🛠 Project Standards
 *   **H3 Resolution**: Level **7** is the project standard (15-character hex).
 *   **Matchmaking**: Static discovery (Providers/Hospitals) queries Supabase. The Backend is responsible for `gridDisk(1)` neighbor expansion (hospitals) and multi-ring progressive search via `gridRingUnsafe` up to radius 30 (providers). Real-time simulation state and driver presence pings are managed in Upstash Redis.
-*   **Real-time**: High-frequency GPS updates use Supabase Broadcast Channels (bypassing DB disk).
+*   **Real-time**: High-frequency GPS updates cache the latest coordinates in Redis and insert each ping into Postgres as durable history, while broadcasting updates to the trip channel via Supabase Broadcast Channels as a best-effort live push.
 *   **Mapbox Access Tokens**: Ensure you have created a token for the backend (Cloudflare Worker). Ensure the token has scopes for Directions and Matrix APIs.
 
 ## 📦 Deployment
@@ -72,7 +72,11 @@ The following environment variables must be configured in your GitHub Repository
 | **Variables** | `ALLOWED_ORIGINS` | CORS configuration. |
 | **Variables** | `LOG_LEVEL` | Logging verbosity (default: `info`). |
 
-To push database migrations to Supabase and deploy the Cloudflare Worker simultaneously:
+In CI/CD (`.github/workflows/deploy.yml`), migrations and worker deployments run in separate steps:
+*   **Deploy Supabase Migrations**: Links the project and pushes schema migrations using `supabase db push --include-all`.
+*   **Deploy Cloudflare Worker**: Deploys the Worker API to Cloudflare using Wrangler.
+
+To deploy the Worker only from your local environment (does not push database migrations):
 *   `cd backend && npx wrangler deploy`
 
 ### Troubleshooting CI/CD Failures
@@ -133,4 +137,4 @@ Wrangler handles authentication via the CLI, but you need the deployed URL for a
 2. Once you deploy your backend using `npx wrangler deploy` inside the `backend/` directory, Cloudflare will output the live URL of your worker (e.g., `https://backend.your-subdomain.workers.dev`).
 3. **Gather your credential:**
    *   *Used in:* Frontend repo (`WORKER_API_URL`)
-## Deployment Test
+
