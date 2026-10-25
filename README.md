@@ -6,7 +6,7 @@ ResQLink is a high-performance, edge-optimized ambulance booking and tracking pl
 This project consists of:
 *   **Backend**: Cloudflare Workers (TypeScript) powered by Hono.
 *   **Database**: Supabase (PostgreSQL) for persistence and Auth.
-*   **Real-time State**: Upstash Serverless Redis for O(1) H3 spatial matchmaking.
+*   **Cache**: Upstash Serverless Redis for driver locations and Mapbox distance lookups.
 *   **Spatial Indexing**: Uber H3 (Resolution 7) calculated client-side (by the mobile app).
 *   **Maps**: Mapbox API.
 
@@ -48,7 +48,7 @@ LOG_LEVEL=info
 
 ## 🛠 Project Standards
 *   **H3 Resolution**: Level **7** is the project standard (15-character hex).
-*   **Matchmaking**: Static discovery (Providers/Hospitals) queries Supabase. The Backend is responsible for `gridDisk(1)` neighbor expansion (hospitals) and multi-ring progressive search via `gridRingUnsafe` up to radius 30 (providers). Real-time simulation state and driver presence pings are managed in Upstash Redis.
+*   **Matchmaking**: Static discovery (Providers/Hospitals) queries Supabase. The Backend is responsible for `gridDisk(1)` neighbor expansion (hospitals) and multi-ring progressive search via `gridRingUnsafe` up to radius 30 (providers). Driver presence is managed in Upstash Redis, which holds each driver's latest position with a 300-second expiry.
 *   **Real-time**: High-frequency GPS updates cache the latest coordinates in Redis and insert each ping into Postgres as durable history, while broadcasting updates to the trip channel via Supabase Broadcast Channels as a best-effort live push.
 *   **Mapbox Access Tokens**: Ensure you have created a token for the backend (Cloudflare Worker). Ensure the token has scopes for Directions and Matrix APIs.
 
@@ -117,7 +117,7 @@ The project requires a Mapbox Access Token for the backend (and the separate fro
    *   *Used in:* Backend (`MAPBOX_ACCESS_TOKEN`)
 
 ### 3. Upstash (Serverless Redis)
-Upstash is used by the backend for high-speed spatial indexing (H3) and matchmaking.
+Upstash is used by the backend to cache each driver's latest location and Mapbox distance lookups.
 
 **Steps:**
 1. Go to [Upstash](https://upstash.com/) and navigate to the **Redis** tab.
@@ -137,4 +137,3 @@ Wrangler handles authentication via the CLI, but you need the deployed URL for a
 2. Once you deploy your backend using `npx wrangler deploy` inside the `backend/` directory, Cloudflare will output the live URL of your worker (e.g., `https://backend.your-subdomain.workers.dev`).
 3. **Gather your credential:**
    *   *Used in:* Frontend repo (`WORKER_API_URL`)
-
