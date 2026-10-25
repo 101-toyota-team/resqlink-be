@@ -117,7 +117,7 @@ The project requires a Mapbox Access Token for the backend (and the separate fro
    *   *Used in:* Backend (`MAPBOX_ACCESS_TOKEN`)
 
 ### 3. Upstash (Serverless Redis)
-Upstash is used by the backend for high-speed spatial indexing (H3) and matchmaking.
+Upstash is used by the backend to cache each driver's latest location and Mapbox distance lookups.
 
 **Steps:**
 1. Go to [Upstash](https://upstash.com/) and navigate to the **Redis** tab.
