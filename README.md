@@ -6,7 +6,7 @@ ResQLink is a high-performance, edge-optimized ambulance booking and tracking pl
 This project consists of:
 *   **Backend**: Cloudflare Workers (TypeScript) powered by Hono.
 *   **Database**: Supabase (PostgreSQL) for persistence and Auth.
-*   **Real-time State**: Upstash Serverless Redis for O(1) H3 spatial matchmaking.
+*   **Cache**: Upstash Serverless Redis for driver locations and Mapbox distance lookups.
 *   **Spatial Indexing**: Uber H3 (Resolution 7) calculated client-side (by the mobile app).
 *   **Maps**: Mapbox API.
 
@@ -48,7 +48,7 @@ LOG_LEVEL=info
 
 ## 🛠 Project Standards
 *   **H3 Resolution**: Level **7** is the project standard (15-character hex).
-*   **Matchmaking**: Static discovery (Providers/Hospitals) queries Supabase. The Backend is responsible for `gridDisk(1)` neighbor expansion (hospitals) and multi-ring progressive search via `gridRingUnsafe` up to radius 30 (providers). Real-time simulation state and driver presence pings are managed in Upstash Redis.
+*   **Matchmaking**: Static discovery (Providers/Hospitals) queries Supabase. The Backend is responsible for `gridDisk(1)` neighbor expansion (hospitals) and multi-ring progressive search via `gridRingUnsafe` up to radius 30 (providers). Driver presence is managed in Upstash Redis, which holds each driver's latest position with a 300-second expiry.
 *   **Real-time**: High-frequency GPS updates use Supabase Broadcast Channels (bypassing DB disk).
 *   **Mapbox Access Tokens**: Ensure you have created a token for the backend (Cloudflare Worker). Ensure the token has scopes for Directions and Matrix APIs.
 
